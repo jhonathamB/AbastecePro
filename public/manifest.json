@@ -1,0 +1,26 @@
+{
+  "short_name": "Frota",
+  "name": "Controle de Abastecimento",
+  "description": "App de controle de abastecimento de frota com QR Code",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#f97316",
+  "background_color": "#0f1117",
+  "lang": "pt-BR",
+  "categories": ["business", "utilities"]
+}
