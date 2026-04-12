@@ -89,183 +89,224 @@ function useQRScanner(onResult) {
 }
 
 // ── Dashboard ─────────────────────────────────────────
-function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabelecimentos }) {
+function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabelecimentos, isDark }) {
   const [periodo, setPeriodo] = useState("mes");
   const hoje = new Date();
+  const bg = isDark ? "#1a1c27" : "#fff";
+  const bg2 = isDark ? "#0f1117" : "#f0f0f5";
+  const border = isDark ? "#2a2c3a" : "#e0e0e8";
+  const txt = isDark ? "#e8e4d9" : "#1a1a2e";
+  const txt2 = isDark ? "#8a8a9a" : "#666";
 
   const filtrar = (regs) => {
-    if (periodo === "hoje") return regs.filter((r) => (r.data_hora || "").startsWith(hoje.toISOString().slice(0, 10)));
-    if (periodo === "mes") return regs.filter((r) => (r.data_hora || "").startsWith(hoje.toISOString().slice(0, 7)));
-    if (periodo === "ano") return regs.filter((r) => (r.data_hora || "").startsWith(String(hoje.getFullYear())));
+    if (periodo === "hoje") return regs.filter((r) => (r.data_hora||"").startsWith(hoje.toISOString().slice(0,10)));
+    if (periodo === "mes") return regs.filter((r) => (r.data_hora||"").startsWith(hoje.toISOString().slice(0,7)));
+    if (periodo === "ano") return regs.filter((r) => (r.data_hora||"").startsWith(String(hoje.getFullYear())));
     return regs;
   };
 
   const regs = filtrar(registros);
-  const totalLitros = regs.reduce((a, b) => a + Number(b.quantidade || 0), 0);
-  const totalCusto = regs.reduce((a, b) => a + Number(b.custo || 0), 0);
+  const totalLitros = regs.reduce((a,b) => a+Number(b.quantidade||0), 0);
+  const totalCusto = regs.reduce((a,b) => a+Number(b.custo||0), 0);
   const totalReg = regs.length;
-  const precioMedio = totalLitros > 0 ? totalCusto / totalLitros : 0;
+  const precioMedio = totalLitros > 0 ? totalCusto/totalLitros : 0;
 
-  // Top veículos
   const porVeiculo = {};
   regs.forEach((r) => {
-    const k = r.placa || "—";
-    if (!porVeiculo[k]) porVeiculo[k] = { litros: 0, custo: 0, count: 0 };
-    porVeiculo[k].litros += Number(r.quantidade || 0);
-    porVeiculo[k].custo += Number(r.custo || 0);
+    const k = r.placa||"—";
+    if (!porVeiculo[k]) porVeiculo[k] = { litros:0, custo:0, count:0 };
+    porVeiculo[k].litros += Number(r.quantidade||0);
+    porVeiculo[k].custo += Number(r.custo||0);
     porVeiculo[k].count++;
   });
-  const topVeiculos = Object.entries(porVeiculo).sort((a, b) => b[1].custo - a[1].custo).slice(0, 5);
+  const topVeiculos = Object.entries(porVeiculo).sort((a,b) => b[1].custo-a[1].custo).slice(0,5);
 
-  // Por combustível
   const porComb = {};
   regs.forEach((r) => {
-    const k = r.combustivel || "—";
-    if (!porComb[k]) porComb[k] = { litros: 0, custo: 0 };
-    porComb[k].litros += Number(r.quantidade || 0);
-    porComb[k].custo += Number(r.custo || 0);
+    const k = r.combustivel||"—";
+    if (!porComb[k]) porComb[k] = { litros:0, custo:0 };
+    porComb[k].litros += Number(r.quantidade||0);
+    porComb[k].custo += Number(r.custo||0);
   });
-  const topComb = Object.entries(porComb).sort((a, b) => b[1].litros - a[1].litros);
+  const topComb = Object.entries(porComb).sort((a,b) => b[1].litros-a[1].litros).slice(0,4);
 
-  // Por estabelecimento (admin)
+  const porDepto = {};
+  regs.forEach((r) => {
+    const k = r.departamento||"—";
+    if (!porDepto[k]) porDepto[k] = { litros:0, custo:0, count:0 };
+    porDepto[k].litros += Number(r.quantidade||0);
+    porDepto[k].custo += Number(r.custo||0);
+    porDepto[k].count++;
+  });
+  const topDepto = Object.entries(porDepto).sort((a,b) => b[1].custo-a[1].custo).slice(0,5);
+
   const porEst = {};
-  if (isAdmin) {
-    regs.forEach((r) => {
-      const k = r.operador || "—";
-      if (!porEst[k]) porEst[k] = { litros: 0, custo: 0, count: 0 };
-      porEst[k].litros += Number(r.quantidade || 0);
-      porEst[k].custo += Number(r.custo || 0);
-      porEst[k].count++;
-    });
-  }
-  const topEst = Object.entries(porEst).sort((a, b) => b[1].custo - a[1].custo);
+  if (isAdmin) regs.forEach((r) => {
+    const k = r.operador||"—";
+    if (!porEst[k]) porEst[k] = { litros:0, custo:0, count:0 };
+    porEst[k].litros += Number(r.quantidade||0);
+    porEst[k].custo += Number(r.custo||0);
+    porEst[k].count++;
+  });
+  const topEst = Object.entries(porEst).sort((a,b) => b[1].custo-a[1].custo);
 
-  // Evolução diária (últimos 7 dias)
   const ultimos7 = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(hoje);
-    d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
-    const label = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-    const dayRegs = registros.filter((r) => (r.data_hora || "").startsWith(key));
-    ultimos7.push({ label, custo: dayRegs.reduce((a, b) => a + Number(b.custo || 0), 0), litros: dayRegs.reduce((a, b) => a + Number(b.quantidade || 0), 0) });
+  for (let i=6; i>=0; i--) {
+    const d = new Date(hoje); d.setDate(d.getDate()-i);
+    const key = d.toISOString().slice(0,10);
+    const label = d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"});
+    const dayRegs = registros.filter((r) => (r.data_hora||"").startsWith(key));
+    ultimos7.push({ label, custo: dayRegs.reduce((a,b)=>a+Number(b.custo||0),0) });
   }
-  const maxCusto = Math.max(...ultimos7.map((d) => d.custo), 1);
-
-  const COLORS = ["#f97316", "#38bdf8", "#4ade80", "#a78bfa", "#fb7185", "#fbbf24"];
+  const maxCusto = Math.max(...ultimos7.map((d)=>d.custo), 1);
+  const COLORS = ["#f97316","#38bdf8","#4ade80","#a78bfa","#fb7185","#fbbf24"];
 
   return (
-    <div className="fade-in">
-      {/* Período */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        {[["hoje", "Hoje"], ["mes", "Este mês"], ["ano", "Este ano"], ["todos", "Todos"]].map(([id, label]) => (
-          <button key={id} onClick={() => setPeriodo(id)} style={{ padding: "8px 16px", background: periodo === id ? "#f97316" : "#1a1c27", border: `1px solid ${periodo === id ? "#f97316" : "#2a2c3a"}`, borderRadius: 8, color: periodo === id ? "#fff" : "#8a8a9a", fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>{label}</button>
+    <div className="fade-in" style={{ display:"flex", flexDirection:"column", gap:16 }}>
+
+      {/* Alertas */}
+      <PainelAlertas veiculos={veiculos} motoristas={motoristas} />
+
+      {/* Seletor de período — pill style */}
+      <div style={{ display:"flex", background:bg, borderRadius:12, padding:4, border:`1px solid ${border}` }}>
+        {[["hoje","Hoje"],["mes","Mês"],["ano","Ano"],["todos","Tudo"]].map(([id,label]) => (
+          <button key={id} onClick={() => setPeriodo(id)} style={{
+            flex:1, padding:"8px 4px", background: periodo===id?"#f97316":"transparent",
+            border:"none", borderRadius:8, color: periodo===id?"#fff":txt2,
+            fontFamily:"inherit", fontSize:12, cursor:"pointer", fontWeight: periodo===id?600:400,
+            transition:"all 0.2s"
+          }}>{label}</button>
         ))}
       </div>
 
-      {/* Painel de alertas de vencimento */}
-      <PainelAlertas veiculos={veiculos} motoristas={motoristas} />
-
-      {/* Cards de resumo */}
-      <div className="grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
+      {/* Cards 2x2 */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
         {[
-          ["REGISTROS", totalReg, "", "#f97316"],
-          ["TOTAL LITROS", fmtNum(totalLitros), "L", "#38bdf8"],
-          ["TOTAL GASTO", fmtBRL(totalCusto), "", "#4ade80"],
-          ["PREÇO MÉDIO/L", fmtBRL(precioMedio), "", "#a78bfa"],
-        ].map(([label, val, unit, color]) => (
-          <div key={label} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 12, padding: "16px 18px" }}>
-            <div style={{ fontSize: 9, color: "#5a5a6a", letterSpacing: 2, marginBottom: 6 }}>{label}</div>
-            <div style={{ fontSize: 20, fontFamily: "'Syne',sans-serif", fontWeight: 800, color, marginTop: 2 }}>
-              {val}{unit && <span style={{ fontSize: 12, marginLeft: 3, color: "#5a5a6a" }}>{unit}</span>}
+          ["Registros", totalReg, "", "#f97316", "📋"],
+          ["Total Litros", fmtNum(totalLitros), "L", "#38bdf8", "💧"],
+          ["Total Gasto", fmtBRL(totalCusto), "", "#4ade80", "💰"],
+          ["Preço/Litro", fmtBRL(precioMedio), "", "#a78bfa", "⛽"],
+        ].map(([label, val, unit, color, icon]) => (
+          <div key={label} style={{ background:bg, border:`1px solid ${border}`, borderRadius:14, padding:"14px 16px", position:"relative", overflow:"hidden" }}>
+            <div style={{ position:"absolute", top:10, right:12, fontSize:22, opacity:0.15 }}>{icon}</div>
+            <div style={{ fontSize:10, color:txt2, letterSpacing:1, marginBottom:6, fontWeight:500 }}>{label.toUpperCase()}</div>
+            <div style={{ fontSize:22, fontFamily:"'Syne',sans-serif", fontWeight:800, color, lineHeight:1 }}>
+              {val}{unit && <span style={{ fontSize:12, marginLeft:3, color:txt2 }}>{unit}</span>}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Gráfico de barras — evolução 7 dias */}
-      <div style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
-        <div style={{ fontSize: 11, color: "#5a5a6a", letterSpacing: 2, marginBottom: 16 }}>EVOLUÇÃO — ÚLTIMOS 7 DIAS (R$)</div>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 100 }}>
-          {ultimos7.map((d, i) => {
-            const h = maxCusto > 0 ? (d.custo / maxCusto) * 90 : 0;
+      {/* Gráfico 7 dias */}
+      <div style={{ background:bg, border:`1px solid ${border}`, borderRadius:14, padding:"16px 14px" }}>
+        <div style={{ fontSize:11, color:txt2, fontWeight:600, marginBottom:14, letterSpacing:0.5 }}>EVOLUÇÃO — 7 DIAS</div>
+        <div style={{ display:"flex", alignItems:"flex-end", gap:6, height:80 }}>
+          {ultimos7.map((d,i) => {
+            const h = maxCusto > 0 ? (d.custo/maxCusto)*70 : 0;
+            const isHoje = i === 6;
             return (
-              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                <div style={{ fontSize: 9, color: "#5a5a6a" }}>{d.custo > 0 ? fmtBRL(d.custo).replace("R$\u00a0", "") : ""}</div>
-                <div style={{ width: "100%", height: Math.max(h, d.custo > 0 ? 4 : 0), background: d.custo > 0 ? "#f97316" : "#2a2c3a", borderRadius: "4px 4px 0 0", transition: "height 0.5s ease", minHeight: 2 }} />
-                <div style={{ fontSize: 9, color: "#5a5a6a", whiteSpace: "nowrap" }}>{d.label}</div>
+              <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+                <div style={{ width:"100%", height:Math.max(h, d.custo>0?3:0), background: isHoje?"#f97316":isDark?"#2a3a5a":"#c8d8f0", borderRadius:"4px 4px 0 0", minHeight:d.custo>0?3:0 }} />
+                <div style={{ fontSize:8, color: isHoje?"#f97316":txt2, fontWeight: isHoje?700:400 }}>{d.label}</div>
               </div>
             );
           })}
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: isAdmin ? "1fr 1fr 1fr" : "1fr 1fr", gap: 16 }}>
-        {/* Top veículos */}
-        <div style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 12, padding: "18px 20px" }}>
-          <div style={{ fontSize: 11, color: "#5a5a6a", letterSpacing: 2, marginBottom: 14 }}>🚗 TOP VEÍCULOS</div>
-          {topVeiculos.length === 0 ? <div style={{ fontSize: 12, color: "#3a3a4a" }}>Sem dados</div> : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {topVeiculos.map(([placa, d], i) => (
+      <div className="dash-sections" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+      {/* Top Veículos */}
+      {topVeiculos.length > 0 && (
+        <div style={{ background:bg, border:`1px solid ${border}`, borderRadius:14, padding:"16px" }}>
+          <div style={{ fontSize:11, color:txt2, fontWeight:600, marginBottom:12, letterSpacing:0.5 }}>🚗 TOP VEÍCULOS</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {topVeiculos.map(([placa,d],i) => {
+              const pct = totalCusto > 0 ? (d.custo/totalCusto)*100 : 0;
+              return (
                 <div key={placa}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>{placa}</span>
-                    <span style={{ fontSize: 11, color: COLORS[i % COLORS.length] }}>{fmtBRL(d.custo)}</span>
-                  </div>
-                  <div style={{ height: 3, background: "#2a2c3a", borderRadius: 2 }}>
-                    <div style={{ height: 3, background: COLORS[i % COLORS.length], borderRadius: 2, width: `${(d.custo / (topVeiculos[0]?.[1]?.custo || 1)) * 100}%` }} />
-                  </div>
-                  <div style={{ fontSize: 10, color: "#5a5a6a", marginTop: 2 }}>{fmtNum(d.litros)} L · {d.count} abast.</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Por combustível */}
-        <div style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 12, padding: "18px 20px" }}>
-          <div style={{ fontSize: 11, color: "#5a5a6a", letterSpacing: 2, marginBottom: 14 }}>⛽ COMBUSTÍVEIS</div>
-          {topComb.length === 0 ? <div style={{ fontSize: 12, color: "#3a3a4a" }}>Sem dados</div> : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {topComb.map(([comb, d], i) => (
-                <div key={comb}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                    <span style={{ fontSize: 12, color: "#fff" }}>{comb}</span>
-                    <span style={{ fontSize: 11, color: COLORS[i % COLORS.length] }}>{fmtNum(d.litros)} L</span>
-                  </div>
-                  <div style={{ height: 3, background: "#2a2c3a", borderRadius: 2 }}>
-                    <div style={{ height: 3, background: COLORS[i % COLORS.length], borderRadius: 2, width: `${(d.litros / (topComb[0]?.[1]?.litros || 1)) * 100}%` }} />
-                  </div>
-                  <div style={{ fontSize: 10, color: "#5a5a6a", marginTop: 2 }}>{fmtBRL(d.custo)}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Admin: por estabelecimento */}
-        {isAdmin && (
-          <div style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 12, padding: "18px 20px" }}>
-            <div style={{ fontSize: 11, color: "#5a5a6a", letterSpacing: 2, marginBottom: 14 }}>🏪 ESTABELECIMENTOS</div>
-            {topEst.length === 0 ? <div style={{ fontSize: 12, color: "#3a3a4a" }}>Sem dados</div> : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {topEst.map(([est, d], i) => (
-                  <div key={est}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span style={{ fontSize: 12, color: "#fff" }}>{est}</span>
-                      <span style={{ fontSize: 11, color: COLORS[i % COLORS.length] }}>{fmtBRL(d.custo)}</span>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <div style={{ width:24, height:24, borderRadius:6, background:COLORS[i%COLORS.length]+"22", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:800, color:COLORS[i%COLORS.length] }}>{i+1}</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:txt, fontFamily:"'Syne',sans-serif", letterSpacing:1 }}>{placa}</div>
                     </div>
-                    <div style={{ height: 3, background: "#2a2c3a", borderRadius: 2 }}>
-                      <div style={{ height: 3, background: COLORS[i % COLORS.length], borderRadius: 2, width: `${(d.custo / (topEst[0]?.[1]?.custo || 1)) * 100}%` }} />
+                    <div style={{ textAlign:"right" }}>
+                      <div style={{ fontSize:13, fontWeight:700, color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)}</div>
+                      <div style={{ fontSize:10, color:txt2 }}>{fmtNum(d.litros)} L · {d.count} abast.</div>
                     </div>
-                    <div style={{ fontSize: 10, color: "#5a5a6a", marginTop: 2 }}>{fmtNum(d.litros)} L · {d.count} abast.</div>
                   </div>
-                ))}
-              </div>
-            )}
+                  <div style={{ height:3, background:isDark?"#2a2c3a":"#eee", borderRadius:2 }}>
+                    <div style={{ height:3, background:COLORS[i%COLORS.length], borderRadius:2, width:`${pct}%`, transition:"width 0.5s" }} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Combustíveis */}
+      {topComb.length > 0 && (
+        <div style={{ background:bg, border:`1px solid ${border}`, borderRadius:14, padding:"16px" }}>
+          <div style={{ fontSize:11, color:txt2, fontWeight:600, marginBottom:12, letterSpacing:0.5 }}>⛽ COMBUSTÍVEIS</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+            {topComb.map(([comb,d],i) => (
+              <div key={comb} style={{ background:bg2, borderRadius:10, padding:"10px 12px", borderLeft:`3px solid ${COLORS[i%COLORS.length]}` }}>
+                <div style={{ fontSize:11, fontWeight:600, color:txt, marginBottom:3 }}>{comb}</div>
+                <div style={{ fontSize:13, fontWeight:800, color:COLORS[i%COLORS.length] }}>{fmtNum(d.litros)} L</div>
+                <div style={{ fontSize:10, color:txt2 }}>{fmtBRL(d.custo)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       </div>
+      {/* Top Secretarias */}
+      {topDepto.length > 0 && (
+        <div style={{ background:bg, border:`1px solid ${border}`, borderRadius:14, padding:"16px" }}>
+          <div style={{ fontSize:11, color:txt2, fontWeight:600, marginBottom:12, letterSpacing:0.5 }}>🏢 SECRETARIAS</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {topDepto.map(([depto,d],i) => {
+              const pct = totalCusto > 0 ? (d.custo/totalCusto)*100 : 0;
+              return (
+                <div key={depto}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+                    <div style={{ fontSize:12, fontWeight:600, color:txt }}>{depto}</div>
+                    <div style={{ fontSize:12, fontWeight:700, color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)} <span style={{ fontSize:10, color:txt2 }}>({pct.toFixed(0)}%)</span></div>
+                  </div>
+                  <div style={{ height:4, background:isDark?"#2a2c3a":"#eee", borderRadius:2 }}>
+                    <div style={{ height:4, background:COLORS[i%COLORS.length], borderRadius:2, width:`${pct}%`, transition:"width 0.5s" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Admin: Por estabelecimento */}
+      {isAdmin && topEst.length > 0 && (
+        <div style={{ background:bg, border:`1px solid ${border}`, borderRadius:14, padding:"16px" }}>
+          <div style={{ fontSize:11, color:txt2, fontWeight:600, marginBottom:12, letterSpacing:0.5 }}>🏪 ESTABELECIMENTOS</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {topEst.map(([est,d],i) => {
+              const pct = totalCusto > 0 ? (d.custo/totalCusto)*100 : 0;
+              return (
+                <div key={est}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+                    <div style={{ fontSize:12, fontWeight:600, color:txt }}>{est}</div>
+                    <div style={{ fontSize:12, fontWeight:700, color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)}</div>
+                  </div>
+                  <div style={{ height:4, background:isDark?"#2a2c3a":"#eee", borderRadius:2 }}>
+                    <div style={{ height:4, background:COLORS[i%COLORS.length], borderRadius:2, width:`${pct}%`, transition:"width 0.5s" }} />
+                  </div>
+                  <div style={{ fontSize:10, color:txt2, marginTop:2 }}>{fmtNum(d.litros)} L · {d.count} abast.</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -531,18 +572,26 @@ function Relatorios({ registros, isAdmin, veiculos }) {
 
   return (
     <div className="fade-in">
-      {/* Abas internas */}
-      <div style={{ display:"flex", gap:6, marginBottom:20, flexWrap:"wrap" }}>
-        {[["resumo","📊 Resumo"],["secretaria","🏢 Por Secretaria"],["historico","📋 Histórico"],["consumo","⛽ Consumo km/L"],["financeiro","💰 Financeiro"]].map(([id,label]) => (
-          <button key={id} onClick={() => setAba(id)} style={{ padding:"9px 16px", background:aba===id?"#f97316":"#1a1c27", border:`1px solid ${aba===id?"#f97316":"#2a2c3a"}`, borderRadius:8, color:aba===id?"#fff":"#8a8a9a", fontFamily:"inherit", fontSize:12, cursor:"pointer", fontWeight:aba===id?500:400 }}>{label}</button>
-        ))}
-        <button onClick={exportPDF} style={{ marginLeft:"auto", padding:"9px 16px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:8, color:"#a78bfa", fontFamily:"inherit", fontSize:12, cursor:"pointer" }}>📄 PDF Mensal</button>
+      {/* Abas internas — scroll horizontal */}
+      <div className="tabs-scroll" style={{ overflowX:"auto", marginBottom:16, paddingBottom:4 }}>
+        <div style={{ display:"flex", gap:6, minWidth:"max-content" }}>
+          {[["resumo","📊 Resumo"],["secretaria","🏢 Secretaria"],["historico","📋 Histórico"],["consumo","⛽ km/L"],["financeiro","💰 Financeiro"]].map(([id,label]) => (
+            <button key={id} onClick={() => setAba(id)} style={{
+              padding:"9px 14px", background:aba===id?"#f97316":"#1a1c27",
+              border:`1px solid ${aba===id?"#f97316":"#2a2c3a"}`,
+              borderRadius:20, color:aba===id?"#fff":"#8a8a9a",
+              fontFamily:"inherit", fontSize:12, cursor:"pointer",
+              fontWeight:aba===id?600:400, whiteSpace:"nowrap", transition:"all 0.2s"
+            }}>{label}</button>
+          ))}
+          <button onClick={exportPDF} style={{ padding:"9px 14px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:20, color:"#a78bfa", fontFamily:"inherit", fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>📄 PDF</button>
+        </div>
       </div>
 
       {/* Filtros de período */}
-      <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap" }}>
+      <div className="period-btns" style={{ display:"flex", gap:6, marginBottom:16, background:"#1a1c27", borderRadius:10, padding:4 }}>
         {[["todos","Todos"],["mes","Este mês"],["hoje","Hoje"]].map(([id,label]) => (
-          <button key={id} onClick={() => setPeriodo(id)} style={{ padding:"7px 12px", background:periodo===id?"#1e3a2a":"#1a1c27", border:`1px solid ${periodo===id?"#16a34a":"#2a2c3a"}`, borderRadius:8, color:periodo===id?"#4ade80":"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>{label}</button>
+          <button key={id} onClick={() => setPeriodo(id)} style={{ flex:1, padding:"7px 8px", background:periodo===id?"#16a34a":"transparent", border:"none", borderRadius:8, color:periodo===id?"#fff":"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer", fontWeight:periodo===id?600:400 }}>{label}</button>
         ))}
         {isAdmin && (
           <select value={filtroEst} onChange={(e) => setFiltroEst(e.target.value)} style={{ ...iS(), fontSize:11, padding:"7px 12px", width:"auto" }}>
@@ -1174,7 +1223,24 @@ export default function App() {
         @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}} .pop{animation:pop 0.35s ease}
         @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,0.4)}50%{box-shadow:0 0 0 10px rgba(249,115,22,0)}}
         .qr-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
-        @media(max-width:600px){.grid-4{grid-template-columns:1fr 1fr!important}.grid-2{grid-template-columns:1fr!important}.grid-3{grid-template-columns:1fr 1fr!important}.pad-main{padding:16px!important}}
+        @media(max-width:768px){
+          .dash-cards{grid-template-columns:1fr 1fr!important}
+          .dash-sections{grid-template-columns:1fr!important}
+          .reg-row{grid-template-columns:1fr 1fr auto!important}
+          .reg-col-hide{display:none!important}
+          .form-grid{grid-template-columns:1fr!important}
+          .scan-grid{grid-template-columns:1fr!important}
+          .tabs-scroll{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+          .tabs-scroll>div{min-width:max-content!important}
+          .pad-main{padding:12px!important}
+          .header-inner{padding:12px 12px 0!important}
+          .period-btns button{padding:7px 10px!important;font-size:11px!important}
+        }
+        @media(min-width:769px){
+          .dash-cards{grid-template-columns:repeat(4,1fr)!important}
+          .dash-sections{grid-template-columns:1fr 1fr!important}
+          .mobile-pill{border-radius:8px!important}
+        }
       `}</style>
 
       {/* Modal edição estabelecimento - admin */}
@@ -1327,13 +1393,13 @@ export default function App() {
       )}
 
       {/* Header */}
-      <div style={{ background: "linear-gradient(135deg,#1a1c27 0%,#0f1117 100%)", borderBottom: "1px solid #1e2030", padding: "16px 16px 0" }}>
+      <div className="header-inner" style={{ background: "linear-gradient(135deg,#1a1c27 0%,#0f1117 100%)", borderBottom: "1px solid #1e2030", padding: "20px 28px 0" }}>
         <div style={{ maxWidth: 960, margin: "0 auto", width:"100%" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div style={{ width: 38, height: 38, borderRadius: 10, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⛽</div>
               <div>
-                <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 20, fontWeight: 800, letterSpacing: -0.5, color: "#fff" }}>ABASTECIMENTO</div>
+                <div style={{ fontFamily: "'Syne',sans-serif", fontSize: "clamp(14px, 4vw, 20px)", fontWeight: 800, letterSpacing: -0.5, color: "#fff" }}>ABASTECIMENTO</div>
                 <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:-2 }}>
                   <div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2 }}>{estNome.toUpperCase()}</div>
                   <span style={{ fontSize:9, padding:"1px 6px", borderRadius:4, background: isAdmin?"#2d1f0a":isGestor?"#1e3a2a":"#1e2535", color: isAdmin?"#fbbf24":isGestor?"#4ade80":"#38bdf8" }}>
@@ -1412,7 +1478,7 @@ export default function App() {
         {/* REGISTRAR */}
         {!loading && activeTab === "registrar" && (
           <div className="fade-in">
-            <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+            <div className="scan-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
               <ScanBlock icon="👤" label="IDENTIFICAÇÃO DO MOTORISTA"
                 scanned={scannedMot ? { linha1: scannedMot.nome, linha2: `${scannedMot.departamento}${scannedMot.cnh ? " · CNH " + scannedMot.cnh : ""}` } : null}
                 onClear={() => setScannedMot(null)} onStart={startMotScan} onStop={motScanner.stop}
@@ -1456,7 +1522,7 @@ export default function App() {
               <div><div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2, marginBottom: 2 }}>ESTABELECIMENTO</div><div style={{ fontSize: 14, fontWeight: 500, color: "#f97316" }}>{estNome}</div></div>
               <span style={{ fontSize: 11, color: "#4ade80" }}>✓ fixo</span>
             </div>
-            <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <Field label="DATA / HORA (EDITÁVEL)">
                 <div style={{ display: "flex", gap: 6 }}>
                   <input type="datetime-local" value={form.dataHora} onChange={(e) => setForm((f) => ({ ...f, dataHora: e.target.value }))} style={{ ...iS(), flex: 1 }} />
@@ -1484,7 +1550,7 @@ export default function App() {
         {/* REGISTROS */}
         {!loading && activeTab === "registros" && (
           <div className="fade-in">
-            <div className="grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }}>
               {[["REGISTROS", filtered.length, ""], ["TOTAL LITROS", fmtNum(filtered.reduce((a, b) => a + Number(b.quantidade || 0), 0)), "L"], ["TOTAL GASTO", fmtBRL(filtered.reduce((a, b) => a + Number(b.custo || 0), 0)), ""]].map(([label, val, unit]) => (
                 <div key={label} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 10, padding: "14px 18px" }}>
                   <div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2 }}>{label}</div>
