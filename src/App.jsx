@@ -38,7 +38,7 @@ const addToQueue = (item) => { const q = getQueue(); q.push(item); cache.set("qu
 const clearQueue = () => cache.del("queue");
 
 const COMBUSTIVEIS = ["Gasolina Comum", "Gasolina Aditivada", "Etanol", "Diesel S10", "Diesel S500", "GNV", "Elétrico"];
-const now = () => new Date().toISOString().slice(0, 16);
+const now = () => { const d = new Date(); const offset = d.getTimezoneOffset(); const local = new Date(d.getTime() - offset * 60000); return local.toISOString().slice(0, 16); };
 const fmtBRL = (v) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtNum = (v, d = 2) => Number(v).toLocaleString("pt-BR", { minimumFractionDigits: d });
 const qrUrl = (data) => `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data)}`;
