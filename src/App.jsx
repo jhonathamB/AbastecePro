@@ -167,7 +167,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
       <PainelAlertas veiculos={veiculos} motoristas={motoristas} />
 
       {/* Cards de resumo */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
+      <div className="grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
         {[
           ["REGISTROS", totalReg, "", "#f97316"],
           ["TOTAL LITROS", fmtNum(totalLitros), "L", "#38bdf8"],
@@ -1162,7 +1162,9 @@ export default function App() {
     <div style={{ minHeight: "100vh", background: isDark ? "#0f1117" : "#f0f0f5", fontFamily: "'DM Mono','Courier New',monospace", color: isDark ? "#e8e4d9" : "#1a1a2e" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap');
-        *{box-sizing:border-box} ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:#0f1117} ::-webkit-scrollbar-thumb{background:#f97316;border-radius:2px}
+        *{box-sizing:border-box;margin:0;padding:0}
+        html,body{margin:0;padding:0;overflow-x:hidden;width:100%}
+        ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:#0f1117} ::-webkit-scrollbar-thumb{background:#f97316;border-radius:2px}
         input,select{outline:none} input::placeholder{color:#4a4a55}
         .field input:focus,.field select:focus{border-color:#f97316!important}
         .tab-btn{transition:all 0.2s} .tab-btn:hover{color:#f97316}
@@ -1172,6 +1174,7 @@ export default function App() {
         @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}} .pop{animation:pop 0.35s ease}
         @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,0.4)}50%{box-shadow:0 0 0 10px rgba(249,115,22,0)}}
         .qr-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+        @media(max-width:600px){.grid-4{grid-template-columns:1fr 1fr!important}.grid-2{grid-template-columns:1fr!important}.grid-3{grid-template-columns:1fr 1fr!important}.pad-main{padding:16px!important}}
       `}</style>
 
       {/* Modal edição estabelecimento - admin */}
@@ -1324,8 +1327,8 @@ export default function App() {
       )}
 
       {/* Header */}
-      <div style={{ background: "linear-gradient(135deg,#1a1c27 0%,#0f1117 100%)", borderBottom: "1px solid #1e2030", padding: "20px 28px 0" }}>
-        <div style={{ maxWidth: 960, margin: "0 auto" }}>
+      <div style={{ background: "linear-gradient(135deg,#1a1c27 0%,#0f1117 100%)", borderBottom: "1px solid #1e2030", padding: "16px 16px 0" }}>
+        <div style={{ maxWidth: 960, margin: "0 auto", width:"100%" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div style={{ width: 38, height: 38, borderRadius: 10, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⛽</div>
@@ -1374,7 +1377,7 @@ export default function App() {
         </div>
       )}
 
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 28px" }}>
+      <div className="pad-main" style={{ maxWidth: 960, margin: "0 auto", padding: "24px 28px" }}>
         {loading && <div style={{ textAlign: "center", padding: 40, color: "#5a5a6a" }}>Carregando...</div>}
 
         {/* DASHBOARD */}
@@ -1409,7 +1412,7 @@ export default function App() {
         {/* REGISTRAR */}
         {!loading && activeTab === "registrar" && (
           <div className="fade-in">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+            <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
               <ScanBlock icon="👤" label="IDENTIFICAÇÃO DO MOTORISTA"
                 scanned={scannedMot ? { linha1: scannedMot.nome, linha2: `${scannedMot.departamento}${scannedMot.cnh ? " · CNH " + scannedMot.cnh : ""}` } : null}
                 onClear={() => setScannedMot(null)} onStart={startMotScan} onStop={motScanner.stop}
@@ -1453,7 +1456,7 @@ export default function App() {
               <div><div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2, marginBottom: 2 }}>ESTABELECIMENTO</div><div style={{ fontSize: 14, fontWeight: 500, color: "#f97316" }}>{estNome}</div></div>
               <span style={{ fontSize: 11, color: "#4ade80" }}>✓ fixo</span>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <Field label="DATA / HORA (EDITÁVEL)">
                 <div style={{ display: "flex", gap: 6 }}>
                   <input type="datetime-local" value={form.dataHora} onChange={(e) => setForm((f) => ({ ...f, dataHora: e.target.value }))} style={{ ...iS(), flex: 1 }} />
@@ -1481,7 +1484,7 @@ export default function App() {
         {/* REGISTROS */}
         {!loading && activeTab === "registros" && (
           <div className="fade-in">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+            <div className="grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
               {[["REGISTROS", filtered.length, ""], ["TOTAL LITROS", fmtNum(filtered.reduce((a, b) => a + Number(b.quantidade || 0), 0)), "L"], ["TOTAL GASTO", fmtBRL(filtered.reduce((a, b) => a + Number(b.custo || 0), 0)), ""]].map(([label, val, unit]) => (
                 <div key={label} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 10, padding: "14px 18px" }}>
                   <div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2 }}>{label}</div>
@@ -1502,7 +1505,7 @@ export default function App() {
             {filtered.length === 0 ? <EmptyState>Nenhum registro.</EmptyState> : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {filtered.slice(0, pagina * POR_PAGINA).map((r) => (
-                  <div key={r.id || r._localId} className="row-item fade-in" style={{ background: "#1a1c27", border: `1px solid ${r._offline ? "#b45309" : "#2a2c3a"}`, borderRadius: 10, padding: "14px 18px", display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr auto", alignItems: "center", gap: 12 }}>
+                  <div key={r.id || r._localId} className="row-item fade-in" style={{ background: "#1a1c27", border: `1px solid ${r._offline ? "#b45309" : "#2a2c3a"}`, borderRadius: 10, padding: "12px 14px", display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr auto", alignItems: "center", gap: 8 }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{r.motorista_nome}</div>
