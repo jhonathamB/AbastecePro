@@ -885,6 +885,8 @@ export default function App() {
   const [qrModal, setQrModal] = useState(null);
   const [search, setSearch] = useState("");
   const [filtroEstAdmin, setFiltroEstAdmin] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 20;
 
   const [form, setForm] = useState({ dataHora: now(), combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "" });
   const [ultimoMot, setUltimoMot] = useState(() => cache.get("ultimo_motorista"));
@@ -1362,7 +1364,15 @@ export default function App() {
           {pendentes > 0 && <div style={{ fontSize: 11, color: "#fbbf24" }}>{syncing ? "Sincronizando..." : `${pendentes} pendente(s)`}</div>}
         </div>
       )}
-      {syncMsg && <div style={{ background: "#14532d", borderBottom: "1px solid #16a34a", padding: "10px 28px", fontSize: 12, color: "#4ade80" }}>{syncMsg}</div>}
+      {syncMsg && (
+        <div style={{ background:"#14532d", borderBottom:"1px solid #16a34a", padding:"12px 28px", fontSize:13, color:"#4ade80", display:"flex", alignItems:"center", gap:10 }}>
+          <span style={{ fontSize:18 }}>✅</span>
+          <div>
+            <div style={{ fontWeight:500 }}>{syncMsg}</div>
+            <div style={{ fontSize:10, color:"#16a34a", marginTop:2 }}>Dados sincronizados com o servidor</div>
+          </div>
+        </div>
+      )}
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 28px" }}>
         {loading && <div style={{ textAlign: "center", padding: 40, color: "#5a5a6a" }}>Carregando...</div>}
@@ -1491,7 +1501,7 @@ export default function App() {
             </div>
             {filtered.length === 0 ? <EmptyState>Nenhum registro.</EmptyState> : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {filtered.map((r) => (
+                {filtered.slice(0, pagina * POR_PAGINA).map((r) => (
                   <div key={r.id || r._localId} className="row-item fade-in" style={{ background: "#1a1c27", border: `1px solid ${r._offline ? "#b45309" : "#2a2c3a"}`, borderRadius: 10, padding: "14px 18px", display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr auto", alignItems: "center", gap: 12 }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -1512,6 +1522,17 @@ export default function App() {
                     <button onClick={() => setComprovante(r)} className="sbtn" style={{ background: "#1e2535", border: "1px solid #f97316", borderRadius: 6, color: "#f97316", cursor: "pointer", padding: "6px 8px", fontSize: 14 }}>🧾</button>
                   </div>
                 ))}
+              </div>
+            )}
+            {/* Botão carregar mais */}
+            {filtered.length > pagina * POR_PAGINA && (
+              <button onClick={() => setPagina((p) => p + 1)} className="sbtn" style={{ width:"100%", marginTop:12, padding:"12px", background: isDark?"#1a1c27":"#fff", border:"1px solid #f97316", borderRadius:10, color:"#f97316", fontFamily:"inherit", fontSize:12, cursor:"pointer", letterSpacing:1 }}>
+                Carregar mais ({filtered.length - pagina * POR_PAGINA} restantes)
+              </button>
+            )}
+            {filtered.length > 0 && filtered.length <= pagina * POR_PAGINA && pagina > 1 && (
+              <div style={{ textAlign:"center", marginTop:12, fontSize:11, color:"#5a5a6a" }}>
+                Exibindo todos os {filtered.length} registros
               </div>
             )}
           </div>
