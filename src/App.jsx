@@ -21,6 +21,25 @@ const api = {
   delete: (table, query) => sb(`${table}?${query}`, { method: "DELETE", prefer: "return=minimal" }),
 };
 
+// ── Supabase Auth ─────────────────────────────────────
+const authLogin = async (email, senha) => {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { "apikey": SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password: senha }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error_description || data.msg || "Credenciais inválidas");
+  return data; // { access_token, user: { id, email } }
+};
+
+const authLogout = async (accessToken) => {
+  await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+    method: "POST",
+    headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${accessToken}` },
+  });
+};
+
 // ── Cache local ───────────────────────────────────────
 const cache = {
   set: (k, d) => { try { localStorage.setItem(`frota_${k}`, JSON.stringify(d)); } catch (_) {} },
@@ -368,15 +387,28 @@ function LoginScreen({ onLogin }) {
     setLoading(true); setError("");
     if (online) {
       try {
-        const users = await api.get("usuarios", `email=eq.${encodeURIComponent(email)}&senha=eq.${encodeURIComponent(senha)}&select=*,estabelecimentos(*)`);
-        if (users.length === 0) { setError("E-mail ou senha incorretos"); setLoading(false); return; }
-        cache.set("usuario", users[0]);
-        onLogin(users[0]); return;
-      } catch { setError("Erro ao conectar."); setLoading(false); return; }
+        // 1. Autenticar via Supabase Auth (senha criptografada)
+        const authData = await authLogin(email.trim(), senha.trim());
+        const authId = authData.user?.id;
+        // 2. Buscar perfil na tabela usuarios pelo auth_id
+        const users = await api.get("usuarios", `auth_id=eq.${authId}&select=*,estabelecimentos(*)`);
+        if (users.length === 0) {
+          // Fallback: buscar por email (para usuários antigos ainda não migrados)
+          const usersByEmail = await api.get("usuarios", `email=eq.${encodeURIComponent(email.trim())}&select=*,estabelecimentos(*)`);
+          if (usersByEmail.length === 0) { setError("Usuário não encontrado."); setLoading(false); return; }
+          const u = { ...usersByEmail[0], accessToken: authData.access_token };
+          cache.set("usuario_sessao", u);
+          onLogin(u); return;
+        }
+        const u = { ...users[0], accessToken: authData.access_token };
+        cache.set("usuario_sessao", u);
+        onLogin(u); return;
+      } catch (e) { setError(e.message || "E-mail ou senha incorretos"); setLoading(false); return; }
     }
-    const cached = cache.get("usuario");
-    if (cached && cached.email === email && cached.senha === senha) { onLogin(cached); }
-    else { setError("Sem conexão e usuário não encontrado em cache."); }
+    // Offline: usar cache
+    const cached = cache.get("usuario_sessao");
+    if (cached && cached.email === email.trim()) { onLogin(cached); }
+    else { setError("Sem conexão. Faça login online primeiro."); }
     setLoading(false);
   };
 
@@ -975,7 +1007,12 @@ export default function App() {
   const estNome = usuario?.estabelecimentos?.nome || "";
 
   const handleLogin = (u) => { cache.set("usuario_sessao", u); setUsuario(u); };
-  const handleLogout = () => { cache.del("usuario_sessao"); setUsuario(null); };
+  const handleLogout = async () => {
+    const token = usuario?.accessToken;
+    cache.del("usuario_sessao");
+    setUsuario(null);
+    if (token) { try { await authLogout(token); } catch (_) {} }
+  };
 
   useEffect(() => { if (!usuario || !online) return; loadData(); }, [usuario, online]);
   useEffect(() => { if (!online || !usuario) return; syncQueue(); }, [online]);
@@ -1113,17 +1150,59 @@ export default function App() {
 
   const handleUserSubmit = async () => {
     if (!userForm.nome.trim() || !userForm.email.trim() || !userForm.senha.trim()) return;
-    try { const novo = await api.post("usuarios", userForm); setUsuarios((u) => [...u, novo[0]]); setUserForm({ nome: "", email: "", senha: "", perfil: "gestor", estabelecimento_id: "" }); setUserOk(true); setTimeout(() => setUserOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
+    try {
+      // 1. Criar no Supabase Auth
+      const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+        method: "POST",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ email: userForm.email, password: userForm.senha, email_confirm: true }),
+      });
+      const authData = await authRes.json();
+      if (!authRes.ok) throw new Error(authData.msg || "Erro ao criar usuário no Auth");
+      const authId = authData.id;
+      // 2. Criar na tabela usuarios com auth_id
+      const { senha, ...semSenha } = userForm;
+      const novo = await api.post("usuarios", { ...semSenha, auth_id: authId });
+      setUsuarios((u) => [...u, novo[0]]);
+      setUserForm({ nome: "", email: "", senha: "", perfil: "gestor", estabelecimento_id: "" });
+      setUserOk(true); setTimeout(() => setUserOk(false), 2200);
+    } catch (err) { alert("Erro: " + err.message); }
   };
 
   const handleDeleteUser = async (id) => {
     if (!window.confirm("Excluir este usuário?")) return;
-    try { await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${id}`, { method: "DELETE", headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Prefer": "return=minimal" } }); setUsuarios((u) => u.filter((x) => x.id !== id)); } catch (err) { alert("Erro: " + err.message); }
+    try {
+      const userToDelete = usuarios.find((u) => u.id === id);
+      // Excluir da tabela usuarios
+      await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${id}`, {
+        method: "DELETE",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Prefer": "return=minimal" },
+      });
+      // Excluir do Supabase Auth se tiver auth_id
+      if (userToDelete?.auth_id) {
+        await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userToDelete.auth_id}`, {
+          method: "DELETE",
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+        });
+      }
+      setUsuarios((u) => u.filter((x) => x.id !== id));
+    } catch (err) { alert("Erro: " + err.message); }
   };
 
   const handleEditUser = async () => {
     if (!editUser?.novaSenha?.trim()) { alert("Informe a nova senha"); return; }
-    try { await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${editUser.id}`, { method: "PATCH", headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" }, body: JSON.stringify({ senha: editUser.novaSenha }) }); setEditUser(null); setEditUserOk(true); setTimeout(() => setEditUserOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
+    try {
+      // Atualizar senha no Supabase Auth (se tiver auth_id)
+      if (editUser.auth_id) {
+        const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${editUser.auth_id}`, {
+          method: "PUT",
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ password: editUser.novaSenha }),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.msg || "Erro ao alterar senha"); }
+      }
+      setEditUser(null); setEditUserOk(true); setTimeout(() => setEditUserOk(false), 2200);
+    } catch (err) { alert("Erro: " + err.message); }
   };
 
   const handleSaveEditReg = async () => {
