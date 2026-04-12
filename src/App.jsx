@@ -1378,6 +1378,57 @@ export default function App() {
   );
 }
 
+// ── Componente de alertas de vencimento ──────────────
+function AlertasVencimento({ motorista, veiculo }) {
+  if (!motorista && !veiculo) return null;
+  const alertas = [];
+  if (motorista) {
+    const s = statusVenc(motorista.venc_cnh);
+    if (s && s.cor !== "#4ade80") alertas.push({ texto: `${s.icone} CNH de ${motorista.nome}: ${s.texto}`, ...s });
+  }
+  if (veiculo) {
+    const sc = statusVenc(veiculo.venc_crlv);
+    const ss = statusVenc(veiculo.venc_seguro_obrigatorio);
+    if (sc && sc.cor !== "#4ade80") alertas.push({ texto: `${sc.icone} CRLV ${veiculo.placa}: ${sc.texto}`, ...sc });
+    if (ss && ss.cor !== "#4ade80") alertas.push({ texto: `${ss.icone} Seguro ${veiculo.placa}: ${ss.texto}`, ...ss });
+  }
+  if (alertas.length === 0) return null;
+  return (
+    <div style={{ marginBottom:14, display:"flex", flexDirection:"column", gap:6 }}>
+      {alertas.map((a, i) => (
+        <div key={i} style={{ background:a.bg, border:`1px solid ${a.border}`, borderRadius:8, padding:"10px 14px", fontSize:12, color:a.cor }}>
+          {a.texto}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PainelAlertas({ veiculos, motoristas }) {
+  const alertas = [];
+  veiculos.forEach((v) => {
+    const ac = statusVenc(v.venc_crlv);
+    const as = statusVenc(v.venc_seguro_obrigatorio);
+    if (ac && ac.cor !== "#4ade80") alertas.push({ texto: `${ac.icone} CRLV ${v.placa}: ${ac.texto}`, ...ac });
+    if (as && as.cor !== "#4ade80") alertas.push({ texto: `${as.icone} Seguro ${v.placa}: ${as.texto}`, ...as });
+  });
+  motoristas.forEach((m) => {
+    const s = statusVenc(m.venc_cnh);
+    if (s && s.cor !== "#4ade80") alertas.push({ texto: `${s.icone} CNH ${m.nome}: ${s.texto}`, ...s });
+  });
+  if (alertas.length === 0) return null;
+  return (
+    <div style={{ background:"#1a1c27", border:"1px solid #b45309", borderRadius:12, padding:"16px 20px", marginBottom:20 }}>
+      <div style={{ fontSize:11, color:"#fbbf24", letterSpacing:2, marginBottom:12 }}>⚠️ DOCUMENTOS — ATENÇÃO NECESSÁRIA</div>
+      <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+        {alertas.map((a, i) => (
+          <div key={i} style={{ fontSize:12, padding:"6px 10px", borderRadius:6, background:a.bg, border:`1px solid ${a.border}`, color:a.cor }}>{a.texto}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Field({ label, error, children }) {
   return (
     <div className="field" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
