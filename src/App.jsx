@@ -1212,11 +1212,10 @@ export default function App() {
               <SectionTitle icon="📋">Cadastrados ({motoristas.length})</SectionTitle>
               {motoristas.length === 0 ? <EmptyState>Nenhum motorista.</EmptyState> : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {motoristas.map((m) => (
-                    {(() => {
-                      const sCnh = statusVenc(m.venc_cnh);
-                      const temAlerta = sCnh && sCnh.cor !== "#4ade80";
-                      return (
+                  {motoristas.map((m) => {
+                    const sCnh = statusVenc(m.venc_cnh);
+                    const temAlerta = sCnh && sCnh.cor !== "#4ade80";
+                    return (
                         <div key={m.id} className="row-item" style={{ background: "#1a1c27", border: `1px solid ${temAlerta ? "#b45309" : "#2a2c3a"}`, borderRadius: 10, padding: "12px 14px" }}>
                           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                             <div>
@@ -1236,9 +1235,8 @@ export default function App() {
                             </div>
                           )}
                         </div>
-                      );
-                    })()}
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
