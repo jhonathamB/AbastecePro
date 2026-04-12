@@ -38,6 +38,23 @@ const fmtBRL = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency"
 const fmtNum = (v, d = 2) => Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: d });
 const qrUrl = (data) => `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data)}`;
 
+// ── Helpers de vencimento ─────────────────────────────
+const diasParaVencer = (dataStr) => {
+  if (!dataStr) return null;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const venc = new Date(dataStr + "T00:00:00");
+  return Math.ceil((venc - hoje) / (1000 * 60 * 60 * 24));
+};
+
+const statusVenc = (dataStr) => {
+  const dias = diasParaVencer(dataStr);
+  if (dias === null) return null;
+  if (dias < 0) return { cor: "#ef4444", bg: "#2d0f0f", border: "#ef4444", texto: `Vencido há ${Math.abs(dias)} dia(s)`, icone: "🔴" };
+  if (dias <= 30) return { cor: "#fbbf24", bg: "#2d1f0a", border: "#b45309", texto: `Vence em ${dias} dia(s)`, icone: "🟡" };
+  return { cor: "#4ade80", bg: "#14532d", border: "#16a34a", texto: `Válido por ${dias} dia(s)`, icone: "🟢" };
+};
+
+
 function useOnline() {
   const [online, setOnline] = useState(navigator.onLine);
   useEffect(() => {
@@ -145,6 +162,33 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
           <button key={id} onClick={() => setPeriodo(id)} style={{ padding: "8px 16px", background: periodo === id ? "#f97316" : "#1a1c27", border: `1px solid ${periodo === id ? "#f97316" : "#2a2c3a"}`, borderRadius: 8, color: periodo === id ? "#fff" : "#8a8a9a", fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>{label}</button>
         ))}
       </div>
+
+      {/* Painel de alertas de vencimento */}
+      {(() => {
+        const alertasVeic = veiculos.flatMap((v) => {
+          const ac = statusVenc(v.venc_crlv);
+          const as = statusVenc(v.venc_seguro_obrigatorio);
+          const res = [];
+          if (ac && ac.cor !== "#4ade80") res.push({ texto: `${ac.icone} CRLV ${v.placa}: ${ac.texto}`, ...ac });
+          if (as && as.cor !== "#4ade80") res.push({ texto: `${as.icone} Seguro ${v.placa}: ${as.texto}`, ...as });
+          return res;
+        });
+        const alertasMot = motoristas.flatMap((m) => {
+          const s = statusVenc(m.venc_cnh);
+          return s && s.cor !== "#4ade80" ? [{ texto: `${s.icone} CNH ${m.nome}: ${s.texto}`, ...s }] : [];
+        });
+        const todos = [...alertasVeic, ...alertasMot];
+        return todos.length > 0 ? (
+          <div style={{ background:"#1a1c27", border:"1px solid #b45309", borderRadius:12, padding:"16px 20px", marginBottom:20 }}>
+            <div style={{ fontSize:11, color:"#fbbf24", letterSpacing:2, marginBottom:12 }}>⚠️ DOCUMENTOS — ATENÇÃO NECESSÁRIA</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+              {todos.map((a, i) => (
+                <div key={i} style={{ fontSize:12, padding:"6px 10px", borderRadius:6, background:a.bg, border:`1px solid ${a.border}`, color:a.cor }}>{a.texto}</div>
+              ))}
+            </div>
+          </div>
+        ) : null;
+      })()}
 
       {/* Cards de resumo */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
@@ -495,12 +539,12 @@ export default function App() {
   const [motScanErr, setMotScanErr] = useState("");
   const [veicScanErr, setVeicScanErr] = useState("");
 
-  const [motForm, setMotForm] = useState({ nome: "", cnh: "", departamento: "" });
+  const [motForm, setMotForm] = useState({ nome: "", cnh: "", departamento: "", venc_cnh: "" });
   const [motErrors, setMotErrors] = useState({});
   const [motOk, setMotOk] = useState(false);
   const [editMotorista, setEditMotorista] = useState(null);
   const [editVeiculo, setEditVeiculo] = useState(null);
-  const [veicForm, setVeicForm] = useState({ placa: "", modelo: "", ano: "", departamento: "" });
+  const [veicForm, setVeicForm] = useState({ placa: "", modelo: "", ano: "", departamento: "", status: "ativo", venc_crlv: "", venc_seguro_obrigatorio: "" });
   const [veicErrors, setVeicErrors] = useState({});
   const [veicOk, setVeicOk] = useState(false);
   const [novoDpto, setNovoDpto] = useState("");
@@ -699,7 +743,7 @@ export default function App() {
       await fetch(`${SUPABASE_URL}/rest/v1/motoristas?id=eq.${editMotorista.id}`, {
         method: "PATCH",
         headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
-        body: JSON.stringify({ nome: editMotorista.nome, cnh: editMotorista.cnh, departamento: editMotorista.departamento }),
+        body: JSON.stringify({ nome: editMotorista.nome, cnh: editMotorista.cnh, departamento: editMotorista.departamento, venc_cnh: editMotorista.venc_cnh || null }),
       });
       const atualizado = motoristas.map((m) => m.id === editMotorista.id ? { ...m, ...editMotorista } : m);
       setMotoristas(atualizado); cache.set("motoristas", atualizado);
@@ -713,7 +757,7 @@ export default function App() {
       await fetch(`${SUPABASE_URL}/rest/v1/veiculos?id=eq.${editVeiculo.id}`, {
         method: "PATCH",
         headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
-        body: JSON.stringify({ modelo: editVeiculo.modelo, ano: editVeiculo.ano, departamento: editVeiculo.departamento }),
+        body: JSON.stringify({ modelo: editVeiculo.modelo, ano: editVeiculo.ano, departamento: editVeiculo.departamento, status: editVeiculo.status, venc_crlv: editVeiculo.venc_crlv || null, venc_seguro_obrigatorio: editVeiculo.venc_seguro_obrigatorio || null }),
       });
       const atualizado = veiculos.map((v) => v.id === editVeiculo.id ? { ...v, ...editVeiculo } : v);
       setVeiculos(atualizado); cache.set("veiculos", atualizado);
@@ -795,6 +839,7 @@ export default function App() {
             <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
               <Field label="NOME"><input type="text" value={editMotorista.nome} onChange={(e) => setEditMotorista((m) => ({ ...m, nome: e.target.value }))} style={iS()} /></Field>
               <Field label="CNH"><input type="text" value={editMotorista.cnh || ""} onChange={(e) => setEditMotorista((m) => ({ ...m, cnh: e.target.value }))} style={iS()} /></Field>
+              <Field label="🪪 VENCIMENTO CNH"><input type="date" value={editMotorista.venc_cnh || ""} onChange={(e) => setEditMotorista((m) => ({ ...m, venc_cnh: e.target.value }))} style={iS()} /></Field>
               <Field label="DEPARTAMENTO">
                 <select value={editMotorista.departamento} onChange={(e) => setEditMotorista((m) => ({ ...m, departamento: e.target.value }))} style={iS()}>
                   <option value="">— Selecione —</option>
@@ -819,6 +864,15 @@ export default function App() {
             <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
               <Field label="MODELO"><input type="text" value={editVeiculo.modelo || ""} onChange={(e) => setEditVeiculo((v) => ({ ...v, modelo: e.target.value }))} style={iS()} /></Field>
               <Field label="ANO"><input type="text" maxLength={4} value={editVeiculo.ano || ""} onChange={(e) => setEditVeiculo((v) => ({ ...v, ano: e.target.value }))} style={iS()} /></Field>
+              <Field label="STATUS">
+                <select value={editVeiculo.status || "ativo"} onChange={(e) => setEditVeiculo((v) => ({ ...v, status: e.target.value }))} style={iS()}>
+                  <option value="ativo">🟢 Ativo</option>
+                  <option value="inativo">🔴 Inativo</option>
+                  <option value="manutencao">🟡 Manutenção</option>
+                </select>
+              </Field>
+              <Field label="📋 VENCIMENTO CRLV"><input type="date" value={editVeiculo.venc_crlv || ""} onChange={(e) => setEditVeiculo((v) => ({ ...v, venc_crlv: e.target.value }))} style={iS()} /></Field>
+              <Field label="🛡️ VENCIMENTO SEGURO OBRIGATÓRIO"><input type="date" value={editVeiculo.venc_seguro_obrigatorio || ""} onChange={(e) => setEditVeiculo((v) => ({ ...v, venc_seguro_obrigatorio: e.target.value }))} style={iS()} /></Field>
               <Field label="DEPARTAMENTO">
                 <select value={editVeiculo.departamento} onChange={(e) => setEditVeiculo((v) => ({ ...v, departamento: e.target.value }))} style={iS()}>
                   <option value="">— Selecione —</option>
@@ -979,6 +1033,30 @@ export default function App() {
                 onManual={(e) => { const v = veiculos.find((x) => x.id === e.target.value); setScannedVeic(v || null); setFormErrors((err) => ({ ...err, placaId: undefined })); }}
               />
             </div>
+            {/* Alertas de vencimento */}
+            {(scannedMot || scannedVeic) && (() => {
+              const alertas = [];
+              if (scannedMot) {
+                const s = statusVenc(scannedMot.venc_cnh);
+                if (s && s.cor !== "#4ade80") alertas.push({ texto: `${s.icone} CNH de ${scannedMot.nome}: ${s.texto}`, ...s });
+              }
+              if (scannedVeic) {
+                const sc = statusVenc(scannedVeic.venc_crlv);
+                const ss = statusVenc(scannedVeic.venc_seguro_obrigatorio);
+                if (sc && sc.cor !== "#4ade80") alertas.push({ texto: `${sc.icone} CRLV ${scannedVeic.placa}: ${sc.texto}`, ...sc });
+                if (ss && ss.cor !== "#4ade80") alertas.push({ texto: `${ss.icone} Seguro ${scannedVeic.placa}: ${ss.texto}`, ...ss });
+              }
+              return alertas.length > 0 ? (
+                <div style={{ marginBottom:14, display:"flex", flexDirection:"column", gap:6 }}>
+                  {alertas.map((a, i) => (
+                    <div key={i} style={{ background:a.bg, border:`1px solid ${a.border}`, borderRadius:8, padding:"10px 14px", fontSize:12, color:a.cor }}>
+                      {a.texto}
+                    </div>
+                  ))}
+                </div>
+              ) : null;
+            })()}
+
             <div style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div><div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2, marginBottom: 2 }}>ESTABELECIMENTO</div><div style={{ fontSize: 14, fontWeight: 500, color: "#f97316" }}>{estNome}</div></div>
               <span style={{ fontSize: 11, color: "#4ade80" }}>✓ fixo</span>
@@ -1126,6 +1204,7 @@ export default function App() {
                   </select>
                 </Field>
                 <Field label="CNH (OPCIONAL)"><input type="text" placeholder="Número da CNH" value={motForm.cnh} onChange={(e) => setMotForm((f) => ({ ...f, cnh: e.target.value }))} style={iS()} /></Field>
+                <Field label="🪪 VENCIMENTO CNH (OPCIONAL)"><input type="date" value={motForm.venc_cnh} onChange={(e) => setMotForm((f) => ({ ...f, venc_cnh: e.target.value }))} style={iS()} /></Field>
                 <button className="sbtn" onClick={handleMotSubmit} disabled={!online} style={{ padding: "13px", background: online ? "#f97316" : "#2a2c3a", border: "none", borderRadius: 10, color: online ? "#fff" : "#5a5a6a", fontFamily: "inherit", fontSize: 13, fontWeight: 500, letterSpacing: 1.5, cursor: online ? "pointer" : "not-allowed" }}>CADASTRAR</button>
               </div>
             </div>
@@ -1134,15 +1213,31 @@ export default function App() {
               {motoristas.length === 0 ? <EmptyState>Nenhum motorista.</EmptyState> : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {motoristas.map((m) => (
-                    <div key={m.id} className="row-item" style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 10, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{m.nome}</div><div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{m.departamento}{m.cnh ? " · CNH " + m.cnh : ""}</div></div>
-                      <div style={{ display:"flex", gap:6 }}>
-                        {podeGerenciar && (
-                          <button onClick={() => setEditMotorista({ ...m })} className="sbtn" style={{ background:"#1e3a2a", border:"1px solid #4ade80", borderRadius:6, color:"#4ade80", cursor:"pointer", padding:"5px 10px", fontSize:11, fontFamily:"inherit" }}>✏️</button>
-                        )}
-                        <button onClick={() => setQrModal({ tipo: "motorista", item: m })} className="sbtn" style={{ background: "#1e2535", border: "1px solid #f97316", borderRadius: 6, color: "#f97316", cursor: "pointer", padding: "5px 10px", fontSize: 11, fontFamily: "inherit" }}>QR</button>
-                      </div>
-                    </div>
+                    {(() => {
+                      const sCnh = statusVenc(m.venc_cnh);
+                      const temAlerta = sCnh && sCnh.cor !== "#4ade80";
+                      return (
+                        <div key={m.id} className="row-item" style={{ background: "#1a1c27", border: `1px solid ${temAlerta ? "#b45309" : "#2a2c3a"}`, borderRadius: 10, padding: "12px 14px" }}>
+                          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{m.nome}</div>
+                              <div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{m.departamento}{m.cnh ? " · CNH " + m.cnh : ""}</div>
+                            </div>
+                            <div style={{ display:"flex", gap:6 }}>
+                              {podeGerenciar && (
+                                <button onClick={() => setEditMotorista({ ...m })} className="sbtn" style={{ background:"#1e3a2a", border:"1px solid #4ade80", borderRadius:6, color:"#4ade80", cursor:"pointer", padding:"5px 10px", fontSize:11, fontFamily:"inherit" }}>✏️</button>
+                              )}
+                              <button onClick={() => setQrModal({ tipo: "motorista", item: m })} className="sbtn" style={{ background: "#1e2535", border: "1px solid #f97316", borderRadius: 6, color: "#f97316", cursor: "pointer", padding: "5px 10px", fontSize: 11, fontFamily: "inherit" }}>QR</button>
+                            </div>
+                          </div>
+                          {sCnh && (
+                            <div style={{ marginTop:8 }}>
+                              <span style={{ fontSize:10, padding:"3px 8px", borderRadius:6, background:sCnh.bg, border:`1px solid ${sCnh.border}`, color:sCnh.cor }}>{sCnh.icone} CNH: {sCnh.texto}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   ))}
                 </div>
               )}
@@ -1181,6 +1276,15 @@ export default function App() {
                   </Field>
                   <Field label="MODELO"><input type="text" placeholder="Ex: Fiat Strada" value={veicForm.modelo} onChange={(e) => setVeicForm((f) => ({ ...f, modelo: e.target.value }))} style={iS()} /></Field>
                   <Field label="ANO"><input type="text" placeholder="2023" maxLength={4} value={veicForm.ano} onChange={(e) => setVeicForm((f) => ({ ...f, ano: e.target.value }))} style={iS()} /></Field>
+                  <Field label="STATUS">
+                    <select value={veicForm.status} onChange={(e) => setVeicForm((f) => ({ ...f, status: e.target.value }))} style={iS()}>
+                      <option value="ativo">🟢 Ativo</option>
+                      <option value="inativo">🔴 Inativo</option>
+                      <option value="manutencao">🟡 Manutenção</option>
+                    </select>
+                  </Field>
+                  <Field label="📋 VENCIMENTO CRLV (OPCIONAL)"><input type="date" value={veicForm.venc_crlv} onChange={(e) => setVeicForm((f) => ({ ...f, venc_crlv: e.target.value }))} style={iS()} /></Field>
+                  <Field label="🛡️ VENCIMENTO SEGURO OBRIGATÓRIO (OPCIONAL)"><input type="date" value={veicForm.venc_seguro_obrigatorio} onChange={(e) => setVeicForm((f) => ({ ...f, venc_seguro_obrigatorio: e.target.value }))} style={iS()} /></Field>
                   <button className="sbtn" onClick={handleVeicSubmit} disabled={!online} style={{ padding: "13px", background: online ? "#f97316" : "#2a2c3a", border: "none", borderRadius: 10, color: online ? "#fff" : "#5a5a6a", fontFamily: "inherit", fontSize: 13, fontWeight: 500, letterSpacing: 1.5, cursor: online ? "pointer" : "not-allowed" }}>CADASTRAR VEÍCULO</button>
                 </div>
               </div>
@@ -1189,17 +1293,38 @@ export default function App() {
               <SectionTitle icon="🚗">Veículos ({veiculos.length})</SectionTitle>
               {veiculos.length === 0 ? <EmptyState>Nenhum veículo.</EmptyState> : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {veiculos.map((v) => (
-                    <div key={v.id} className="row-item" style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div><div style={{ fontSize: 13, fontFamily: "'Syne',sans-serif", fontWeight: 700, letterSpacing: 1 }}>{v.placa}</div><div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{v.departamento}{v.modelo ? " · " + v.modelo : ""}{v.ano ? " (" + v.ano + ")" : ""}</div></div>
-                      <div style={{ display:"flex", gap:6 }}>
-                        {podeGerenciar && (
-                          <button onClick={() => setEditVeiculo({ ...v })} className="sbtn" style={{ background:"#1e3a2a", border:"1px solid #4ade80", borderRadius:6, color:"#4ade80", cursor:"pointer", padding:"5px 10px", fontSize:11, fontFamily:"inherit" }}>✏️</button>
+                  {veiculos.map((v) => {
+                    const sCrlv = statusVenc(v.venc_crlv);
+                    const sSeg = statusVenc(v.venc_seguro_obrigatorio);
+                    const temAlerta = (sCrlv && sCrlv.cor !== "#4ade80") || (sSeg && sSeg.cor !== "#4ade80");
+                    return (
+                      <div key={v.id} className="row-item" style={{ background: "#1a1c27", border: `1px solid ${temAlerta ? "#b45309" : "#2a2c3a"}`, borderRadius: 8, padding: "10px 14px" }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                          <div>
+                            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                              <div style={{ fontSize: 13, fontFamily: "'Syne',sans-serif", fontWeight: 700, letterSpacing: 1 }}>{v.placa}</div>
+                              <span style={{ fontSize:9, padding:"2px 6px", borderRadius:4, background: v.status==="ativo"?"#14532d":v.status==="manutencao"?"#2d1f0a":"#2d0f0f", color: v.status==="ativo"?"#4ade80":v.status==="manutencao"?"#fbbf24":"#ef4444" }}>
+                                {v.status==="ativo"?"ATIVO":v.status==="manutencao"?"MANUTENÇÃO":"INATIVO"}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{v.departamento}{v.modelo ? " · " + v.modelo : ""}{v.ano ? " (" + v.ano + ")" : ""}</div>
+                          </div>
+                          <div style={{ display:"flex", gap:6 }}>
+                            {podeGerenciar && (
+                              <button onClick={() => setEditVeiculo({ ...v })} className="sbtn" style={{ background:"#1e3a2a", border:"1px solid #4ade80", borderRadius:6, color:"#4ade80", cursor:"pointer", padding:"5px 10px", fontSize:11, fontFamily:"inherit" }}>✏️</button>
+                            )}
+                            <button onClick={() => setQrModal({ tipo: "veiculo", item: v })} className="sbtn" style={{ background: "#0e2030", border: "1px solid #38bdf8", borderRadius: 6, color: "#38bdf8", cursor: "pointer", padding: "5px 10px", fontSize: 11, fontFamily: "inherit" }}>QR</button>
+                          </div>
+                        </div>
+                        {(sCrlv || sSeg) && (
+                          <div style={{ display:"flex", gap:8, marginTop:8, flexWrap:"wrap" }}>
+                            {sCrlv && <span style={{ fontSize:10, padding:"3px 8px", borderRadius:6, background:sCrlv.bg, border:`1px solid ${sCrlv.border}`, color:sCrlv.cor }}>{sCrlv.icone} CRLV: {sCrlv.texto}</span>}
+                            {sSeg && <span style={{ fontSize:10, padding:"3px 8px", borderRadius:6, background:sSeg.bg, border:`1px solid ${sSeg.border}`, color:sSeg.cor }}>{sSeg.icone} Seguro: {sSeg.texto}</span>}
+                          </div>
                         )}
-                        <button onClick={() => setQrModal({ tipo: "veiculo", item: v })} className="sbtn" style={{ background: "#0e2030", border: "1px solid #38bdf8", borderRadius: 6, color: "#38bdf8", cursor: "pointer", padding: "5px 10px", fontSize: 11, fontFamily: "inherit" }}>QR</button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
