@@ -1,7 +1,7 @@
 {
-  "short_name": "Frota",
-  "name": "Controle de Abastecimento",
-  "description": "App de controle de abastecimento de frota com QR Code",
+  "short_name": "AbastecePro",
+  "name": "AbastecePro",
+  "description": "AbastecePro — Gestão de Frota Profissional",
   "icons": [
     {
       "src": "icon-192.png",
@@ -22,5 +22,8 @@
   "theme_color": "#f97316",
   "background_color": "#0f1117",
   "lang": "pt-BR",
-  "categories": ["business", "utilities"]
+  "categories": [
+    "business",
+    "utilities"
+  ]
 }
