@@ -630,12 +630,45 @@ export default function App() {
       {comprovante && <Comprovante registro={comprovante} estabelecimento={estNome} onClose={() => setComprovante(null)} />}
       {qrModal && (
         <div className="qr-overlay" onClick={() => setQrModal(null)}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 16, padding: 32, textAlign: "center", maxWidth: 300 }}>
-            <div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2, marginBottom: 8 }}>{qrModal.tipo === "motorista" ? "QR DO MOTORISTA" : "QR DO VEÍCULO"}</div>
-            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18, color: "#fff", marginBottom: 4 }}>{qrModal.tipo === "motorista" ? qrModal.item.nome : qrModal.item.placa}</div>
-            <div style={{ fontSize: 11, color: "#5a5a6a", marginBottom: 20 }}>{qrModal.tipo === "motorista" ? `${qrModal.item.departamento}${qrModal.item.cnh ? " · CNH " + qrModal.item.cnh : ""}` : qrModal.item.departamento}</div>
-            <img src={qrUrl(JSON.stringify({ id: qrModal.item.id, tipo: qrModal.tipo }))} alt="QR" style={{ width: 200, height: 200, borderRadius: 8, background: "#fff", padding: 8 }} />
-            <button onClick={() => setQrModal(null)} style={{ marginTop: 14, padding: "10px 24px", background: "#f97316", border: "none", borderRadius: 8, color: "#fff", fontFamily: "inherit", fontSize: 12, letterSpacing: 1, cursor: "pointer" }}>FECHAR</button>
+          <style>{`
+            @media print {
+              body * { visibility: hidden; }
+              .qr-print-area, .qr-print-area * { visibility: visible; }
+              .qr-print-area { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: white; }
+              .no-print { display: none !important; }
+            }
+          `}</style>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 16, padding: 32, textAlign: "center", maxWidth: 320, width: "90%" }}>
+            <div className="qr-print-area" style={{ background: "#fff", borderRadius: 12, padding: 20, marginBottom: 16 }}>
+              <div style={{ fontSize: 10, color: "#888", letterSpacing: 2, marginBottom: 6 }}>{qrModal.tipo === "motorista" ? "MOTORISTA" : "VEÍCULO"}</div>
+              <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18, color: "#111", marginBottom: 2 }}>
+                {qrModal.tipo === "motorista" ? qrModal.item.nome : qrModal.item.placa}
+              </div>
+              <div style={{ fontSize: 11, color: "#666", marginBottom: 14 }}>
+                {qrModal.tipo === "motorista"
+                  ? `${qrModal.item.departamento}${qrModal.item.cnh ? " · CNH " + qrModal.item.cnh : ""}`
+                  : `${qrModal.item.departamento}${qrModal.item.modelo ? " · " + qrModal.item.modelo : ""}`}
+              </div>
+              <img
+                src={qrUrl(JSON.stringify({ id: qrModal.item.id, tipo: qrModal.tipo }))}
+                alt="QR"
+                style={{ width: 180, height: 180, borderRadius: 8, display: "block", margin: "0 auto" }}
+              />
+              <div style={{ fontSize: 9, color: "#aaa", marginTop: 10, letterSpacing: 1 }}>
+                ⛽ CONTROLE DE ABASTECIMENTO
+              </div>
+            </div>
+
+            <div className="no-print" style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => window.print()}
+                style={{ flex: 1, padding: "11px", background: "#1e2535", border: "1px solid #f97316", borderRadius: 8, color: "#f97316", fontFamily: "inherit", fontSize: 12, letterSpacing: 1, cursor: "pointer" }}
+              >🖨️ IMPRIMIR</button>
+              <button
+                onClick={() => setQrModal(null)}
+                style={{ flex: 1, padding: "11px", background: "#f97316", border: "none", borderRadius: 8, color: "#fff", fontFamily: "inherit", fontSize: 12, letterSpacing: 1, cursor: "pointer" }}
+              >FECHAR</button>
+            </div>
           </div>
         </div>
       )}
@@ -703,7 +736,7 @@ export default function App() {
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <Field label="DATA / HORA"><input type="datetime-local" value={form.dataHora} onChange={(e) => setForm((f) => ({ ...f, dataHora: e.target.value }))} style={iS()} /></Field>
+              <Field label="DATA / HORA (EDITÁVEL)"><div style={{ display:"flex", gap:6 }}><input type="datetime-local" value={form.dataHora} onChange={(e) => setForm((f) => ({ ...f, dataHora: e.target.value }))} style={{ ...iS(), flex:1 }} /><button onClick={() => setForm((f) => ({ ...f, dataHora: now() }))} title="Usar hora atual" style={{ padding:"0 10px", background:"#1e2535", border:"1px solid #f97316", borderRadius:8, color:"#f97316", cursor:"pointer", fontSize:14, flexShrink:0 }}>🕐</button></div></Field>
               <Field label="TIPO DE COMBUSTÍVEL"><select value={form.combustivel} onChange={(e) => setForm((f) => ({ ...f, combustivel: e.target.value }))} style={iS()}>{COMBUSTIVEIS.map((c) => <option key={c}>{c}</option>)}</select></Field>
               <Field label="HODÔMETRO (KM) — OPCIONAL"><input type="number" placeholder="Ex: 45230" min="0" value={form.hodometro} onChange={(e) => setForm((f) => ({ ...f, hodometro: e.target.value }))} style={iS()} /></Field>
               <div />
