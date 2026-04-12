@@ -632,42 +632,33 @@ export default function App() {
         <div className="qr-overlay" onClick={() => setQrModal(null)}>
           <style>{`
             @media print {
-              body * { visibility: hidden; }
-              .qr-print-area, .qr-print-area * { visibility: visible; }
-              .qr-print-area { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: white; }
+              @page { size: A4 portrait; margin: 0; }
+              body * { visibility: hidden !important; }
+              .qr-print-area, .qr-print-area * { visibility: visible !important; }
+              .qr-print-area { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; display: flex !important; align-items: center !important; justify-content: center !important; background: white !important; }
               .no-print { display: none !important; }
             }
           `}</style>
           <div onClick={(e) => e.stopPropagation()} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 16, padding: 32, textAlign: "center", maxWidth: 320, width: "90%" }}>
-            <div className="qr-print-area" style={{ background: "#fff", borderRadius: 12, padding: 20, marginBottom: 16 }}>
-              <div style={{ fontSize: 10, color: "#888", letterSpacing: 2, marginBottom: 6 }}>{qrModal.tipo === "motorista" ? "MOTORISTA" : "VEÍCULO"}</div>
-              <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18, color: "#111", marginBottom: 2 }}>
-                {qrModal.tipo === "motorista" ? qrModal.item.nome : qrModal.item.placa}
-              </div>
-              <div style={{ fontSize: 11, color: "#666", marginBottom: 14 }}>
-                {qrModal.tipo === "motorista"
-                  ? `${qrModal.item.departamento}${qrModal.item.cnh ? " · CNH " + qrModal.item.cnh : ""}`
-                  : `${qrModal.item.departamento}${qrModal.item.modelo ? " · " + qrModal.item.modelo : ""}`}
-              </div>
-              <img
-                src={qrUrl(JSON.stringify({ id: qrModal.item.id, tipo: qrModal.tipo }))}
-                alt="QR"
-                style={{ width: 180, height: 180, borderRadius: 8, display: "block", margin: "0 auto" }}
-              />
-              <div style={{ fontSize: 9, color: "#aaa", marginTop: 10, letterSpacing: 1 }}>
-                ⛽ CONTROLE DE ABASTECIMENTO
+            <div className="qr-print-area">
+              <div style={{ textAlign:"center", border:"2px solid #ddd", borderRadius:12, padding:"24px 32px", background:"#fff", marginBottom:16, minWidth:220 }}>
+                <div style={{ fontSize:9, color:"#888", letterSpacing:3, marginBottom:8 }}>{qrModal.tipo === "motorista" ? "⛽ MOTORISTA" : "⛽ VEÍCULO"}</div>
+                <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:22, color:"#111", marginBottom:4, letterSpacing: qrModal.tipo === "veiculo" ? 3 : 0 }}>
+                  {qrModal.tipo === "motorista" ? qrModal.item.nome : qrModal.item.placa}
+                </div>
+                <div style={{ fontSize:12, color:"#555", marginBottom:16 }}>
+                  {qrModal.tipo === "motorista"
+                    ? `${qrModal.item.departamento}${qrModal.item.cnh ? " · CNH " + qrModal.item.cnh : ""}`
+                    : `${qrModal.item.departamento}${qrModal.item.modelo ? " · " + qrModal.item.modelo : ""}${qrModal.item.ano ? " (" + qrModal.item.ano + ")" : ""}`}
+                </div>
+                <img src={qrUrl(JSON.stringify({ id: qrModal.item.id, tipo: qrModal.tipo }))} alt="QR" style={{ width:180, height:180, display:"block", margin:"0 auto" }} />
+                <div style={{ fontSize:9, color:"#aaa", marginTop:12, letterSpacing:2 }}>CONTROLE DE ABASTECIMENTO</div>
               </div>
             </div>
 
-            <div className="no-print" style={{ display: "flex", gap: 8 }}>
-              <button
-                onClick={() => window.print()}
-                style={{ flex: 1, padding: "11px", background: "#1e2535", border: "1px solid #f97316", borderRadius: 8, color: "#f97316", fontFamily: "inherit", fontSize: 12, letterSpacing: 1, cursor: "pointer" }}
-              >🖨️ IMPRIMIR</button>
-              <button
-                onClick={() => setQrModal(null)}
-                style={{ flex: 1, padding: "11px", background: "#f97316", border: "none", borderRadius: 8, color: "#fff", fontFamily: "inherit", fontSize: 12, letterSpacing: 1, cursor: "pointer" }}
-              >FECHAR</button>
+            <div className="no-print" style={{ display:"flex", gap:8 }}>
+              <button onClick={() => window.print()} style={{ flex:1, padding:"11px", background:"#1e2535", border:"1px solid #f97316", borderRadius:8, color:"#f97316", fontFamily:"inherit", fontSize:12, letterSpacing:1, cursor:"pointer" }}>🖨️ IMPRIMIR</button>
+              <button onClick={() => setQrModal(null)} style={{ flex:1, padding:"11px", background:"#f97316", border:"none", borderRadius:8, color:"#fff", fontFamily:"inherit", fontSize:12, letterSpacing:1, cursor:"pointer" }}>FECHAR</button>
             </div>
           </div>
         </div>
