@@ -498,6 +498,8 @@ export default function App() {
   const [motForm, setMotForm] = useState({ nome: "", cnh: "", departamento: "" });
   const [motErrors, setMotErrors] = useState({});
   const [motOk, setMotOk] = useState(false);
+  const [editMotorista, setEditMotorista] = useState(null);
+  const [editVeiculo, setEditVeiculo] = useState(null);
   const [veicForm, setVeicForm] = useState({ placa: "", modelo: "", ano: "", departamento: "" });
   const [veicErrors, setVeicErrors] = useState({});
   const [veicOk, setVeicOk] = useState(false);
@@ -664,6 +666,34 @@ export default function App() {
     } catch (err) { alert("Erro ao salvar: " + err.message); }
   };
 
+  const handleUpdateMotorista = async () => {
+    if (!editMotorista) return;
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/motoristas?id=eq.${editMotorista.id}`, {
+        method: "PATCH",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
+        body: JSON.stringify({ nome: editMotorista.nome, cnh: editMotorista.cnh, departamento: editMotorista.departamento }),
+      });
+      const atualizado = motoristas.map((m) => m.id === editMotorista.id ? { ...m, ...editMotorista } : m);
+      setMotoristas(atualizado); cache.set("motoristas", atualizado);
+      setEditMotorista(null);
+    } catch (err) { alert("Erro: " + err.message); }
+  };
+
+  const handleUpdateVeiculo = async () => {
+    if (!editVeiculo) return;
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/veiculos?id=eq.${editVeiculo.id}`, {
+        method: "PATCH",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
+        body: JSON.stringify({ modelo: editVeiculo.modelo, ano: editVeiculo.ano, departamento: editVeiculo.departamento }),
+      });
+      const atualizado = veiculos.map((v) => v.id === editVeiculo.id ? { ...v, ...editVeiculo } : v);
+      setVeiculos(atualizado); cache.set("veiculos", atualizado);
+      setEditVeiculo(null);
+    } catch (err) { alert("Erro: " + err.message); }
+  };
+
   const exportCSV = () => {
     const regsExport = isAdmin && filtroEstAdmin ? registros.filter((r) => r.operador === filtroEstAdmin) : registros;
     const h = ["Data/Hora", "Estabelecimento", "Motorista", "CNH", "Placa", "Departamento", "Combustível", "Qtd (L)", "Hodômetro", "Custo (R$)", "Status"];
@@ -711,6 +741,53 @@ export default function App() {
         @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,0.4)}50%{box-shadow:0 0 0 10px rgba(249,115,22,0)}}
         .qr-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
       `}</style>
+
+      {/* Modal edição motorista - gestor */}
+      {editMotorista && (
+        <div className="qr-overlay" onClick={() => setEditMotorista(null)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background:"#1a1c27", border:"1px solid #4ade80", borderRadius:16, padding:28, maxWidth:400, width:"90%" }}>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:16, color:"#fff", marginBottom:20 }}>✏️ Editar Motorista</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              <Field label="NOME"><input type="text" value={editMotorista.nome} onChange={(e) => setEditMotorista((m) => ({ ...m, nome: e.target.value }))} style={iS()} /></Field>
+              <Field label="CNH"><input type="text" value={editMotorista.cnh || ""} onChange={(e) => setEditMotorista((m) => ({ ...m, cnh: e.target.value }))} style={iS()} /></Field>
+              <Field label="DEPARTAMENTO">
+                <select value={editMotorista.departamento} onChange={(e) => setEditMotorista((m) => ({ ...m, departamento: e.target.value }))} style={iS()}>
+                  <option value="">— Selecione —</option>
+                  {departamentos.map((d) => <option key={d}>{d}</option>)}
+                </select>
+              </Field>
+            </div>
+            <div style={{ display:"flex", gap:8, marginTop:20 }}>
+              <button onClick={handleUpdateMotorista} style={{ flex:1, padding:"13px", background:"#4ade80", border:"none", borderRadius:10, color:"#0f1117", fontFamily:"inherit", fontSize:13, fontWeight:700, cursor:"pointer" }}>✓ SALVAR</button>
+              <button onClick={() => setEditMotorista(null)} style={{ padding:"13px 16px", background:"none", border:"1px solid #3a2020", borderRadius:10, color:"#ef4444", fontFamily:"inherit", fontSize:13, cursor:"pointer" }}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal edição veículo - gestor */}
+      {editVeiculo && (
+        <div className="qr-overlay" onClick={() => setEditVeiculo(null)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background:"#1a1c27", border:"1px solid #38bdf8", borderRadius:16, padding:28, maxWidth:400, width:"90%" }}>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:16, color:"#fff", marginBottom:4 }}>✏️ Editar Veículo</div>
+            <div style={{ fontSize:13, color:"#38bdf8", marginBottom:20, letterSpacing:2 }}>{editVeiculo.placa}</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              <Field label="MODELO"><input type="text" value={editVeiculo.modelo || ""} onChange={(e) => setEditVeiculo((v) => ({ ...v, modelo: e.target.value }))} style={iS()} /></Field>
+              <Field label="ANO"><input type="text" maxLength={4} value={editVeiculo.ano || ""} onChange={(e) => setEditVeiculo((v) => ({ ...v, ano: e.target.value }))} style={iS()} /></Field>
+              <Field label="DEPARTAMENTO">
+                <select value={editVeiculo.departamento} onChange={(e) => setEditVeiculo((v) => ({ ...v, departamento: e.target.value }))} style={iS()}>
+                  <option value="">— Selecione —</option>
+                  {departamentos.map((d) => <option key={d}>{d}</option>)}
+                </select>
+              </Field>
+            </div>
+            <div style={{ display:"flex", gap:8, marginTop:20 }}>
+              <button onClick={handleUpdateVeiculo} style={{ flex:1, padding:"13px", background:"#38bdf8", border:"none", borderRadius:10, color:"#0f1117", fontFamily:"inherit", fontSize:13, fontWeight:700, cursor:"pointer" }}>✓ SALVAR</button>
+              <button onClick={() => setEditVeiculo(null)} style={{ padding:"13px 16px", background:"none", border:"1px solid #3a2020", borderRadius:10, color:"#ef4444", fontFamily:"inherit", fontSize:13, cursor:"pointer" }}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal edição de registro - operador - 30min */}
       {editReg && (
@@ -1014,7 +1091,12 @@ export default function App() {
                   {motoristas.map((m) => (
                     <div key={m.id} className="row-item" style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 10, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div><div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{m.nome}</div><div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{m.departamento}{m.cnh ? " · CNH " + m.cnh : ""}</div></div>
-                      <button onClick={() => setQrModal({ tipo: "motorista", item: m })} className="sbtn" style={{ background: "#1e2535", border: "1px solid #f97316", borderRadius: 6, color: "#f97316", cursor: "pointer", padding: "5px 10px", fontSize: 11, fontFamily: "inherit" }}>QR</button>
+                      <div style={{ display:"flex", gap:6 }}>
+                        {podeGerenciar && (
+                          <button onClick={() => setEditMotorista({ ...m })} className="sbtn" style={{ background:"#1e3a2a", border:"1px solid #4ade80", borderRadius:6, color:"#4ade80", cursor:"pointer", padding:"5px 10px", fontSize:11, fontFamily:"inherit" }}>✏️</button>
+                        )}
+                        <button onClick={() => setQrModal({ tipo: "motorista", item: m })} className="sbtn" style={{ background: "#1e2535", border: "1px solid #f97316", borderRadius: 6, color: "#f97316", cursor: "pointer", padding: "5px 10px", fontSize: 11, fontFamily: "inherit" }}>QR</button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1065,7 +1147,12 @@ export default function App() {
                   {veiculos.map((v) => (
                     <div key={v.id} className="row-item" style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div><div style={{ fontSize: 13, fontFamily: "'Syne',sans-serif", fontWeight: 700, letterSpacing: 1 }}>{v.placa}</div><div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{v.departamento}{v.modelo ? " · " + v.modelo : ""}{v.ano ? " (" + v.ano + ")" : ""}</div></div>
-                      <button onClick={() => setQrModal({ tipo: "veiculo", item: v })} className="sbtn" style={{ background: "#0e2030", border: "1px solid #38bdf8", borderRadius: 6, color: "#38bdf8", cursor: "pointer", padding: "5px 10px", fontSize: 11, fontFamily: "inherit" }}>QR</button>
+                      <div style={{ display:"flex", gap:6 }}>
+                        {podeGerenciar && (
+                          <button onClick={() => setEditVeiculo({ ...v })} className="sbtn" style={{ background:"#1e3a2a", border:"1px solid #4ade80", borderRadius:6, color:"#4ade80", cursor:"pointer", padding:"5px 10px", fontSize:11, fontFamily:"inherit" }}>✏️</button>
+                        )}
+                        <button onClick={() => setQrModal({ tipo: "veiculo", item: v })} className="sbtn" style={{ background: "#0e2030", border: "1px solid #38bdf8", borderRadius: 6, color: "#38bdf8", cursor: "pointer", padding: "5px 10px", fontSize: 11, fontFamily: "inherit" }}>QR</button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1120,7 +1207,6 @@ export default function App() {
                     <select value={userForm.perfil} onChange={(e) => setUserForm((f) => ({ ...f, perfil: e.target.value }))} style={iS()}>
                       <option value="gestor">Gestor (empresa)</option>
                       <option value="operador">Operador (só registra)</option>
-                      <option value="admin">Administrador</option>
                     </select>
                   </Field>
                   <Field label="ESTABELECIMENTO">
@@ -1131,9 +1217,9 @@ export default function App() {
                   </Field>
                   <button className="sbtn" onClick={handleUserSubmit} style={{ padding: "13px", background: "#f97316", border: "none", borderRadius: 10, color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 500, letterSpacing: 1.5, cursor: "pointer" }}>CRIAR USUÁRIO</button>
                 </div>
-                {usuarios.filter((u) => u.perfil !== "admin").length === 0 ? <EmptyState>Nenhum usuário.</EmptyState> : (
+                {usuarios.filter((u) => u.perfil !== "admin" && u.email !== usuario?.email).length === 0 ? <EmptyState>Nenhum usuário.</EmptyState> : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {usuarios.filter((u) => u.perfil !== "admin").map((u) => (
+                    {usuarios.filter((u) => u.perfil !== "admin" && u.email !== usuario?.email).map((u) => (
                       <div key={u.id} className="row-item" style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
                           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
