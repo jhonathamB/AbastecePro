@@ -962,6 +962,11 @@ export default function App() {
   const [loading, setLoading] = useState(false);
 
   const [comprovante, setComprovante] = useState(null);
+  const [minhaConta, setMinhaConta] = useState(false);
+  const [novaSenha, setNovaSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [senhaOk, setSenhaOk] = useState(false);
+  const [senhaErro, setSenhaErro] = useState("");
   const [editReg, setEditReg] = useState(null); // registro sendo editado pelo operador
   const [qrModal, setQrModal] = useState(null);
   const [search, setSearch] = useState("");
@@ -1007,6 +1012,24 @@ export default function App() {
   const estNome = usuario?.estabelecimentos?.nome || "";
 
   const handleLogin = (u) => { cache.set("usuario_sessao", u); setUsuario(u); };
+  const handleAlterarMinhaSenha = async () => {
+    setSenhaErro("");
+    if (!novaSenha.trim()) { setSenhaErro("Informe a nova senha"); return; }
+    if (novaSenha.length < 6) { setSenhaErro("Senha deve ter pelo menos 6 caracteres"); return; }
+    if (novaSenha !== confirmarSenha) { setSenhaErro("Senhas não conferem"); return; }
+    if (!usuario?.auth_id) { setSenhaErro("Usuário sem auth_id. Contate o administrador."); return; }
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${usuario.auth_id}`, {
+        method: "PUT",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ password: novaSenha }),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.msg || "Erro ao alterar senha"); }
+      setSenhaOk(true); setNovaSenha(""); setConfirmarSenha("");
+      setTimeout(() => { setSenhaOk(false); setMinhaConta(false); }, 2000);
+    } catch (err) { setSenhaErro(err.message); }
+  };
+
   const handleLogout = async () => {
     const token = usuario?.accessToken;
     cache.del("usuario_sessao");
@@ -1328,6 +1351,30 @@ export default function App() {
         }
       `}</style>
 
+      {/* Modal Minha Conta — alterar senha */}
+      {minhaConta && (
+        <div className="qr-overlay" onClick={() => setMinhaConta(false)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background:"#1a1c27", border:"1px solid #f97316", borderRadius:16, padding:28, maxWidth:380, width:"90%" }}>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:16, color:"#fff", marginBottom:4 }}>👤 Minha Conta</div>
+            <div style={{ fontSize:12, color:"#8a8a9a", marginBottom:20 }}>{usuario?.email}</div>
+            {senhaOk && <div style={{ background:"#14532d", border:"1px solid #16a34a", borderRadius:8, padding:"10px 14px", fontSize:13, color:"#4ade80", marginBottom:16 }}>✓ Senha alterada com sucesso!</div>}
+            {senhaErro && <div style={{ background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:8, padding:"10px 14px", fontSize:12, color:"#ef4444", marginBottom:16 }}>{senhaErro}</div>}
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              <Field label="NOVA SENHA">
+                <input type="password" placeholder="Mínimo 6 caracteres" value={novaSenha} onChange={(e) => { setNovaSenha(e.target.value); setSenhaErro(""); }} style={iS(senhaErro)} />
+              </Field>
+              <Field label="CONFIRMAR NOVA SENHA">
+                <input type="password" placeholder="Repita a nova senha" value={confirmarSenha} onChange={(e) => { setConfirmarSenha(e.target.value); setSenhaErro(""); }} style={iS(senhaErro)} />
+              </Field>
+            </div>
+            <div style={{ display:"flex", gap:8, marginTop:20 }}>
+              <button onClick={handleAlterarMinhaSenha} style={{ flex:1, padding:"13px", background:"#f97316", border:"none", borderRadius:10, color:"#fff", fontFamily:"inherit", fontSize:13, fontWeight:700, cursor:"pointer" }}>✓ SALVAR SENHA</button>
+              <button onClick={() => { setMinhaConta(false); setNovaSenha(""); setConfirmarSenha(""); setSenhaErro(""); }} style={{ padding:"13px 16px", background:"none", border:"1px solid #3a2020", borderRadius:10, color:"#ef4444", fontFamily:"inherit", fontSize:13, cursor:"pointer" }}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal edição estabelecimento - admin */}
       {editEst && (
         <div className="qr-overlay" onClick={() => setEditEst(null)}>
@@ -1498,6 +1545,7 @@ export default function App() {
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: online ? "#4ade80" : "#f97316" }} />
               <span style={{ fontSize: 10, color: online ? "#4ade80" : "#f97316" }}>{online ? "online" : "offline"}</span>
               <button onClick={toggleTema} title="Alternar tema" style={{ background: "none", border: `1px solid ${isDark ? "#2a2c3a" : "#ccc"}`, borderRadius: 8, color: isDark ? "#f97316" : "#666", cursor: "pointer", padding: "6px 10px", fontSize: 14 }}>{isDark ? "☀️" : "🌙"}</button>
+              {!isOperador && <button onClick={() => setMinhaConta(true)} title="Minha conta" style={{ background: "none", border: `1px solid ${isDark ? "#2a2c3a" : "#ccc"}`, borderRadius: 8, color: isDark ? "#8a8a9a" : "#666", cursor: "pointer", padding: "6px 10px", fontSize: 14 }}>👤</button>}
               <button onClick={handleLogout} style={{ background: "none", border: `1px solid ${isDark ? "#2a2c3a" : "#ccc"}`, borderRadius: 8, color: isDark ? "#5a5a6a" : "#666", cursor: "pointer", padding: "6px 12px", fontSize: 11, fontFamily: "inherit" }}>Sair</button>
             </div>
           </div>
@@ -1950,9 +1998,20 @@ export default function App() {
                   </Field>
                   <button className="sbtn" onClick={handleUserSubmit} style={{ padding: "13px", background: "#f97316", border: "none", borderRadius: 10, color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 500, letterSpacing: 1.5, cursor: "pointer" }}>CRIAR USUÁRIO</button>
                 </div>
-                {usuarios.filter((u) => u.perfil !== "admin" && u.email !== usuario?.email).length === 0 ? <EmptyState>Nenhum usuário.</EmptyState> : (
+                {usuarios.filter((u) => {
+                  if (u.perfil === "admin") return false;
+                  if (u.email === usuario?.email) return false;
+                  if (isGestor && u.estabelecimento_id !== estId) return false;
+                  return true;
+                }).length === 0 ? <EmptyState>Nenhum usuário.</EmptyState> : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {usuarios.filter((u) => u.perfil !== "admin" && u.email !== usuario?.email).map((u) => (
+                    {usuarios.filter((u) => {
+                  if (u.perfil === "admin") return false;
+                  if (u.email === usuario?.email) return false;
+                  // Gestor só vê operadores do seu próprio estabelecimento
+                  if (isGestor && u.estabelecimento_id !== estId) return false;
+                  return true;
+                }).map((u) => (
                       <div key={u.id} className="row-item" style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
                           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
@@ -1964,8 +2023,12 @@ export default function App() {
                           <div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{u.email} · {u.estabelecimentos?.nome}</div>
                         </div>
                         <div style={{ display: "flex", gap: 6 }}>
-                          <button onClick={() => setEditUser({ ...u, novaSenha: "" })} style={{ background: "#1e2535", border: "1px solid #38bdf8", borderRadius: 6, color: "#38bdf8", cursor: "pointer", padding: "4px 10px", fontSize: 11, fontFamily: "inherit" }}>🔑</button>
-                          <button className="del-btn" onClick={() => handleDeleteUser(u.id)} style={{ background: "none", border: "1px solid #3a2020", borderRadius: 6, color: "#ef4444", cursor: "pointer", padding: "4px 8px", fontSize: 12, fontFamily: "inherit" }}>✕</button>
+                          {(isAdmin || (isGestor && u.estabelecimento_id === estId && u.perfil === "operador")) && (
+                            <button onClick={() => setEditUser({ ...u, novaSenha: "" })} style={{ background: "#1e2535", border: "1px solid #38bdf8", borderRadius: 6, color: "#38bdf8", cursor: "pointer", padding: "4px 10px", fontSize: 11, fontFamily: "inherit" }}>🔑</button>
+                          )}
+                          {isAdmin && (
+                            <button className="del-btn" onClick={() => handleDeleteUser(u.id)} style={{ background: "none", border: "1px solid #3a2020", borderRadius: 6, color: "#ef4444", cursor: "pointer", padding: "4px 8px", fontSize: 12, fontFamily: "inherit" }}>✕</button>
+                          )}
                         </div>
                       </div>
                     ))}
