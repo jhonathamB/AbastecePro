@@ -651,9 +651,9 @@ export default function App() {
     const diffMin = (Date.now() - criado.getTime()) / 60000;
     if (diffMin > 30) { alert("Prazo de 30 minutos expirado. Não é possível editar este registro."); setEditReg(null); return; }
     try {
-      await fetch(\`\${SUPABASE_URL}/rest/v1/abastecimentos?id=eq.\${editReg.id}\`, {
+      await fetch(`${SUPABASE_URL}/rest/v1/abastecimentos?id=eq.${editReg.id}`, {
         method: "PATCH",
-        headers: { "apikey": SUPABASE_KEY, "Authorization": \`Bearer \${SUPABASE_KEY}\`, "Content-Type": "application/json", "Prefer": "return=minimal" },
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
         body: JSON.stringify({
           combustivel: editReg.combustivel,
           quantidade: parseFloat(editReg.quantidade),
