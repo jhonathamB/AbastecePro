@@ -602,7 +602,7 @@ function Relatorios({ registros, isAdmin, veiculos }) {
       </div>
 
       {/* Cards resumo */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:20 }}>
+      <div className="stats-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:20 }}>
         {[["REGISTROS",regs.length,""],["TOTAL LITROS",fmtNum(regs.reduce((a,b)=>a+Number(b.quantidade||0),0)),"L"],["TOTAL GASTO",fmtBRL(regs.reduce((a,b)=>a+Number(b.custo||0),0)),""]].map(([label,val,unit]) => (
           <div key={label} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px" }}>
             <div style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2 }}>{label}</div>
@@ -656,7 +656,7 @@ function Relatorios({ registros, isAdmin, veiculos }) {
             <EmptyState>Nenhum registro para esta secretaria no período.</EmptyState>
           ) : (
             <div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:16 }}>
+              <div className="stats-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }}>
                 {[["REGISTROS",regsSecretaria.length,""],["LITROS",fmtNum(regsSecretaria.reduce((a,b)=>a+Number(b.quantidade||0),0)),"L"],["GASTO",fmtBRL(regsSecretaria.reduce((a,b)=>a+Number(b.custo||0),0)),""]].map(([label,val,unit]) => (
                   <div key={label} style={{ background:"#1e3a2a", border:"1px solid #16a34a", borderRadius:10, padding:"12px 16px" }}>
                     <div style={{ fontSize:9, color:"#4ade80", letterSpacing:2 }}>{label}</div>
@@ -705,7 +705,7 @@ function Relatorios({ registros, isAdmin, veiculos }) {
             <EmptyState>Nenhum registro encontrado.</EmptyState>
           ) : (
             <div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:16 }}>
+              <div className="stats-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }}>
                 {[["REGISTROS",regsHistorico.length,""],["LITROS",fmtNum(regsHistorico.reduce((a,b)=>a+Number(b.quantidade||0),0)),"L"],["GASTO",fmtBRL(regsHistorico.reduce((a,b)=>a+Number(b.custo||0),0)),""]].map(([label,val,unit]) => (
                   <div key={label} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"12px 16px" }}>
                     <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:2 }}>{label}</div>
@@ -849,7 +849,7 @@ function Relatorios({ registros, isAdmin, veiculos }) {
               return (
                 <div>
                   {/* Cards comparativos */}
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:20 }}>
+                  <div className="stats-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:20 }}>
                     <div style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px" }}>
                       <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:2 }}>MÊS ATUAL</div>
                       <div style={{ fontSize:18, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#f97316", marginTop:4 }}>{fmtBRL(mesAtual.custo)}</div>
@@ -1224,6 +1224,8 @@ export default function App() {
         @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,0.4)}50%{box-shadow:0 0 0 10px rgba(249,115,22,0)}}
         .qr-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
         @media(max-width:768px){
+          .stats-3{grid-template-columns:1fr 1fr!important}
+          .stats-3 > div:last-child{grid-column:1 / -1!important}
           .dash-cards{grid-template-columns:1fr 1fr!important}
           .dash-sections{grid-template-columns:1fr!important}
           .reg-row{grid-template-columns:1fr 1fr auto!important}
@@ -1554,7 +1556,7 @@ export default function App() {
         {/* REGISTROS */}
         {!loading && activeTab === "registros" && (
           <div className="fade-in">
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginBottom: 16 }}>
+            <div className="stats-3" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginBottom: 16 }}>
               {[["REGISTROS", filtered.length, ""], ["TOTAL LITROS", fmtNum(filtered.reduce((a, b) => a + Number(b.quantidade || 0), 0)), "L"], ["TOTAL GASTO", fmtBRL(filtered.reduce((a, b) => a + Number(b.custo || 0), 0)), ""]].map(([label, val, unit]) => (
                 <div key={label} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 10, padding: "10px 8px" }}>
                   <div style={{ fontSize: 8, color: "#5a5a6a", letterSpacing: 1 }}>{label}</div>
