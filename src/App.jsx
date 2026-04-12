@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 // ── Supabase ─────────────────────────────────────────
 const SUPABASE_URL = "https://tyesaqhtiqkakguimsdi.supabase.co";
 const SUPABASE_KEY = "sb_publishable_njutNAXOpPS8ueQNykDNLA_OKUOCyXj";
-const SUPABASE_SERVICE_KEY = "sb_secret_kdmB43aO9XBHQmff7iD3Fg_sGwNMX8x";
+const SUPABASE_SERVICE_KEY = process.env.REACT_APP_SUPABASE_SERVICE_KEY || "";
 
 const sb = async (path, opts = {}) => {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
