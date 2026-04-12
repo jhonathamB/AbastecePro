@@ -389,6 +389,8 @@ export default function App() {
   const [estOk, setEstOk] = useState(false);
   const [userForm, setUserForm] = useState({ nome: "", email: "", senha: "", perfil: "estabelecimento", estabelecimento_id: "" });
   const [userOk, setUserOk] = useState(false);
+  const [editUser, setEditUser] = useState(null); // { id, nome, email, novaSenha }
+  const [editUserOk, setEditUserOk] = useState(false);
 
   const isAdmin = usuario?.perfil === "admin";
   const estId = usuario?.estabelecimento_id;
@@ -583,6 +585,30 @@ export default function App() {
     try { const novo = await api.post("usuarios", userForm); setUsuarios((u) => [...u, novo[0]]); setUserForm({ nome: "", email: "", senha: "", perfil: "estabelecimento", estabelecimento_id: "" }); setUserOk(true); setTimeout(() => setUserOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
   };
 
+  const handleDeleteUser = async (id) => {
+    if (!window.confirm("Tem certeza que deseja excluir este usuário?")) return;
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${id}`, {
+        method: "DELETE",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Prefer": "return=minimal" },
+      });
+      setUsuarios((u) => u.filter((x) => x.id !== id));
+    } catch (err) { alert("Erro ao excluir: " + err.message); }
+  };
+
+  const handleEditUser = async () => {
+    if (!editUser?.novaSenha?.trim()) { alert("Informe a nova senha"); return; }
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${editUser.id}`, {
+        method: "PATCH",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
+        body: JSON.stringify({ senha: editUser.novaSenha }),
+      });
+      setEditUser(null);
+      setEditUserOk(true); setTimeout(() => setEditUserOk(false), 2200);
+    } catch (err) { alert("Erro ao alterar senha: " + err.message); }
+  };
+
   const exportCSV = () => {
     const h = ["Data/Hora", "Estabelecimento", "Motorista", "CNH", "Placa", "Departamento", "Combustível", "Qtd (L)", "Hodômetro", "Custo (R$)", "Status"];
     const rows = registros.map((r) => [(r.data_hora || r.dataHora)?.slice(0, 16).replace("T", " "), r.operador, r.motorista_nome, r.motorista_cnh, r.placa, r.departamento, r.combustivel, r.quantidade, r.hodometro || "", r.custo, r._offline ? "Pendente" : "Sincronizado"]);
@@ -652,7 +678,7 @@ export default function App() {
                     : `${qrModal.item.departamento}${qrModal.item.modelo ? " · " + qrModal.item.modelo : ""}${qrModal.item.ano ? " (" + qrModal.item.ano + ")" : ""}`}
                 </div>
                 <img src={qrUrl(JSON.stringify({ id: qrModal.item.id, tipo: qrModal.tipo }))} alt="QR" style={{ width:180, height:180, display:"block", margin:"0 auto" }} />
-                <div style={{ fontSize:9, color:"#aaa", marginTop:12, letterSpacing:2 }}>CONTROLE DE ABASTECIMENTO</div>
+                <div style={{ fontSize:9, color:"#aaa", marginTop:12, letterSpacing:2 }}>CONTROLE DE ABASTECIMENTO</div><div style={{ fontSize:11, color:"#333", marginTop:4, fontWeight:600 }}>{estNome}</div>
               </div>
             </div>
 
@@ -935,12 +961,29 @@ export default function App() {
                   </Field>
                   <button className="sbtn" onClick={handleUserSubmit} style={{ padding: "13px", background: "#f97316", border: "none", borderRadius: 10, color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 500, letterSpacing: 1.5, cursor: "pointer" }}>CRIAR USUÁRIO</button>
                 </div>
+                {editUserOk && <Alert type="success">✓ Senha alterada!</Alert>}
+                {editUser && (
+                  <div style={{ background:"#1e2535", border:"1px solid #f97316", borderRadius:10, padding:16, marginBottom:12 }}>
+                    <div style={{ fontSize:11, color:"#f97316", letterSpacing:1, marginBottom:10 }}>ALTERAR SENHA — {editUser.nome}</div>
+                    <div style={{ display:"flex", gap:8 }}>
+                      <input type="text" placeholder="Nova senha" value={editUser.novaSenha||""} onChange={(e)=>setEditUser((u)=>({...u,novaSenha:e.target.value}))} style={{ ...iS(), flex:1, fontSize:13 }} />
+                      <button onClick={handleEditUser} style={{ padding:"10px 14px", background:"#f97316", border:"none", borderRadius:8, color:"#fff", fontFamily:"inherit", fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>✓ Salvar</button>
+                      <button onClick={()=>setEditUser(null)} style={{ padding:"10px 14px", background:"none", border:"1px solid #3a2020", borderRadius:8, color:"#ef4444", fontFamily:"inherit", fontSize:12, cursor:"pointer" }}>✕</button>
+                    </div>
+                  </div>
+                )}
                 {usuarios.filter(u => u.perfil !== "admin").length === 0 ? <EmptyState>Nenhum usuário.</EmptyState> : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {usuarios.filter(u => u.perfil !== "admin").map((u) => (
-                      <div key={u.id} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 8, padding: "10px 14px" }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{u.nome}</div>
-                        <div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{u.email} · {u.estabelecimentos?.nome}</div>
+                      <div key={u.id} className="row-item" style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:8, padding:"10px 14px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                        <div>
+                          <div style={{ fontSize:13, fontWeight:500, color:"#fff" }}>{u.nome}</div>
+                          <div style={{ fontSize:11, color:"#8a8a9a", marginTop:2 }}>{u.email} · {u.estabelecimentos?.nome}</div>
+                        </div>
+                        <div style={{ display:"flex", gap:6 }}>
+                          <button onClick={()=>setEditUser({...u, novaSenha:""})} style={{ background:"#1e2535", border:"1px solid #38bdf8", borderRadius:6, color:"#38bdf8", cursor:"pointer", padding:"4px 10px", fontSize:11, fontFamily:"inherit" }}>🔑 Senha</button>
+                          <button className="del-btn" onClick={()=>handleDeleteUser(u.id)} style={{ background:"none", border:"1px solid #3a2020", borderRadius:6, color:"#ef4444", cursor:"pointer", padding:"4px 8px", fontSize:12, fontFamily:"inherit" }}>✕</button>
+                        </div>
                       </div>
                     ))}
                   </div>
