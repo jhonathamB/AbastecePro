@@ -414,7 +414,7 @@ function Row({ label, value }) { return <div style={{ display: "flex", justifyCo
 
 // ── Relatórios ────────────────────────────────────────
 function Relatorios({ registros, isAdmin, veiculos }) {
-  const [aba, setAba] = useState("resumo"); // resumo | secretaria | historico | consumo
+  const [aba, setAba] = useState("resumo"); // resumo | secretaria | historico | consumo | financeiro
   const [tipo, setTipo] = useState("departamento");
   const [periodo, setPeriodo] = useState("todos");
   const [filtroEst, setFiltroEst] = useState("");
@@ -533,7 +533,7 @@ function Relatorios({ registros, isAdmin, veiculos }) {
     <div className="fade-in">
       {/* Abas internas */}
       <div style={{ display:"flex", gap:6, marginBottom:20, flexWrap:"wrap" }}>
-        {[["resumo","📊 Resumo"],["secretaria","🏢 Por Secretaria"],["historico","📋 Histórico"],["consumo","⛽ Consumo km/L"]].map(([id,label]) => (
+        {[["resumo","📊 Resumo"],["secretaria","🏢 Por Secretaria"],["historico","📋 Histórico"],["consumo","⛽ Consumo km/L"],["financeiro","💰 Financeiro"]].map(([id,label]) => (
           <button key={id} onClick={() => setAba(id)} style={{ padding:"9px 16px", background:aba===id?"#f97316":"#1a1c27", border:`1px solid ${aba===id?"#f97316":"#2a2c3a"}`, borderRadius:8, color:aba===id?"#fff":"#8a8a9a", fontFamily:"inherit", fontSize:12, cursor:"pointer", fontWeight:aba===id?500:400 }}>{label}</button>
         ))}
         <button onClick={exportPDF} style={{ marginLeft:"auto", padding:"9px 16px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:8, color:"#a78bfa", fontFamily:"inherit", fontSize:12, cursor:"pointer" }}>📄 PDF Mensal</button>
@@ -729,6 +729,134 @@ function Relatorios({ registros, isAdmin, veiculos }) {
           )}
         </div>
       )}
+
+      {/* ABA: FINANCEIRO */}
+      {aba === "financeiro" && (
+        <div>
+          {/* Custo por km */}
+          <div style={{ marginBottom:24 }}>
+            <div style={{ fontSize:11, color:"#5a5a6a", letterSpacing:2, marginBottom:14 }}>💰 CUSTO POR KM RODADO (R$/KM)</div>
+            <div style={{ background:"#1e2535", border:"1px solid #38bdf8", borderRadius:10, padding:"12px 16px", marginBottom:14, fontSize:12, color:"#38bdf8" }}>
+              ℹ️ Calculado a partir do hodômetro registrado nos abastecimentos.
+            </div>
+            {(() => {
+              const custoPorKm = veiculos.map((v) => {
+                const regsV = registros.filter((r) => r.placa === v.placa && r.hodometro && r.custo);
+                if (regsV.length < 2) return null;
+                const sorted = [...regsV].sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
+                const kmTotal = sorted[sorted.length-1].hodometro - sorted[0].hodometro;
+                const custoTotal = sorted.slice(1).reduce((a, b) => a + Number(b.custo||0), 0);
+                if (kmTotal <= 0) return null;
+                return { ...v, custoPorKm: custoTotal / kmTotal, kmTotal, custoTotal };
+              }).filter(Boolean).sort((a, b) => b.custoPorKm - a.custoPorKm);
+
+              return custoPorKm.length === 0 ? (
+                <EmptyState>Nenhum veículo com dados suficientes de hodômetro.</EmptyState>
+              ) : (
+                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                  {custoPorKm.map((v) => (
+                    <div key={v.id} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <div>
+                        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                          <div style={{ fontSize:14, fontFamily:"'Syne',sans-serif", fontWeight:800, letterSpacing:1 }}>{v.placa}</div>
+                        </div>
+                        <div style={{ fontSize:11, color:"#8a8a9a", marginTop:2 }}>{v.departamento}{v.modelo?" · "+v.modelo:""} · {fmtNum(v.kmTotal,0)} km rodados</div>
+                        <div style={{ fontSize:11, color:"#5a5a6a", marginTop:1 }}>Total gasto: {fmtBRL(v.custoTotal)}</div>
+                      </div>
+                      <div style={{ textAlign:"right" }}>
+                        <div style={{ fontSize:24, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#38bdf8" }}>{fmtBRL(v.custoPorKm)}</div>
+                        <div style={{ fontSize:10, color:"#5a5a6a" }}>por km</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Comparativo mês a mês */}
+          <div>
+            <div style={{ fontSize:11, color:"#5a5a6a", letterSpacing:2, marginBottom:14 }}>📅 COMPARATIVO MÊS A MÊS</div>
+            {(() => {
+              const hoje = new Date();
+              const meses = [];
+              for (let i = 5; i >= 0; i--) {
+                const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+                const key = d.toISOString().slice(0, 7);
+                const label = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
+                const regsM = registros.filter((r) => (r.data_hora||"").startsWith(key));
+                meses.push({
+                  key, label,
+                  custo: regsM.reduce((a, b) => a + Number(b.custo||0), 0),
+                  litros: regsM.reduce((a, b) => a + Number(b.quantidade||0), 0),
+                  count: regsM.length,
+                });
+              }
+              const maxCusto = Math.max(...meses.map((m) => m.custo), 1);
+              const mesAtual = meses[meses.length-1];
+              const mesAnterior = meses[meses.length-2];
+              const variacao = mesAnterior.custo > 0 ? ((mesAtual.custo - mesAnterior.custo) / mesAnterior.custo) * 100 : 0;
+
+              return (
+                <div>
+                  {/* Cards comparativos */}
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:20 }}>
+                    <div style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px" }}>
+                      <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:2 }}>MÊS ATUAL</div>
+                      <div style={{ fontSize:18, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#f97316", marginTop:4 }}>{fmtBRL(mesAtual.custo)}</div>
+                      <div style={{ fontSize:10, color:"#5a5a6a", marginTop:2 }}>{fmtNum(mesAtual.litros)} L · {mesAtual.count} abast.</div>
+                    </div>
+                    <div style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px" }}>
+                      <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:2 }}>MÊS ANTERIOR</div>
+                      <div style={{ fontSize:18, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#8a8a9a", marginTop:4 }}>{fmtBRL(mesAnterior.custo)}</div>
+                      <div style={{ fontSize:10, color:"#5a5a6a", marginTop:2 }}>{fmtNum(mesAnterior.litros)} L · {mesAnterior.count} abast.</div>
+                    </div>
+                    <div style={{ background: variacao > 0 ? "#2d0f0f" : "#14532d", border:`1px solid ${variacao > 0 ? "#ef4444" : "#16a34a"}`, borderRadius:10, padding:"14px 18px" }}>
+                      <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:2 }}>VARIAÇÃO</div>
+                      <div style={{ fontSize:18, fontFamily:"'Syne',sans-serif", fontWeight:800, color: variacao > 0 ? "#ef4444" : "#4ade80", marginTop:4 }}>
+                        {variacao > 0 ? "▲" : "▼"} {Math.abs(variacao).toFixed(1)}%
+                      </div>
+                      <div style={{ fontSize:10, color:"#5a5a6a", marginTop:2 }}>{variacao > 0 ? "aumento" : "redução"} vs mês anterior</div>
+                    </div>
+                  </div>
+
+                  {/* Gráfico de barras dos 6 meses */}
+                  <div style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:12, padding:"20px 24px" }}>
+                    <div style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, marginBottom:16 }}>ÚLTIMOS 6 MESES — GASTO (R$)</div>
+                    <div style={{ display:"flex", alignItems:"flex-end", gap:8, height:120 }}>
+                      {meses.map((m, i) => {
+                        const h = maxCusto > 0 ? (m.custo / maxCusto) * 100 : 0;
+                        const isAtual = i === meses.length - 1;
+                        return (
+                          <div key={m.key} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+                            {m.custo > 0 && <div style={{ fontSize:8, color:"#5a5a6a", textAlign:"center" }}>{fmtBRL(m.custo).replace("R$ ","")}</div>}
+                            <div style={{ width:"100%", height:`${Math.max(h, m.custo > 0 ? 4 : 0)}%`, background: isAtual ? "#f97316" : "#38bdf8", borderRadius:"4px 4px 0 0", transition:"height 0.5s ease", opacity: isAtual ? 1 : 0.6, minHeight: m.custo > 0 ? 4 : 0 }} />
+                            <div style={{ fontSize:9, color: isAtual ? "#f97316" : "#5a5a6a", fontWeight: isAtual ? 600 : 400 }}>{m.label}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Tabela mensal */}
+                  <div style={{ marginTop:16, display:"flex", flexDirection:"column", gap:6 }}>
+                    {[...meses].reverse().map((m) => (
+                      <div key={m.key} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:8, padding:"10px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                        <div>
+                          <div style={{ fontSize:13, fontWeight:500, color:"#fff", textTransform:"capitalize" }}>{new Date(m.key+"-15").toLocaleDateString("pt-BR",{month:"long",year:"numeric"})}</div>
+                          <div style={{ fontSize:11, color:"#5a5a6a", marginTop:1 }}>{m.count} abastecimento{m.count!==1?"s":""} · {fmtNum(m.litros)} L</div>
+                        </div>
+                        <div style={{ fontSize:16, fontFamily:"'Syne',sans-serif", fontWeight:800, color: m.key===hoje.toISOString().slice(0,7)?"#f97316":"#8a8a9a" }}>{fmtBRL(m.custo)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
