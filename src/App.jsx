@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 // ── Supabase ─────────────────────────────────────────
 const SUPABASE_URL = "https://tyesaqhtiqkakguimsdi.supabase.co";
 const SUPABASE_KEY = "sb_publishable_njutNAXOpPS8ueQNykDNLA_OKUOCyXj";
+const SUPABASE_SERVICE_KEY = "sb_secret_kdmB43aO9XBHQmff7iD3Fg_sGwNMX8x";
 
 const sb = async (path, opts = {}) => {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -1019,12 +1020,12 @@ export default function App() {
     if (novaSenha !== confirmarSenha) { setSenhaErro("Senhas não conferem"); return; }
     if (!usuario?.auth_id) { setSenhaErro("Usuário sem auth_id. Contate o administrador."); return; }
     try {
-      const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${usuario.auth_id}`, {
-        method: "PUT",
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/alterar_senha_usuario`, {
+        method: "POST",
         headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ password: novaSenha }),
+        body: JSON.stringify({ p_auth_id: usuario.auth_id, p_nova_senha: novaSenha }),
       });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.msg || "Erro ao alterar senha"); }
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Erro ao alterar senha"); }
       setSenhaOk(true); setNovaSenha(""); setConfirmarSenha("");
       setTimeout(() => { setSenhaOk(false); setMinhaConta(false); }, 2000);
     } catch (err) { setSenhaErro(err.message); }
@@ -1173,20 +1174,25 @@ export default function App() {
 
   const handleUserSubmit = async () => {
     if (!userForm.nome.trim() || !userForm.email.trim() || !userForm.senha.trim()) return;
+    if (!userForm.estabelecimento_id) { alert("Selecione um estabelecimento"); return; }
     try {
-      // 1. Criar no Supabase Auth
-      const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+      // Usar função SQL segura que cria no Auth + tabela usuarios
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/criar_usuario_auth`, {
         method: "POST",
         headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ email: userForm.email, password: userForm.senha, email_confirm: true }),
+        body: JSON.stringify({
+          p_email: userForm.email.trim(),
+          p_senha: userForm.senha,
+          p_nome: userForm.nome.trim(),
+          p_perfil: userForm.perfil,
+          p_estabelecimento_id: userForm.estabelecimento_id,
+        }),
       });
-      const authData = await authRes.json();
-      if (!authRes.ok) throw new Error(authData.msg || "Erro ao criar usuário no Auth");
-      const authId = authData.id;
-      // 2. Criar na tabela usuarios com auth_id
-      const { senha, ...semSenha } = userForm;
-      const novo = await api.post("usuarios", { ...semSenha, auth_id: authId });
-      setUsuarios((u) => [...u, novo[0]]);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.hint || "Erro ao criar usuário");
+      // Recarregar lista de usuários
+      const users = await api.get("usuarios", "select=*,estabelecimentos(*)");
+      setUsuarios(users);
       setUserForm({ nome: "", email: "", senha: "", perfil: "gestor", estabelecimento_id: "" });
       setUserOk(true); setTimeout(() => setUserOk(false), 2200);
     } catch (err) { alert("Erro: " + err.message); }
@@ -1205,7 +1211,7 @@ export default function App() {
       if (userToDelete?.auth_id) {
         await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userToDelete.auth_id}`, {
           method: "DELETE",
-          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` },
+          headers: { "apikey": SUPABASE_SERVICE_KEY, "Authorization": `Bearer ${SUPABASE_SERVICE_KEY}` },
         });
       }
       setUsuarios((u) => u.filter((x) => x.id !== id));
@@ -1214,15 +1220,15 @@ export default function App() {
 
   const handleEditUser = async () => {
     if (!editUser?.novaSenha?.trim()) { alert("Informe a nova senha"); return; }
+    if (editUser.novaSenha.length < 6) { alert("Senha deve ter pelo menos 6 caracteres"); return; }
     try {
-      // Atualizar senha no Supabase Auth (se tiver auth_id)
       if (editUser.auth_id) {
-        const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${editUser.auth_id}`, {
-          method: "PUT",
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/alterar_senha_usuario`, {
+          method: "POST",
           headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ password: editUser.novaSenha }),
+          body: JSON.stringify({ p_auth_id: editUser.auth_id, p_nova_senha: editUser.novaSenha }),
         });
-        if (!res.ok) { const e = await res.json(); throw new Error(e.msg || "Erro ao alterar senha"); }
+        if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Erro ao alterar senha"); }
       }
       setEditUser(null); setEditUserOk(true); setTimeout(() => setEditUserOk(false), 2200);
     } catch (err) { alert("Erro: " + err.message); }
