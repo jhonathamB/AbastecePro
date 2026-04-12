@@ -864,6 +864,9 @@ function Relatorios({ registros, isAdmin, veiculos }) {
 // ── App Principal ─────────────────────────────────────
 export default function App() {
   const [usuario, setUsuario] = useState(() => cache.get("usuario_sessao"));
+  const [tema, setTema] = useState(() => cache.get("tema") || "escuro");
+  const isDark = tema === "escuro";
+  const toggleTema = () => { const novo = tema === "escuro" ? "claro" : "escuro"; setTema(novo); cache.set("tema", novo); };
   const online = useOnline();
   const [activeTab, setActiveTab] = useState(usuario?.perfil === "operador" ? "registrar" : "dashboard");
   const [syncing, setSyncing] = useState(false);
@@ -884,6 +887,8 @@ export default function App() {
   const [filtroEstAdmin, setFiltroEstAdmin] = useState("");
 
   const [form, setForm] = useState({ dataHora: now(), combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "" });
+  const [ultimoMot, setUltimoMot] = useState(() => cache.get("ultimo_motorista"));
+  const [ultimoVeic, setUltimoVeic] = useState(() => cache.get("ultimo_veiculo"));
   const [formErrors, setFormErrors] = useState({});
   const [scannedMot, setScannedMot] = useState(null);
   const [scannedVeic, setScannedVeic] = useState(null);
@@ -998,6 +1003,9 @@ export default function App() {
       const regOffline = { ...novoReg, _offline: true, _localId: Date.now(), id: `offline_${Date.now()}` };
       addToQueue(novoReg); const atualizado = [regOffline, ...registros]; setRegistros(atualizado); cache.set("registros", atualizado); setComprovante(regOffline);
     }
+    // Salvar último motorista e veículo usados
+    if (mot) { setUltimoMot(mot); cache.set("ultimo_motorista", mot); }
+    if (veic) { setUltimoVeic(veic); cache.set("ultimo_veiculo", veic); }
     setForm({ dataHora: now(), combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "" });
     setScannedMot(null); setScannedVeic(null);
   };
@@ -1149,7 +1157,7 @@ export default function App() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0f1117", fontFamily: "'DM Mono','Courier New',monospace", color: "#e8e4d9" }}>
+    <div style={{ minHeight: "100vh", background: isDark ? "#0f1117" : "#f0f0f5", fontFamily: "'DM Mono','Courier New',monospace", color: isDark ? "#e8e4d9" : "#1a1a2e" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap');
         *{box-sizing:border-box} ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:#0f1117} ::-webkit-scrollbar-thumb{background:#f97316;border-radius:2px}
@@ -1333,7 +1341,8 @@ export default function App() {
               {pendentes > 0 && <div style={{ background: "#92400e", borderRadius: 8, padding: "3px 8px", fontSize: 10, color: "#fbbf24" }}>{pendentes} pendente{pendentes > 1 ? "s" : ""}</div>}
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: online ? "#4ade80" : "#f97316" }} />
               <span style={{ fontSize: 10, color: online ? "#4ade80" : "#f97316" }}>{online ? "online" : "offline"}</span>
-              <button onClick={handleLogout} style={{ background: "none", border: "1px solid #2a2c3a", borderRadius: 8, color: "#5a5a6a", cursor: "pointer", padding: "6px 12px", fontSize: 11, fontFamily: "inherit" }}>Sair</button>
+              <button onClick={toggleTema} title="Alternar tema" style={{ background: "none", border: `1px solid ${isDark ? "#2a2c3a" : "#ccc"}`, borderRadius: 8, color: isDark ? "#f97316" : "#666", cursor: "pointer", padding: "6px 10px", fontSize: 14 }}>{isDark ? "☀️" : "🌙"}</button>
+              <button onClick={handleLogout} style={{ background: "none", border: `1px solid ${isDark ? "#2a2c3a" : "#ccc"}`, borderRadius: 8, color: isDark ? "#5a5a6a" : "#666", cursor: "pointer", padding: "6px 12px", fontSize: 11, fontFamily: "inherit" }}>Sair</button>
             </div>
           </div>
           <div style={{ display: "flex", gap: 0, marginTop: 16, overflowX: "auto" }}>
@@ -1360,7 +1369,31 @@ export default function App() {
 
         {/* DASHBOARD */}
         {!loading && activeTab === "dashboard" && (
-          <Dashboard registros={registros} motoristas={motoristas} veiculos={veiculos} estNome={estNome} isAdmin={isAdmin} estabelecimentos={estabelecimentos} />
+          <div className="fade-in">
+            {/* Resumo do dia */}
+            {(() => {
+              const hoje = new Date().toISOString().slice(0,10);
+              const hoje_regs = registros.filter((r) => (r.data_hora||"").startsWith(hoje));
+              const hoje_litros = hoje_regs.reduce((a,b) => a+Number(b.quantidade||0), 0);
+              const hoje_custo = hoje_regs.reduce((a,b) => a+Number(b.custo||0), 0);
+              return hoje_regs.length > 0 ? (
+                <div style={{ background: isDark?"#1a1c27":"#fff", border:"1px solid #f97316", borderRadius:12, padding:"14px 20px", marginBottom:20, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
+                  <div>
+                    <div style={{ fontSize:10, color:"#f97316", letterSpacing:2, marginBottom:4 }}>HOJE</div>
+                    <div style={{ fontSize:13, color: isDark?"#e8e4d9":"#1a1a2e" }}>
+                      <strong>{hoje_regs.length}</strong> abastecimento{hoje_regs.length!==1?"s":""} · <strong>{fmtNum(hoje_litros)} L</strong> · <strong style={{ color:"#f97316" }}>{fmtBRL(hoje_custo)}</strong>
+                    </div>
+                  </div>
+                  {ultimoMot && ultimoVeic && (
+                    <div style={{ fontSize:11, color: isDark?"#5a5a6a":"#888" }}>
+                      Último: <span style={{ color:"#f97316" }}>{ultimoVeic.placa}</span> · <span style={{ color:"#e8e4d9" }}>{ultimoMot.nome}</span>
+                    </div>
+                  )}
+                </div>
+              ) : null;
+            })()}
+            <Dashboard registros={registros} motoristas={motoristas} veiculos={veiculos} estNome={estNome} isAdmin={isAdmin} estabelecimentos={estabelecimentos} isDark={isDark} />
+          </div>
         )}
 
         {/* REGISTRAR */}
@@ -1387,7 +1420,26 @@ export default function App() {
             {/* Alertas de vencimento */}
             <AlertasVencimento motorista={scannedMot} veiculo={scannedVeic} />
 
-            <div style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            {/* Atalho: usar último */}
+            {(ultimoMot || ultimoVeic) && !scannedMot && !scannedVeic && (
+              <div style={{ background: isDark?"#1a1c27":"#fff", border:"1px solid #2a2c3a", borderRadius:10, padding:"10px 16px", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
+                <div style={{ fontSize:11, color: isDark?"#5a5a6a":"#888" }}>⚡ Último usado:</div>
+                <div style={{ display:"flex", gap:8 }}>
+                  {ultimoMot && (
+                    <button onClick={() => setScannedMot(ultimoMot)} className="sbtn" style={{ background:"#1e2535", border:"1px solid #f97316", borderRadius:6, color:"#f97316", cursor:"pointer", padding:"4px 10px", fontSize:11, fontFamily:"inherit" }}>
+                      👤 {ultimoMot.nome}
+                    </button>
+                  )}
+                  {ultimoVeic && (
+                    <button onClick={() => setScannedVeic(ultimoVeic)} className="sbtn" style={{ background:"#0e2030", border:"1px solid #38bdf8", borderRadius:6, color:"#38bdf8", cursor:"pointer", padding:"4px 10px", fontSize:11, fontFamily:"inherit" }}>
+                      🚗 {ultimoVeic.placa}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div style={{ background: isDark?"#1a1c27":"#fff", border: "1px solid #2a2c3a", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div><div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2, marginBottom: 2 }}>ESTABELECIMENTO</div><div style={{ fontSize: 14, fontWeight: 500, color: "#f97316" }}>{estNome}</div></div>
               <span style={{ fontSize: 11, color: "#4ade80" }}>✓ fixo</span>
             </div>
