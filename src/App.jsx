@@ -164,31 +164,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
       </div>
 
       {/* Painel de alertas de vencimento */}
-      {(() => {
-        const alertasVeic = veiculos.flatMap((v) => {
-          const ac = statusVenc(v.venc_crlv);
-          const as = statusVenc(v.venc_seguro_obrigatorio);
-          const res = [];
-          if (ac && ac.cor !== "#4ade80") res.push({ texto: `${ac.icone} CRLV ${v.placa}: ${ac.texto}`, ...ac });
-          if (as && as.cor !== "#4ade80") res.push({ texto: `${as.icone} Seguro ${v.placa}: ${as.texto}`, ...as });
-          return res;
-        });
-        const alertasMot = motoristas.flatMap((m) => {
-          const s = statusVenc(m.venc_cnh);
-          return s && s.cor !== "#4ade80" ? [{ texto: `${s.icone} CNH ${m.nome}: ${s.texto}`, ...s }] : [];
-        });
-        const todos = [...alertasVeic, ...alertasMot];
-        return todos.length > 0 ? (
-          <div style={{ background:"#1a1c27", border:"1px solid #b45309", borderRadius:12, padding:"16px 20px", marginBottom:20 }}>
-            <div style={{ fontSize:11, color:"#fbbf24", letterSpacing:2, marginBottom:12 }}>⚠️ DOCUMENTOS — ATENÇÃO NECESSÁRIA</div>
-            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-              {todos.map((a, i) => (
-                <div key={i} style={{ fontSize:12, padding:"6px 10px", borderRadius:6, background:a.bg, border:`1px solid ${a.border}`, color:a.cor }}>{a.texto}</div>
-              ))}
-            </div>
-          </div>
-        ) : null;
-      })()}
+      <PainelAlertas veiculos={veiculos} motoristas={motoristas} />
 
       {/* Cards de resumo */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
@@ -1034,28 +1010,7 @@ export default function App() {
               />
             </div>
             {/* Alertas de vencimento */}
-            {(scannedMot || scannedVeic) && (() => {
-              const alertas = [];
-              if (scannedMot) {
-                const s = statusVenc(scannedMot.venc_cnh);
-                if (s && s.cor !== "#4ade80") alertas.push({ texto: `${s.icone} CNH de ${scannedMot.nome}: ${s.texto}`, ...s });
-              }
-              if (scannedVeic) {
-                const sc = statusVenc(scannedVeic.venc_crlv);
-                const ss = statusVenc(scannedVeic.venc_seguro_obrigatorio);
-                if (sc && sc.cor !== "#4ade80") alertas.push({ texto: `${sc.icone} CRLV ${scannedVeic.placa}: ${sc.texto}`, ...sc });
-                if (ss && ss.cor !== "#4ade80") alertas.push({ texto: `${ss.icone} Seguro ${scannedVeic.placa}: ${ss.texto}`, ...ss });
-              }
-              return alertas.length > 0 ? (
-                <div style={{ marginBottom:14, display:"flex", flexDirection:"column", gap:6 }}>
-                  {alertas.map((a, i) => (
-                    <div key={i} style={{ background:a.bg, border:`1px solid ${a.border}`, borderRadius:8, padding:"10px 14px", fontSize:12, color:a.cor }}>
-                      {a.texto}
-                    </div>
-                  ))}
-                </div>
-              ) : null;
-            })()}
+            <AlertasVencimento motorista={scannedMot} veiculo={scannedVeic} />
 
             <div style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div><div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2, marginBottom: 2 }}>ESTABELECIMENTO</div><div style={{ fontSize: 14, fontWeight: 500, color: "#f97316" }}>{estNome}</div></div>
