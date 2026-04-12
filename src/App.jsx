@@ -508,6 +508,8 @@ export default function App() {
   const [dptoOk, setDptoOk] = useState(false);
   const [estForm, setEstForm] = useState({ nome: "", cnpj: "", telefone: "" });
   const [estOk, setEstOk] = useState(false);
+  const [editEst, setEditEst] = useState(null);
+  const [editEstOk, setEditEstOk] = useState(false);
   const [userForm, setUserForm] = useState({ nome: "", email: "", senha: "", perfil: "gestor", estabelecimento_id: "" });
   const [userOk, setUserOk] = useState(false);
   const [editUser, setEditUser] = useState(null);
@@ -630,6 +632,31 @@ export default function App() {
     try { const novo = await api.post("estabelecimentos", estForm); setEstabelecimentos((e) => [...e, novo[0]]); setEstForm({ nome: "", cnpj: "", telefone: "" }); setEstOk(true); setTimeout(() => setEstOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
   };
 
+  const handleDeleteEst = async (id) => {
+    if (!window.confirm("Excluir este estabelecimento? Os usuários vinculados perderão o acesso.")) return;
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/estabelecimentos?id=eq.${id}`, {
+        method: "DELETE",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Prefer": "return=minimal" },
+      });
+      setEstabelecimentos((e) => e.filter((x) => x.id !== id));
+    } catch (err) { alert("Erro ao excluir: " + err.message); }
+  };
+
+  const handleUpdateEst = async () => {
+    if (!editEst?.nome?.trim()) { alert("Informe o nome"); return; }
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/estabelecimentos?id=eq.${editEst.id}`, {
+        method: "PATCH",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
+        body: JSON.stringify({ nome: editEst.nome, cnpj: editEst.cnpj, telefone: editEst.telefone }),
+      });
+      setEstabelecimentos((ests) => ests.map((e) => e.id === editEst.id ? { ...e, ...editEst } : e));
+      setEditEst(null);
+      setEditEstOk(true); setTimeout(() => setEditEstOk(false), 2200);
+    } catch (err) { alert("Erro ao editar: " + err.message); }
+  };
+
   const handleUserSubmit = async () => {
     if (!userForm.nome.trim() || !userForm.email.trim() || !userForm.senha.trim()) return;
     try { const novo = await api.post("usuarios", userForm); setUsuarios((u) => [...u, novo[0]]); setUserForm({ nome: "", email: "", senha: "", perfil: "gestor", estabelecimento_id: "" }); setUserOk(true); setTimeout(() => setUserOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
@@ -741,6 +768,24 @@ export default function App() {
         @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,0.4)}50%{box-shadow:0 0 0 10px rgba(249,115,22,0)}}
         .qr-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
       `}</style>
+
+      {/* Modal edição estabelecimento - admin */}
+      {editEst && (
+        <div className="qr-overlay" onClick={() => setEditEst(null)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background:"#1a1c27", border:"1px solid #f97316", borderRadius:16, padding:28, maxWidth:420, width:"90%" }}>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:16, color:"#fff", marginBottom:20 }}>✏️ Editar Estabelecimento</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+              <Field label="NOME"><input type="text" value={editEst.nome} onChange={(e) => setEditEst((x) => ({ ...x, nome: e.target.value }))} style={iS()} /></Field>
+              <Field label="CNPJ"><input type="text" placeholder="00.000.000/0001-00" value={editEst.cnpj || ""} onChange={(e) => setEditEst((x) => ({ ...x, cnpj: e.target.value }))} style={iS()} /></Field>
+              <Field label="TELEFONE"><input type="text" placeholder="(44) 99999-9999" value={editEst.telefone || ""} onChange={(e) => setEditEst((x) => ({ ...x, telefone: e.target.value }))} style={iS()} /></Field>
+            </div>
+            <div style={{ display:"flex", gap:8, marginTop:20 }}>
+              <button onClick={handleUpdateEst} style={{ flex:1, padding:"13px", background:"#f97316", border:"none", borderRadius:10, color:"#fff", fontFamily:"inherit", fontSize:13, fontWeight:700, cursor:"pointer" }}>✓ SALVAR</button>
+              <button onClick={() => setEditEst(null)} style={{ padding:"13px 16px", background:"none", border:"1px solid #3a2020", borderRadius:10, color:"#ef4444", fontFamily:"inherit", fontSize:13, cursor:"pointer" }}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal edição motorista - gestor */}
       {editMotorista && (
@@ -1167,7 +1212,8 @@ export default function App() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
               <div>
                 <SectionTitle icon="🏪">Estabelecimentos</SectionTitle>
-                {estOk && <Alert type="success">✓ Criado!</Alert>}
+                {estOk && <Alert type="success">✓ Estabelecimento criado!</Alert>}
+                {editEstOk && <Alert type="success">✓ Estabelecimento atualizado!</Alert>}
                 <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
                   <Field label="NOME"><input type="text" placeholder="Nome do estabelecimento" value={estForm.nome} onChange={(e) => setEstForm((f) => ({ ...f, nome: e.target.value }))} style={iS()} /></Field>
                   <Field label="CNPJ (OPCIONAL)"><input type="text" placeholder="00.000.000/0001-00" value={estForm.cnpj} onChange={(e) => setEstForm((f) => ({ ...f, cnpj: e.target.value }))} style={iS()} /></Field>
@@ -1177,9 +1223,16 @@ export default function App() {
                 {estabelecimentos.filter((e) => e.nome !== "Administrador").length === 0 ? <EmptyState>Nenhum estabelecimento.</EmptyState> : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {estabelecimentos.filter((e) => e.nome !== "Administrador").map((e) => (
-                      <div key={e.id} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 8, padding: "10px 14px" }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{e.nome}</div>
-                        {e.cnpj && <div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{e.cnpj}</div>}
+                      <div key={e.id} className="row-item" style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 8, padding: "10px 14px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{e.nome}</div>
+                          {e.cnpj && <div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{e.cnpj}</div>}
+                          {e.telefone && <div style={{ fontSize: 11, color: "#8a8a9a" }}>{e.telefone}</div>}
+                        </div>
+                        <div style={{ display:"flex", gap:6 }}>
+                          <button onClick={() => setEditEst({ ...e })} className="sbtn" style={{ background:"#1e2535", border:"1px solid #f97316", borderRadius:6, color:"#f97316", cursor:"pointer", padding:"5px 10px", fontSize:11, fontFamily:"inherit" }}>✏️</button>
+                          <button className="del-btn" onClick={() => handleDeleteEst(e.id)} style={{ background:"none", border:"1px solid #3a2020", borderRadius:6, color:"#ef4444", cursor:"pointer", padding:"4px 8px", fontSize:12, fontFamily:"inherit" }}>✕</button>
+                        </div>
                       </div>
                     ))}
                   </div>
