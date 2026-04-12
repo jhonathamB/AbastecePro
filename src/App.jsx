@@ -999,7 +999,7 @@ export default function App() {
   const [estOk, setEstOk] = useState(false);
   const [editEst, setEditEst] = useState(null);
   const [editEstOk, setEditEstOk] = useState(false);
-  const [userForm, setUserForm] = useState({ nome: "", email: "", senha: "", perfil: "gestor", estabelecimento_id: "" });
+  const [userForm, setUserForm] = useState({ nome: "", email: "", perfil: "gestor", estabelecimento_id: "" });
   const [userOk, setUserOk] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [editUserOk, setEditUserOk] = useState(false);
@@ -1173,7 +1173,7 @@ export default function App() {
   };
 
   const handleUserSubmit = async () => {
-    if (!userForm.nome.trim() || !userForm.email.trim() || !userForm.senha.trim()) return;
+    if (!userForm.nome.trim() || !userForm.email.trim()) return;
     if (!userForm.estabelecimento_id) { alert("Selecione um estabelecimento"); return; }
     try {
       // Usar função SQL segura que cria no Auth + tabela usuarios
@@ -1182,7 +1182,7 @@ export default function App() {
         headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           p_email: userForm.email.trim(),
-          p_senha: userForm.senha,
+          p_senha: "",
           p_nome: userForm.nome.trim(),
           p_perfil: userForm.perfil,
           p_estabelecimento_id: userForm.estabelecimento_id,
@@ -1193,7 +1193,7 @@ export default function App() {
       // Recarregar lista de usuários
       const users = await api.get("usuarios", "select=*,estabelecimentos(*)");
       setUsuarios(users);
-      setUserForm({ nome: "", email: "", senha: "", perfil: "gestor", estabelecimento_id: "" });
+      setUserForm({ nome: "", email: "", perfil: "gestor", estabelecimento_id: "" });
       setUserOk(true); setTimeout(() => setUserOk(false), 2200);
     } catch (err) { alert("Erro: " + err.message); }
   };
@@ -1989,7 +1989,10 @@ export default function App() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
                   <Field label="NOME"><input type="text" placeholder="Nome do usuário" value={userForm.nome} onChange={(e) => setUserForm((f) => ({ ...f, nome: e.target.value }))} style={iS()} /></Field>
                   <Field label="E-MAIL"><input type="email" placeholder="email@exemplo.com" value={userForm.email} onChange={(e) => setUserForm((f) => ({ ...f, email: e.target.value }))} style={iS()} /></Field>
-                  <Field label="SENHA"><input type="text" placeholder="Senha de acesso" value={userForm.senha} onChange={(e) => setUserForm((f) => ({ ...f, senha: e.target.value }))} style={iS()} /></Field>
+
+                  <div style={{ background:"#1e2535", border:"1px solid #38bdf8", borderRadius:8, padding:"10px 14px", fontSize:11, color:"#38bdf8", marginBottom:4 }}>
+                    ℹ️ Crie o usuário primeiro em <strong>Supabase → Authentication → Users</strong> com email e senha. Depois registre aqui o perfil.
+                  </div>
                   <Field label="PERFIL">
                     <select value={userForm.perfil} onChange={(e) => setUserForm((f) => ({ ...f, perfil: e.target.value }))} style={iS()}>
                       <option value="gestor">Gestor (empresa)</option>
