@@ -1236,6 +1236,10 @@ export default function App() {
           .header-inner{padding:12px 12px 0!important}
           .period-btns button{padding:7px 10px!important;font-size:11px!important}
         }
+        .tabs-scroll::-webkit-scrollbar{display:none}
+        .nav-tabs::-webkit-scrollbar{display:none}
+        .tabs-scroll{-ms-overflow-style:none;scrollbar-width:none}
+        div[style*="overflowX"]::-webkit-scrollbar{display:none}
         @media(min-width:769px){
           .dash-cards{grid-template-columns:repeat(4,1fr)!important}
           .dash-sections{grid-template-columns:1fr 1fr!important}
@@ -1416,7 +1420,7 @@ export default function App() {
               <button onClick={handleLogout} style={{ background: "none", border: `1px solid ${isDark ? "#2a2c3a" : "#ccc"}`, borderRadius: 8, color: isDark ? "#5a5a6a" : "#666", cursor: "pointer", padding: "6px 12px", fontSize: 11, fontFamily: "inherit" }}>Sair</button>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 0, marginTop: 16, overflowX: "auto" }}>
+          <div className="nav-tabs" style={{ display: "flex", gap: 0, marginTop: 16, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {TABS.map(([id, label]) => (
               <button key={id} className="tab-btn" onClick={() => setActiveTab(id)} style={{ background: "none", border: "none", cursor: "pointer", padding: "10px 16px", fontSize: 11, fontFamily: "inherit", whiteSpace: "nowrap", color: activeTab === id ? "#f97316" : "#5a5a6a", borderBottom: activeTab === id ? "2px solid #f97316" : "2px solid transparent", fontWeight: activeTab === id ? 500 : 400, letterSpacing: 0.5 }}>{label}</button>
             ))}
@@ -1550,11 +1554,11 @@ export default function App() {
         {/* REGISTROS */}
         {!loading && activeTab === "registros" && (
           <div className="fade-in">
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginBottom: 16 }}>
               {[["REGISTROS", filtered.length, ""], ["TOTAL LITROS", fmtNum(filtered.reduce((a, b) => a + Number(b.quantidade || 0), 0)), "L"], ["TOTAL GASTO", fmtBRL(filtered.reduce((a, b) => a + Number(b.custo || 0), 0)), ""]].map(([label, val, unit]) => (
-                <div key={label} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 10, padding: "14px 18px" }}>
-                  <div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2 }}>{label}</div>
-                  <div style={{ fontSize: 18, fontFamily: "'Syne',sans-serif", fontWeight: 800, color: "#f97316", marginTop: 4 }}>{val}{unit && <span style={{ fontSize: 12, marginLeft: 3, color: "#8a8a9a" }}>{unit}</span>}</div>
+                <div key={label} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 10, padding: "10px 8px" }}>
+                  <div style={{ fontSize: 8, color: "#5a5a6a", letterSpacing: 1 }}>{label}</div>
+                  <div style={{ fontSize: 14, fontFamily: "'Syne',sans-serif", fontWeight: 800, color: "#f97316", marginTop: 3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{val}{unit && <span style={{ fontSize: 10, marginLeft: 2, color: "#8a8a9a" }}>{unit}</span>}</div>
                 </div>
               ))}
             </div>
