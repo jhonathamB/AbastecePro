@@ -413,21 +413,33 @@ function Divider() { return <div style={{ borderTop: "1px dashed #ccc", margin: 
 function Row({ label, value }) { return <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}><span style={{ color: "#666" }}>{label}:</span><span style={{ fontWeight: 500, textAlign: "right", maxWidth: "60%" }}>{value}</span></div>; }
 
 // ── Relatórios ────────────────────────────────────────
-function Relatorios({ registros, isAdmin }) {
+function Relatorios({ registros, isAdmin, veiculos }) {
+  const [aba, setAba] = useState("resumo"); // resumo | secretaria | historico | consumo
   const [tipo, setTipo] = useState("departamento");
   const [periodo, setPeriodo] = useState("todos");
   const [filtroEst, setFiltroEst] = useState("");
+  const [filtroSecretaria, setFiltroSecretaria] = useState("");
+  const [filtroHistorico, setFiltroHistorico] = useState("veiculo");
+  const [filtroHistoricoValor, setFiltroHistoricoValor] = useState("");
   const hoje = new Date();
 
-  const regs = registros.filter((r) => {
-    const dt = r.data_hora || "";
-    if (periodo === "hoje" && !dt.startsWith(hoje.toISOString().slice(0, 10))) return false;
-    if (periodo === "mes" && !dt.startsWith(hoje.toISOString().slice(0, 7))) return false;
-    if (filtroEst && r.operador !== filtroEst) return false;
-    return true;
-  });
+  const filtrarPeriodo = (regs) => {
+    return regs.filter((r) => {
+      const dt = r.data_hora || "";
+      if (periodo === "hoje" && !dt.startsWith(hoje.toISOString().slice(0, 10))) return false;
+      if (periodo === "mes" && !dt.startsWith(hoje.toISOString().slice(0, 7))) return false;
+      if (filtroEst && r.operador !== filtroEst) return false;
+      return true;
+    });
+  };
 
+  const regs = filtrarPeriodo(registros);
   const estabelecimentosUnicos = [...new Set(registros.map((r) => r.operador).filter(Boolean))];
+  const secretariasUnicas = [...new Set(registros.map((r) => r.departamento).filter(Boolean))];
+  const placasUnicas = [...new Set(registros.map((r) => r.placa).filter(Boolean))];
+  const motoristasUnicos = [...new Set(registros.map((r) => r.motorista_nome).filter(Boolean))];
+
+  // Resumo agrupado
   const campos = { departamento: "departamento", veiculo: "placa", motorista: "motorista_nome", combustivel: "combustivel", estabelecimento: "operador" };
   const grupos = {};
   regs.forEach((r) => {
@@ -440,46 +452,282 @@ function Relatorios({ registros, isAdmin }) {
   const lista = Object.entries(grupos).sort((a, b) => b[1].custo - a[1].custo);
   const totalCusto = regs.reduce((a, b) => a + Number(b.custo || 0), 0);
 
+  // Secretaria detalhado
+  const regsSecretaria = filtrarPeriodo(registros).filter((r) => !filtroSecretaria || r.departamento === filtroSecretaria);
+
+  // Histórico por veículo ou motorista
+  const regsHistorico = filtrarPeriodo(registros).filter((r) => {
+    if (!filtroHistoricoValor) return false;
+    return filtroHistorico === "veiculo" ? r.placa === filtroHistoricoValor : r.motorista_nome === filtroHistoricoValor;
+  });
+
+  // Consumo médio km/litro por veículo
+  const consumoVeiculos = veiculos.map((v) => {
+    const regsV = registros.filter((r) => r.placa === v.placa && r.hodometro);
+    if (regsV.length < 2) return { ...v, kmL: null, alerta: false };
+    const sorted = [...regsV].sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
+    const kmTotal = sorted[sorted.length - 1].hodometro - sorted[0].hodometro;
+    const litrosTotal = sorted.slice(1).reduce((a, b) => a + Number(b.quantidade || 0), 0);
+    const kmL = litrosTotal > 0 ? kmTotal / litrosTotal : null;
+    // Calcular média histórica para alertas
+    const mediasAnteriores = [];
+    for (let i = 1; i < sorted.length; i++) {
+      const km = sorted[i].hodometro - sorted[i-1].hodometro;
+      const lit = Number(sorted[i].quantidade || 0);
+      if (lit > 0 && km > 0) mediasAnteriores.push(km / lit);
+    }
+    const mediaHist = mediasAnteriores.length > 0 ? mediasAnteriores.reduce((a, b) => a + b, 0) / mediasAnteriores.length : null;
+    const ultimaMedia = mediasAnteriores[mediasAnteriores.length - 1] || null;
+    const alerta = mediaHist && ultimaMedia && ultimaMedia < mediaHist * 0.8;
+    return { ...v, kmL, mediaHist, ultimaMedia, alerta, totalRegs: regsV.length };
+  }).filter((v) => v.kmL !== null);
+
+  // PDF export
+  const exportPDF = () => {
+    const mes = hoje.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    const regsM = registros.filter((r) => (r.data_hora || "").startsWith(hoje.toISOString().slice(0, 7)));
+    const totalL = regsM.reduce((a, b) => a + Number(b.quantidade || 0), 0);
+    const totalC = regsM.reduce((a, b) => a + Number(b.custo || 0), 0);
+    const porDepto = {};
+    regsM.forEach((r) => {
+      const k = r.departamento || "—";
+      if (!porDepto[k]) porDepto[k] = { litros: 0, custo: 0, count: 0 };
+      porDepto[k].litros += Number(r.quantidade || 0);
+      porDepto[k].custo += Number(r.custo || 0);
+      porDepto[k].count++;
+    });
+    const linhasDepto = Object.entries(porDepto).sort((a, b) => b[1].custo - a[1].custo)
+      .map(([d, v]) => `<tr><td>${d}</td><td>${v.count}</td><td>${fmtNum(v.litros)} L</td><td>${fmtBRL(v.custo)}</td></tr>`).join("");
+    const linhasRegs = regsM.map((r) =>
+      `<tr><td>${(r.data_hora || "").slice(0,16).replace("T"," ")}</td><td>${r.placa}</td><td>${r.motorista_nome}</td><td>${r.departamento}</td><td>${r.combustivel}</td><td>${fmtNum(r.quantidade)} L</td><td>${fmtBRL(r.custo)}</td></tr>`
+    ).join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Relatório ${mes}</title>
+    <style>body{font-family:Arial,sans-serif;padding:20px;color:#111}h1{color:#f97316}h2{color:#333;border-bottom:2px solid #f97316;padding-bottom:6px}table{width:100%;border-collapse:collapse;margin-bottom:24px}th{background:#f97316;color:#fff;padding:8px;text-align:left;font-size:12px}td{padding:7px 8px;border-bottom:1px solid #eee;font-size:12px}tr:nth-child(even){background:#f9f9f9}.resumo{display:flex;gap:20px;margin-bottom:24px}.card{background:#fff3e0;border:1px solid #f97316;border-radius:8px;padding:12px 20px;text-align:center}.card-label{font-size:10px;color:#888;letter-spacing:2px}.card-val{font-size:22px;font-weight:bold;color:#f97316}</style></head>
+    <body><h1>⛽ Relatório de Abastecimento</h1><p>${mes}</p>
+    <div class="resumo">
+      <div class="card"><div class="card-label">REGISTROS</div><div class="card-val">${regsM.length}</div></div>
+      <div class="card"><div class="card-label">TOTAL LITROS</div><div class="card-val">${fmtNum(totalL)} L</div></div>
+      <div class="card"><div class="card-label">TOTAL GASTO</div><div class="card-val">${fmtBRL(totalC)}</div></div>
+    </div>
+    <h2>Por Secretaria/Departamento</h2>
+    <table><thead><tr><th>Secretaria</th><th>Registros</th><th>Litros</th><th>Custo</th></tr></thead><tbody>${linhasDepto}</tbody></table>
+    <h2>Registros Detalhados</h2>
+    <table><thead><tr><th>Data/Hora</th><th>Placa</th><th>Motorista</th><th>Secretaria</th><th>Combustível</th><th>Quantidade</th><th>Custo</th></tr></thead><tbody>${linhasRegs}</tbody></table>
+    </body></html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, "_blank");
+    if (w) setTimeout(() => w.print(), 800);
+  };
+
+  const exportCSVSecretaria = () => {
+    const h = ["Data/Hora","Secretaria","Placa","Motorista","Combustível","Qtd (L)","Custo (R$)","Hodômetro","Operador"];
+    const rows = regsSecretaria.map((r) => [(r.data_hora||"").slice(0,16).replace("T"," "),r.departamento,r.placa,r.motorista_nome,r.combustivel,r.quantidade,r.custo,r.hodometro||"",r.operador]);
+    const csv = [h,...rows].map((r)=>r.map((c)=>`"${c??''}"`).join(";")).join("
+");
+    const blob = new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob); const a = document.createElement("a");
+    a.href=url; a.download=`secretaria_${filtroSecretaria||"todas"}_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="fade-in">
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-        {[["departamento", "🏢 Depto"], ["veiculo", "🚗 Veículo"], ["motorista", "👤 Motorista"], ["combustivel", "⛽ Combustível"], ...(isAdmin ? [["estabelecimento", "🏪 Posto"]] : [])].map(([id, label]) => (
-          <button key={id} onClick={() => setTipo(id)} style={{ padding: "8px 14px", background: tipo === id ? "#f97316" : "#1a1c27", border: `1px solid ${tipo === id ? "#f97316" : "#2a2c3a"}`, borderRadius: 8, color: tipo === id ? "#fff" : "#8a8a9a", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>{label}</button>
+      {/* Abas internas */}
+      <div style={{ display:"flex", gap:6, marginBottom:20, flexWrap:"wrap" }}>
+        {[["resumo","📊 Resumo"],["secretaria","🏢 Por Secretaria"],["historico","📋 Histórico"],["consumo","⛽ Consumo km/L"]].map(([id,label]) => (
+          <button key={id} onClick={() => setAba(id)} style={{ padding:"9px 16px", background:aba===id?"#f97316":"#1a1c27", border:`1px solid ${aba===id?"#f97316":"#2a2c3a"}`, borderRadius:8, color:aba===id?"#fff":"#8a8a9a", fontFamily:"inherit", fontSize:12, cursor:"pointer", fontWeight:aba===id?500:400 }}>{label}</button>
         ))}
+        <button onClick={exportPDF} style={{ marginLeft:"auto", padding:"9px 16px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:8, color:"#a78bfa", fontFamily:"inherit", fontSize:12, cursor:"pointer" }}>📄 PDF Mensal</button>
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-        {[["todos", "Todos"], ["mes", "Este mês"], ["hoje", "Hoje"]].map(([id, label]) => (
-          <button key={id} onClick={() => setPeriodo(id)} style={{ padding: "7px 12px", background: periodo === id ? "#1e3a2a" : "#1a1c27", border: `1px solid ${periodo === id ? "#16a34a" : "#2a2c3a"}`, borderRadius: 8, color: periodo === id ? "#4ade80" : "#8a8a9a", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>{label}</button>
+
+      {/* Filtros de período */}
+      <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap" }}>
+        {[["todos","Todos"],["mes","Este mês"],["hoje","Hoje"]].map(([id,label]) => (
+          <button key={id} onClick={() => setPeriodo(id)} style={{ padding:"7px 12px", background:periodo===id?"#1e3a2a":"#1a1c27", border:`1px solid ${periodo===id?"#16a34a":"#2a2c3a"}`, borderRadius:8, color:periodo===id?"#4ade80":"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>{label}</button>
         ))}
         {isAdmin && (
-          <select value={filtroEst} onChange={(e) => setFiltroEst(e.target.value)} style={{ ...iS(), fontSize: 11, padding: "7px 12px", width: "auto" }}>
+          <select value={filtroEst} onChange={(e) => setFiltroEst(e.target.value)} style={{ ...iS(), fontSize:11, padding:"7px 12px", width:"auto" }}>
             <option value="">Todos os postos</option>
             {estabelecimentosUnicos.map((e) => <option key={e}>{e}</option>)}
           </select>
         )}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
-        {[["REGISTROS", regs.length, ""], ["TOTAL LITROS", fmtNum(regs.reduce((a, b) => a + Number(b.quantidade || 0), 0)), "L"], ["TOTAL GASTO", fmtBRL(totalCusto), ""]].map(([label, val, unit]) => (
-          <div key={label} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 10, padding: "14px 18px" }}>
-            <div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2 }}>{label}</div>
-            <div style={{ fontSize: 18, fontFamily: "'Syne',sans-serif", fontWeight: 800, color: "#f97316", marginTop: 4 }}>{val}{unit && <span style={{ fontSize: 12, marginLeft: 3, color: "#8a8a9a" }}>{unit}</span>}</div>
+
+      {/* Cards resumo */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:20 }}>
+        {[["REGISTROS",regs.length,""],["TOTAL LITROS",fmtNum(regs.reduce((a,b)=>a+Number(b.quantidade||0),0)),"L"],["TOTAL GASTO",fmtBRL(regs.reduce((a,b)=>a+Number(b.custo||0),0)),""]].map(([label,val,unit]) => (
+          <div key={label} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px" }}>
+            <div style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2 }}>{label}</div>
+            <div style={{ fontSize:18, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#f97316", marginTop:4 }}>{val}{unit&&<span style={{fontSize:12,marginLeft:3,color:"#8a8a9a"}}>{unit}</span>}</div>
           </div>
         ))}
       </div>
-      {lista.length === 0 ? <EmptyState>Nenhum dado.</EmptyState> : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {lista.map(([chave, dados]) => {
-            const pct = totalCusto > 0 ? (dados.custo / totalCusto) * 100 : 0;
-            return (
-              <div key={chave} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 10, padding: "14px 18px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <div><div style={{ fontSize: 14, fontWeight: 500, color: "#fff" }}>{chave}</div><div style={{ fontSize: 11, color: "#5a5a6a", marginTop: 2 }}>{dados.count} registro{dados.count !== 1 ? "s" : ""} · {fmtNum(dados.litros)} L</div></div>
-                  <div style={{ textAlign: "right" }}><div style={{ fontSize: 16, fontFamily: "'Syne',sans-serif", fontWeight: 800, color: "#f97316" }}>{fmtBRL(dados.custo)}</div><div style={{ fontSize: 11, color: "#5a5a6a" }}>{pct.toFixed(1)}%</div></div>
-                </div>
-                <div style={{ height: 4, background: "#2a2c3a", borderRadius: 2 }}><div style={{ height: 4, background: "#f97316", borderRadius: 2, width: `${pct}%`, transition: "width 0.5s ease" }} /></div>
+
+      {/* ABA: RESUMO */}
+      {aba === "resumo" && (
+        <div>
+          <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap" }}>
+            {[["departamento","🏢 Depto"],["veiculo","🚗 Veículo"],["motorista","👤 Motorista"],["combustivel","⛽ Combustível"],...(isAdmin?[["estabelecimento","🏪 Posto"]]:[])].map(([id,label]) => (
+              <button key={id} onClick={() => setTipo(id)} style={{ padding:"8px 14px", background:tipo===id?"#f97316":"#1a1c27", border:`1px solid ${tipo===id?"#f97316":"#2a2c3a"}`, borderRadius:8, color:tipo===id?"#fff":"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>{label}</button>
+            ))}
+          </div>
+          {lista.length === 0 ? <EmptyState>Nenhum dado.</EmptyState> : (
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              {lista.map(([chave, dados]) => {
+                const pct = totalCusto > 0 ? (dados.custo / totalCusto) * 100 : 0;
+                return (
+                  <div key={chave} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                      <div><div style={{ fontSize:14, fontWeight:500, color:"#fff" }}>{chave}</div><div style={{ fontSize:11, color:"#5a5a6a", marginTop:2 }}>{dados.count} registro{dados.count!==1?"s":""} · {fmtNum(dados.litros)} L</div></div>
+                      <div style={{ textAlign:"right" }}><div style={{ fontSize:16, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#f97316" }}>{fmtBRL(dados.custo)}</div><div style={{ fontSize:11, color:"#5a5a6a" }}>{pct.toFixed(1)}%</div></div>
+                    </div>
+                    <div style={{ height:4, background:"#2a2c3a", borderRadius:2 }}><div style={{ height:4, background:"#f97316", borderRadius:2, width:`${pct}%`, transition:"width 0.5s ease" }} /></div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ABA: POR SECRETARIA */}
+      {aba === "secretaria" && (
+        <div>
+          <div style={{ display:"flex", gap:10, marginBottom:16, alignItems:"center", flexWrap:"wrap" }}>
+            <select value={filtroSecretaria} onChange={(e) => setFiltroSecretaria(e.target.value)} style={{ ...iS(), width:"auto", fontSize:13 }}>
+              <option value="">— Selecione a secretaria —</option>
+              {secretariasUnicas.map((s) => <option key={s}>{s}</option>)}
+            </select>
+            {filtroSecretaria && (
+              <button onClick={exportCSVSecretaria} style={{ padding:"10px 16px", background:"#1a3a2a", border:"1px solid #16a34a", borderRadius:8, color:"#4ade80", fontFamily:"inherit", fontSize:12, cursor:"pointer" }}>↓ CSV Secretaria</button>
+            )}
+          </div>
+          {!filtroSecretaria ? (
+            <EmptyState>Selecione uma secretaria para ver os detalhes.</EmptyState>
+          ) : regsSecretaria.length === 0 ? (
+            <EmptyState>Nenhum registro para esta secretaria no período.</EmptyState>
+          ) : (
+            <div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:16 }}>
+                {[["REGISTROS",regsSecretaria.length,""],["LITROS",fmtNum(regsSecretaria.reduce((a,b)=>a+Number(b.quantidade||0),0)),"L"],["GASTO",fmtBRL(regsSecretaria.reduce((a,b)=>a+Number(b.custo||0),0)),""]].map(([label,val,unit]) => (
+                  <div key={label} style={{ background:"#1e3a2a", border:"1px solid #16a34a", borderRadius:10, padding:"12px 16px" }}>
+                    <div style={{ fontSize:9, color:"#4ade80", letterSpacing:2 }}>{label}</div>
+                    <div style={{ fontSize:16, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#4ade80", marginTop:4 }}>{val}{unit&&<span style={{fontSize:11,marginLeft:3}}>{unit}</span>}</div>
+                  </div>
+                ))}
               </div>
-            );
-          })}
+              <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                {regsSecretaria.map((r) => (
+                  <div key={r.id||r._localId} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:8, padding:"12px 16px", display:"grid", gridTemplateColumns:"1.2fr 1fr 1fr 1fr", gap:10, alignItems:"center" }}>
+                    <div>
+                      <div style={{ fontSize:12, fontWeight:500, color:"#fff" }}>{r.motorista_nome}</div>
+                      <div style={{ fontSize:10, color:"#5a5a6a", marginTop:1 }}>{(r.data_hora||"").slice(0,16).replace("T"," ")}</div>
+                    </div>
+                    <div style={{ fontSize:12, fontFamily:"'Syne',sans-serif", fontWeight:700, letterSpacing:1 }}>{r.placa}</div>
+                    <div style={{ fontSize:11, color:"#f97316" }}>{r.combustivel}</div>
+                    <div style={{ textAlign:"right" }}>
+                      <div style={{ fontSize:13, fontWeight:500 }}>{fmtNum(r.quantidade)} L</div>
+                      <div style={{ fontSize:11, color:"#4ade80" }}>{fmtBRL(r.custo)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ABA: HISTÓRICO */}
+      {aba === "historico" && (
+        <div>
+          <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
+            <div style={{ display:"flex", gap:6 }}>
+              {[["veiculo","🚗 Por Veículo"],["motorista","👤 Por Motorista"]].map(([id,label]) => (
+                <button key={id} onClick={() => { setFiltroHistorico(id); setFiltroHistoricoValor(""); }} style={{ padding:"8px 14px", background:filtroHistorico===id?"#f97316":"#1a1c27", border:`1px solid ${filtroHistorico===id?"#f97316":"#2a2c3a"}`, borderRadius:8, color:filtroHistorico===id?"#fff":"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>{label}</button>
+              ))}
+            </div>
+            <select value={filtroHistoricoValor} onChange={(e) => setFiltroHistoricoValor(e.target.value)} style={{ ...iS(), width:"auto", fontSize:13 }}>
+              <option value="">— Selecione —</option>
+              {(filtroHistorico === "veiculo" ? placasUnicas : motoristasUnicos).map((v) => <option key={v}>{v}</option>)}
+            </select>
+          </div>
+          {!filtroHistoricoValor ? (
+            <EmptyState>Selecione um {filtroHistorico === "veiculo" ? "veículo" : "motorista"} para ver o histórico.</EmptyState>
+          ) : regsHistorico.length === 0 ? (
+            <EmptyState>Nenhum registro encontrado.</EmptyState>
+          ) : (
+            <div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12, marginBottom:16 }}>
+                {[["REGISTROS",regsHistorico.length,""],["LITROS",fmtNum(regsHistorico.reduce((a,b)=>a+Number(b.quantidade||0),0)),"L"],["GASTO",fmtBRL(regsHistorico.reduce((a,b)=>a+Number(b.custo||0),0)),""]].map(([label,val,unit]) => (
+                  <div key={label} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"12px 16px" }}>
+                    <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:2 }}>{label}</div>
+                    <div style={{ fontSize:16, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#38bdf8", marginTop:4 }}>{val}{unit&&<span style={{fontSize:11,marginLeft:3,color:"#5a5a6a"}}>{unit}</span>}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                {regsHistorico.sort((a,b) => new Date(b.data_hora) - new Date(a.data_hora)).map((r) => (
+                  <div key={r.id||r._localId} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:8, padding:"12px 16px" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <div>
+                        <div style={{ fontSize:12, fontWeight:500, color:"#fff" }}>{filtroHistorico==="veiculo" ? r.motorista_nome : r.placa}</div>
+                        <div style={{ fontSize:10, color:"#5a5a6a", marginTop:1 }}>{(r.data_hora||"").slice(0,16).replace("T"," ")} · {r.combustivel}</div>
+                        {r.hodometro && <div style={{ fontSize:10, color:"#8a8a9a", marginTop:1 }}>Hodômetro: {fmtNum(r.hodometro,0)} km</div>}
+                      </div>
+                      <div style={{ textAlign:"right" }}>
+                        <div style={{ fontSize:14, fontWeight:500 }}>{fmtNum(r.quantidade)} L</div>
+                        <div style={{ fontSize:11, color:"#4ade80" }}>{fmtBRL(r.custo)}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ABA: CONSUMO KM/L */}
+      {aba === "consumo" && (
+        <div>
+          <div style={{ background:"#1e2535", border:"1px solid #38bdf8", borderRadius:10, padding:"12px 16px", marginBottom:16, fontSize:12, color:"#38bdf8" }}>
+            ℹ️ O consumo km/L é calculado automaticamente a partir do hodômetro. Registre o hodômetro nos abastecimentos para ativar esta função.
+          </div>
+          {consumoVeiculos.length === 0 ? (
+            <EmptyState>Nenhum veículo com dados de hodômetro suficientes.</EmptyState>
+          ) : (
+            <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+              {consumoVeiculos.sort((a,b) => (b.kmL||0) - (a.kmL||0)).map((v) => (
+                <div key={v.id} style={{ background:"#1a1c27", border:`1px solid ${v.alerta?"#ef4444":"#2a2c3a"}`, borderRadius:10, padding:"14px 18px" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <div>
+                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        <div style={{ fontSize:14, fontFamily:"'Syne',sans-serif", fontWeight:800, letterSpacing:1 }}>{v.placa}</div>
+                        {v.alerta && <span style={{ fontSize:9, background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:4, padding:"2px 6px", color:"#ef4444" }}>⚠️ CONSUMO ANORMAL</span>}
+                      </div>
+                      <div style={{ fontSize:11, color:"#8a8a9a", marginTop:2 }}>{v.departamento}{v.modelo?" · "+v.modelo:""} · {v.totalRegs} registros com hodômetro</div>
+                    </div>
+                    <div style={{ textAlign:"right" }}>
+                      <div style={{ fontSize:22, fontFamily:"'Syne',sans-serif", fontWeight:800, color: v.alerta?"#ef4444":"#4ade80" }}>{v.kmL.toFixed(1)}</div>
+                      <div style={{ fontSize:10, color:"#5a5a6a" }}>km/L</div>
+                    </div>
+                  </div>
+                  {v.mediaHist && (
+                    <div style={{ marginTop:10, display:"flex", gap:8 }}>
+                      <div style={{ flex:1, background:"#0f1117", borderRadius:6, padding:"6px 10px" }}>
+                        <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:1 }}>MÉDIA HISTÓRICA</div>
+                        <div style={{ fontSize:14, color:"#8a8a9a", fontWeight:600 }}>{v.mediaHist.toFixed(1)} km/L</div>
+                      </div>
+                      <div style={{ flex:1, background:"#0f1117", borderRadius:6, padding:"6px 10px" }}>
+                        <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:1 }}>ÚLTIMO INTERVALO</div>
+                        <div style={{ fontSize:14, color: v.alerta?"#ef4444":"#4ade80", fontWeight:600 }}>{v.ultimaMedia?.toFixed(1)} km/L</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1141,7 +1389,7 @@ export default function App() {
         )}
 
         {/* RELATÓRIOS */}
-        {!loading && activeTab === "relatorios" && <Relatorios registros={registros} isAdmin={isAdmin} />}
+        {!loading && activeTab === "relatorios" && <Relatorios registros={registros} isAdmin={isAdmin} veiculos={veiculos} />}
 
         {/* MOTORISTAS */}
         {!loading && activeTab === "motoristas" && (
