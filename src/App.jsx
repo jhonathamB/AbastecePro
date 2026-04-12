@@ -420,8 +420,8 @@ function LoginScreen({ onLogin }) {
         {!online && <div style={{ background: "#2d1f0a", border: "1px solid #b45309", borderRadius: 10, padding: "10px 16px", marginBottom: 16, fontSize: 12, color: "#fbbf24", textAlign: "center" }}>📡 Sem conexão — modo offline</div>}
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <div style={{ width: 60, height: 60, borderRadius: 16, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 16px" }}>⛽</div>
-          <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: -0.5 }}>ABASTECIMENTO</div>
-          <div style={{ fontSize: 11, color: "#5a5a6a", letterSpacing: 2, marginTop: 4 }}>CONTROLE DE FROTA</div>
+          <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: -0.5 }}>AbastecePro</div>
+          <div style={{ fontSize: 11, color: "#5a5a6a", letterSpacing: 2, marginTop: 4 }}>GESTÃO DE FROTA</div>
         </div>
         <div style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 16, padding: 28 }}>
           {error && <div style={{ background: "#2d0f0f", border: "1px solid #ef4444", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#ef4444", marginBottom: 16 }}>{error}</div>}
@@ -450,7 +450,7 @@ function Comprovante({ registro, estabelecimento, onClose }) {
         <div className="comprovante">
           <div style={{ textAlign: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 28 }}>⛽</div>
-            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 14, letterSpacing: 1, marginTop: 4 }}>COMPROVANTE DE ABASTECIMENTO</div>
+            <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 14, letterSpacing: 1, marginTop: 4 }}>COMPROVANTE DE AbastecePro</div>
             <div style={{ fontSize: 11, color: "#666", marginTop: 2 }}>{estabelecimento}</div>
           </div>
           <Divider />
@@ -1518,7 +1518,7 @@ export default function App() {
                   {qrModal.tipo === "motorista" ? `${qrModal.item.departamento}${qrModal.item.cnh ? " · CNH " + qrModal.item.cnh : ""}` : `${qrModal.item.departamento}${qrModal.item.modelo ? " · " + qrModal.item.modelo : ""}${qrModal.item.ano ? " (" + qrModal.item.ano + ")" : ""}`}
                 </div>
                 <img src={qrUrl(JSON.stringify({ id: qrModal.item.id, tipo: qrModal.tipo }))} alt="QR" style={{ width: 180, height: 180, display: "block", margin: "0 auto" }} />
-                <div style={{ fontSize: 9, color: "#aaa", marginTop: 12, letterSpacing: 2 }}>CONTROLE DE ABASTECIMENTO</div>
+                <div style={{ fontSize: 9, color: "#aaa", marginTop: 12, letterSpacing: 2 }}>CONTROLE DE AbastecePro</div>
                 <div style={{ fontSize: 11, color: "#333", marginTop: 4, fontWeight: 600 }}>{estNome}</div>
               </div>
             </div>
@@ -1537,7 +1537,7 @@ export default function App() {
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div style={{ width: 38, height: 38, borderRadius: 10, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⛽</div>
               <div>
-                <div style={{ fontFamily: "'Syne',sans-serif", fontSize: "clamp(14px, 4vw, 20px)", fontWeight: 800, letterSpacing: -0.5, color: "#fff" }}>ABASTECIMENTO</div>
+                <div style={{ fontFamily: "'Syne',sans-serif", fontSize: "clamp(14px, 4vw, 20px)", fontWeight: 800, letterSpacing: -0.5, color: "#fff" }}>AbastecePro</div>
                 <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:-2 }}>
                   <div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2 }}>{estNome.toUpperCase()}</div>
                   <span style={{ fontSize:9, padding:"1px 6px", borderRadius:4, background: isAdmin?"#2d1f0a":isGestor?"#1e3a2a":"#1e2535", color: isAdmin?"#fbbf24":isGestor?"#4ade80":"#38bdf8" }}>
@@ -1681,7 +1681,7 @@ export default function App() {
             )}
             {!online && <div style={{ marginTop: 12, padding: "10px 16px", background: "#2d1f0a", borderRadius: 8, border: "1px solid #b45309", fontSize: 12, color: "#fbbf24" }}>📡 Modo offline — será sincronizado quando houver conexão.</div>}
             <button className="sbtn" onClick={handleRegistrar} style={{ marginTop: 18, width: "100%", padding: "15px", background: "#f97316", border: "none", borderRadius: 10, color: "#fff", fontFamily: "inherit", fontSize: 14, fontWeight: 500, letterSpacing: 1.5, cursor: "pointer" }}>
-              {online ? "REGISTRAR ABASTECIMENTO" : "REGISTRAR OFFLINE"}
+              {online ? "REGISTRAR AbastecePro" : "REGISTRAR OFFLINE"}
             </button>
           </div>
         )}
