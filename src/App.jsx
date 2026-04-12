@@ -470,7 +470,7 @@ function Relatorios({ registros, isAdmin }) {
 export default function App() {
   const [usuario, setUsuario] = useState(() => cache.get("usuario_sessao"));
   const online = useOnline();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState(usuario?.perfil === "operador" ? "registrar" : "dashboard");
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
 
@@ -483,6 +483,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
 
   const [comprovante, setComprovante] = useState(null);
+  const [editReg, setEditReg] = useState(null); // registro sendo editado pelo operador
   const [qrModal, setQrModal] = useState(null);
   const [search, setSearch] = useState("");
   const [filtroEstAdmin, setFiltroEstAdmin] = useState("");
@@ -505,12 +506,16 @@ export default function App() {
   const [dptoOk, setDptoOk] = useState(false);
   const [estForm, setEstForm] = useState({ nome: "", cnpj: "", telefone: "" });
   const [estOk, setEstOk] = useState(false);
-  const [userForm, setUserForm] = useState({ nome: "", email: "", senha: "", perfil: "estabelecimento", estabelecimento_id: "" });
+  const [userForm, setUserForm] = useState({ nome: "", email: "", senha: "", perfil: "gestor", estabelecimento_id: "" });
   const [userOk, setUserOk] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [editUserOk, setEditUserOk] = useState(false);
 
   const isAdmin = usuario?.perfil === "admin";
+  const isGestor = usuario?.perfil === "gestor";
+  const isOperador = usuario?.perfil === "operador";
+  const podeGerenciar = isAdmin || isGestor; // pode cadastrar veículos, motoristas etc
+  const podeDashboard = isAdmin || isGestor; // pode ver dashboard e relatórios
   const estId = usuario?.estabelecimento_id;
   const estNome = usuario?.estabelecimentos?.nome || "";
 
@@ -625,7 +630,7 @@ export default function App() {
 
   const handleUserSubmit = async () => {
     if (!userForm.nome.trim() || !userForm.email.trim() || !userForm.senha.trim()) return;
-    try { const novo = await api.post("usuarios", userForm); setUsuarios((u) => [...u, novo[0]]); setUserForm({ nome: "", email: "", senha: "", perfil: "estabelecimento", estabelecimento_id: "" }); setUserOk(true); setTimeout(() => setUserOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
+    try { const novo = await api.post("usuarios", userForm); setUsuarios((u) => [...u, novo[0]]); setUserForm({ nome: "", email: "", senha: "", perfil: "gestor", estabelecimento_id: "" }); setUserOk(true); setTimeout(() => setUserOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
   };
 
   const handleDeleteUser = async (id) => {
@@ -636,6 +641,27 @@ export default function App() {
   const handleEditUser = async () => {
     if (!editUser?.novaSenha?.trim()) { alert("Informe a nova senha"); return; }
     try { await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${editUser.id}`, { method: "PATCH", headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" }, body: JSON.stringify({ senha: editUser.novaSenha }) }); setEditUser(null); setEditUserOk(true); setTimeout(() => setEditUserOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
+  };
+
+  const handleSaveEditReg = async () => {
+    if (!editReg) return;
+    const criado = new Date(editReg.data_hora || 0);
+    const diffMin = (Date.now() - criado.getTime()) / 60000;
+    if (diffMin > 30) { alert("Prazo de 30 minutos expirado. Não é possível editar este registro."); setEditReg(null); return; }
+    try {
+      await fetch(\`\${SUPABASE_URL}/rest/v1/abastecimentos?id=eq.\${editReg.id}\`, {
+        method: "PATCH",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": \`Bearer \${SUPABASE_KEY}\`, "Content-Type": "application/json", "Prefer": "return=minimal" },
+        body: JSON.stringify({
+          combustivel: editReg.combustivel,
+          quantidade: parseFloat(editReg.quantidade),
+          custo: parseFloat(editReg.custo),
+          hodometro: editReg.hodometro ? parseFloat(editReg.hodometro) : null,
+        }),
+      });
+      setRegistros((regs) => regs.map((r) => r.id === editReg.id ? { ...r, ...editReg, quantidade: parseFloat(editReg.quantidade), custo: parseFloat(editReg.custo) } : r));
+      setEditReg(null);
+    } catch (err) { alert("Erro ao salvar: " + err.message); }
   };
 
   const exportCSV = () => {
@@ -662,12 +688,11 @@ export default function App() {
   if (!usuario) return <LoginScreen onLogin={handleLogin} />;
 
   const TABS = [
-    ["dashboard", "📊 Dashboard"],
+    ...(!isOperador ? [["dashboard", "📊 Dashboard"]] : []),
     ["registrar", "Registrar"],
-    ["registros", `Registros (${registros.length})`],
-    ["relatorios", "Relatórios"],
-    ["motoristas", `Motoristas (${motoristas.length})`],
-    ["veiculos", `Veículos (${veiculos.length})`],
+    ...(isOperador ? [["meus-registros", "Meus Registros Hoje"]] : [["registros", `Registros (${registros.length})`]]),
+    ...(!isOperador ? [["relatorios", "Relatórios"]] : []),
+    ...(podeGerenciar ? [["motoristas", `Motoristas (${motoristas.length})`], ["veiculos", `Veículos (${veiculos.length})`]] : []),
     ...(isAdmin ? [["admin", "⚙️ Admin"]] : []),
   ];
 
@@ -686,6 +711,52 @@ export default function App() {
         @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,0.4)}50%{box-shadow:0 0 0 10px rgba(249,115,22,0)}}
         .qr-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
       `}</style>
+
+      {/* Modal edição de registro - operador - 30min */}
+      {editReg && (
+        <div className="qr-overlay" onClick={() => setEditReg(null)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background:"#1a1c27", border:"1px solid #38bdf8", borderRadius:16, padding:28, maxWidth:420, width:"90%" }}>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:16, color:"#fff", marginBottom:4 }}>✏️ Corrigir Abastecimento</div>
+            <div style={{ fontSize:11, color:"#38bdf8", marginBottom:20 }}>
+              {(() => {
+                const criado = new Date(editReg.data_hora || 0);
+                const diffMin = (Date.now() - criado.getTime()) / 60000;
+                const restante = Math.max(0, Math.ceil(30 - diffMin));
+                return restante > 0 ? `⏱ ${restante} minuto(s) restante(s) para editar` : "⚠ Prazo expirado";
+              })()}
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+              <div style={{ gridColumn:"1/-1" }}>
+                <label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>TIPO DE COMBUSTÍVEL</label>
+                <select value={editReg.combustivel} onChange={(e) => setEditReg((r) => ({ ...r, combustivel: e.target.value }))} style={iS()}>
+                  {COMBUSTIVEIS.map((c) => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>QUANTIDADE (L)</label>
+                <input type="number" min="0" step="0.01" value={editReg.quantidade} onChange={(e) => setEditReg((r) => ({ ...r, quantidade: e.target.value }))} style={iS()} />
+              </div>
+              <div>
+                <label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>CUSTO TOTAL (R$)</label>
+                <input type="number" min="0" step="0.01" value={editReg.custo} onChange={(e) => setEditReg((r) => ({ ...r, custo: e.target.value }))} style={iS()} />
+              </div>
+              <div style={{ gridColumn:"1/-1" }}>
+                <label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>HODÔMETRO (KM)</label>
+                <input type="number" min="0" value={editReg.hodometro || ""} onChange={(e) => setEditReg((r) => ({ ...r, hodometro: e.target.value }))} style={iS()} />
+              </div>
+            </div>
+            {editReg.quantidade > 0 && editReg.custo > 0 && (
+              <div style={{ marginTop:12, padding:"10px 16px", background:"#0f1117", borderRadius:8, fontSize:12, color:"#8a8a9a" }}>
+                Preço/litro: <strong style={{ color:"#f97316" }}>{fmtBRL(parseFloat(editReg.custo) / parseFloat(editReg.quantidade))}</strong>
+              </div>
+            )}
+            <div style={{ display:"flex", gap:8, marginTop:20 }}>
+              <button onClick={handleSaveEditReg} style={{ flex:1, padding:"13px", background:"#38bdf8", border:"none", borderRadius:10, color:"#0f1117", fontFamily:"inherit", fontSize:13, fontWeight:700, letterSpacing:1, cursor:"pointer" }}>✓ SALVAR CORREÇÃO</button>
+              <button onClick={() => setEditReg(null)} style={{ padding:"13px 16px", background:"none", border:"1px solid #3a2020", borderRadius:10, color:"#ef4444", fontFamily:"inherit", fontSize:13, cursor:"pointer" }}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {comprovante && <Comprovante registro={comprovante} estabelecimento={estNome} onClose={() => setComprovante(null)} />}
 
@@ -723,7 +794,12 @@ export default function App() {
               <div style={{ width: 38, height: 38, borderRadius: 10, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⛽</div>
               <div>
                 <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 20, fontWeight: 800, letterSpacing: -0.5, color: "#fff" }}>ABASTECIMENTO</div>
-                <div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2, marginTop: -2 }}>{estNome.toUpperCase()}</div>
+                <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:-2 }}>
+                  <div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2 }}>{estNome.toUpperCase()}</div>
+                  <span style={{ fontSize:9, padding:"1px 6px", borderRadius:4, background: isAdmin?"#2d1f0a":isGestor?"#1e3a2a":"#1e2535", color: isAdmin?"#fbbf24":isGestor?"#4ade80":"#38bdf8" }}>
+                    {isAdmin?"ADMIN":isGestor?"GESTOR":"OPERADOR"}
+                  </span>
+                </div>
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -856,6 +932,56 @@ export default function App() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* MEUS REGISTROS HOJE - operador */}
+        {!loading && activeTab === "meus-registros" && (
+          <div className="fade-in">
+            <div style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px", marginBottom:16 }}>
+              <div style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2 }}>SEUS REGISTROS DE HOJE</div>
+              <div style={{ fontSize:20, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#f97316", marginTop:4 }}>
+                {registros.filter((r) => (r.data_hora||"").startsWith(new Date().toISOString().slice(0,10)) && r.operador === estNome).length}
+                <span style={{ fontSize:12, marginLeft:6, color:"#5a5a6a" }}>abastecimentos</span>
+              </div>
+            </div>
+            {registros.filter((r) => (r.data_hora||"").startsWith(new Date().toISOString().slice(0,10)) && r.operador === estNome).length === 0
+              ? <EmptyState>Nenhum abastecimento registrado hoje.</EmptyState>
+              : (
+                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                  {registros.filter((r) => (r.data_hora||"").startsWith(new Date().toISOString().slice(0,10)) && r.operador === estNome).map((r) => (
+                    <div key={r.id||r._localId} className="row-item fade-in" style={{ background:"#1a1c27", border:`1px solid ${r._offline?"#b45309":"#2a2c3a"}`, borderRadius:10, padding:"14px 18px", display:"grid", gridTemplateColumns:"1.4fr 1fr 1fr auto", alignItems:"center", gap:12 }}>
+                      <div>
+                        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                          <div style={{ fontSize:13, fontWeight:500, color:"#fff" }}>{r.motorista_nome}</div>
+                          {r._offline && <span style={{ fontSize:9, background:"#92400e", color:"#fbbf24", borderRadius:4, padding:"2px 5px" }}>OFFLINE</span>}
+                        </div>
+                        <div style={{ fontSize:11, color:"#5a5a6a", marginTop:2 }}>{(r.data_hora||"").slice(11,16)}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize:13, fontFamily:"'Syne',sans-serif", fontWeight:700, letterSpacing:1 }}>{r.placa}</div>
+                        <div style={{ fontSize:11, color:"#f97316", marginTop:2 }}>{r.combustivel}</div>
+                      </div>
+                      <div style={{ textAlign:"right" }}>
+                        <div style={{ fontSize:14, fontWeight:500 }}>{fmtNum(r.quantidade)} L</div>
+                        <div style={{ fontSize:12, color:"#4ade80", marginTop:2 }}>{fmtBRL(r.custo)}</div>
+                      </div>
+                      <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+                        <button onClick={() => setComprovante(r)} className="sbtn" style={{ background:"#1e2535", border:"1px solid #f97316", borderRadius:6, color:"#f97316", cursor:"pointer", padding:"4px 8px", fontSize:14 }}>🧾</button>
+                        {(() => {
+                          const criado = new Date(r.data_hora || r.created_at || 0);
+                          const diffMin = (Date.now() - criado.getTime()) / 60000;
+                          const restante = Math.ceil(30 - diffMin);
+                          return diffMin <= 30 && !r._offline ? (
+                            <button onClick={() => setEditReg(r)} className="sbtn" style={{ background:"#1e2535", border:"1px solid #38bdf8", borderRadius:6, color:"#38bdf8", cursor:"pointer", padding:"4px 6px", fontSize:10, fontFamily:"inherit", whiteSpace:"nowrap" }}>✏️ {restante}m</button>
+                          ) : null;
+                        })()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            }
           </div>
         )}
 
@@ -992,7 +1118,8 @@ export default function App() {
                   <Field label="SENHA"><input type="text" placeholder="Senha de acesso" value={userForm.senha} onChange={(e) => setUserForm((f) => ({ ...f, senha: e.target.value }))} style={iS()} /></Field>
                   <Field label="PERFIL">
                     <select value={userForm.perfil} onChange={(e) => setUserForm((f) => ({ ...f, perfil: e.target.value }))} style={iS()}>
-                      <option value="estabelecimento">Estabelecimento</option>
+                      <option value="gestor">Gestor (empresa)</option>
+                      <option value="operador">Operador (só registra)</option>
                       <option value="admin">Administrador</option>
                     </select>
                   </Field>
@@ -1008,7 +1135,15 @@ export default function App() {
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {usuarios.filter((u) => u.perfil !== "admin").map((u) => (
                       <div key={u.id} className="row-item" style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div><div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{u.nome}</div><div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{u.email} · {u.estabelecimentos?.nome}</div></div>
+                        <div>
+                          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{u.nome}</div>
+                            <span style={{ fontSize:9, padding:"2px 7px", borderRadius:4, background: u.perfil==="gestor"?"#1e3a2a":u.perfil==="operador"?"#1e2535":"#2d1f0a", color: u.perfil==="gestor"?"#4ade80":u.perfil==="operador"?"#38bdf8":"#fbbf24" }}>
+                              {u.perfil==="gestor"?"GESTOR":u.perfil==="operador"?"OPERADOR":"ADMIN"}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{u.email} · {u.estabelecimentos?.nome}</div>
+                        </div>
                         <div style={{ display: "flex", gap: 6 }}>
                           <button onClick={() => setEditUser({ ...u, novaSenha: "" })} style={{ background: "#1e2535", border: "1px solid #38bdf8", borderRadius: 6, color: "#38bdf8", cursor: "pointer", padding: "4px 10px", fontSize: 11, fontFamily: "inherit" }}>🔑</button>
                           <button className="del-btn" onClick={() => handleDeleteUser(u.id)} style={{ background: "none", border: "1px solid #3a2020", borderRadius: 6, color: "#ef4444", cursor: "pointer", padding: "4px 8px", fontSize: 12, fontFamily: "inherit" }}>✕</button>
