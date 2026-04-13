@@ -2237,31 +2237,52 @@ function AlertasVencimento({ motorista, veiculo }) {
 
 function PainelAlertas({ veiculos, motoristas }) {
   const alertas = [];
+  // Agrupar veículos — uma linha por placa
+  const veicAlertas = {};
   veiculos.forEach((v) => {
     const ac = statusVenc(v.venc_crlv);
     const as = statusVenc(v.venc_seguro_obrigatorio);
-    if (ac && ac.cor !== "#4ade80") alertas.push({ placa: v.placa, doc: "CRLV", status: ac });
-    if (as && as.cor !== "#4ade80") alertas.push({ placa: v.placa, doc: "Seguro", status: as });
+    const docs = [];
+    if (ac && ac.cor !== "#4ade80") docs.push({ doc: "CRLV", status: ac });
+    if (as && as.cor !== "#4ade80") docs.push({ doc: "Seguro", status: as });
+    if (docs.length > 0) veicAlertas[v.placa] = docs;
   });
+  // Motoristas — uma linha por motorista
+  const motAlertas = [];
   motoristas.forEach((m) => {
     const s = statusVenc(m.venc_cnh);
-    if (s && s.cor !== "#4ade80") alertas.push({ nome: m.nome, doc: "CNH", status: s });
+    if (s && s.cor !== "#4ade80") motAlertas.push({ nome: m.nome, status: s });
   });
-  if (alertas.length === 0) return null;
+  if (Object.keys(veicAlertas).length === 0 && motAlertas.length === 0) return null;
+  // Pior status de cada veículo para cor da borda
+  const piorStatus = (docs) => docs.find((d) => d.status.cor === "#ef4444") || docs[0];
   return (
     <div style={{ background:"#1a1c27", border:"1px solid #b45309", borderRadius:12, padding:"14px 16px", marginBottom:20 }}>
       <div style={{ fontSize:10, color:"#fbbf24", letterSpacing:2, marginBottom:10 }}>⚠️ ATENÇÃO — DOCUMENTOS</div>
       <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-        {alertas.map((a, i) => (
-          <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 10px", borderRadius:8, background:a.status.bg, border:`1px solid ${a.status.border}` }}>
-            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-              <span style={{ fontSize:10 }}>{a.status.icone}</span>
-              <span style={{ fontSize:13, fontWeight:600, color:"#fff", fontFamily:"'Syne',sans-serif", letterSpacing: a.placa ? 1 : 0 }}>
-                {a.placa || a.nome}
-              </span>
-              <span style={{ fontSize:10, color:a.status.cor, background:"rgba(0,0,0,0.2)", padding:"1px 6px", borderRadius:4 }}>{a.doc}</span>
+        {Object.entries(veicAlertas).map(([placa, docs]) => {
+          const ps = piorStatus(docs);
+          return (
+            <div key={placa} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 10px", borderRadius:8, background:ps.status.bg, border:`1px solid ${ps.status.border}` }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                <span style={{ fontSize:13, fontWeight:600, color:"#fff", fontFamily:"'Syne',sans-serif", letterSpacing:1 }}>{placa}</span>
+                {docs.map((d, i) => (
+                  <span key={i} style={{ fontSize:10, color:d.status.cor, background:"rgba(0,0,0,0.25)", padding:"1px 6px", borderRadius:4 }}>
+                    {d.status.icone} {d.doc}
+                  </span>
+                ))}
+              </div>
+              <span style={{ fontSize:11, color:ps.status.cor, whiteSpace:"nowrap", marginLeft:8 }}>{ps.status.texto}</span>
             </div>
-            <span style={{ fontSize:11, color:a.status.cor, whiteSpace:"nowrap" }}>{a.status.texto}</span>
+          );
+        })}
+        {motAlertas.map((m, i) => (
+          <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 10px", borderRadius:8, background:m.status.bg, border:`1px solid ${m.status.border}` }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <span style={{ fontSize:13, fontWeight:500, color:"#fff" }}>{m.nome}</span>
+              <span style={{ fontSize:10, color:m.status.cor, background:"rgba(0,0,0,0.25)", padding:"1px 6px", borderRadius:4 }}>{m.status.icone} CNH</span>
+            </div>
+            <span style={{ fontSize:11, color:m.status.cor, whiteSpace:"nowrap", marginLeft:8 }}>{m.status.texto}</span>
           </div>
         ))}
       </div>
