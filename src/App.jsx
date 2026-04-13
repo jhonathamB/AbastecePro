@@ -191,6 +191,22 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
       {/* Alertas */}
       <PainelAlertas veiculos={veiculos} motoristas={motoristas} />
 
+      {/* Banner de alertas discreto */}
+      {totalAlertas > 0 && (
+        <div style={{ background:"#1a1200", borderLeft:"3px solid #f97316", borderRadius:"0 8px 8px 0", padding:"10px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer" }} onClick={() => {}}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <span style={{ fontSize:14 }}>⚠️</span>
+            <span style={{ fontSize:12, color:"#fbbf24" }}>
+              {alertasVeic > 0 && `${alertasVeic} veículo${alertasVeic>1?"s":""} com documento${alertasVeic>1?"s":""} `}
+              {alertasVeic > 0 && alertasMot > 0 && "· "}
+              {alertasMot > 0 && `${alertasMot} CNH${alertasMot>1?"s":""} `}
+              vencendo ou vencido{totalAlertas>1?"s":""}
+            </span>
+          </div>
+          <span style={{ fontSize:11, color:"#f97316" }}>Ver nas abas →</span>
+        </div>
+      )}
+
       {/* Seletor de período — pill style */}
       <div style={{ display:"flex", background:bg, borderRadius:12, padding:4, border:`1px solid ${border}` }}>
         {[["hoje","Hoje"],["mes","Mês"],["ano","Ano"],["todos","Tudo"]].map(([id,label]) => (
@@ -1377,6 +1393,18 @@ export default function App() {
 
   if (!usuario) return <LoginScreen onLogin={handleLogin} />;
 
+  // Calcular alertas de vencimento
+  const alertasVeic = veiculos.filter((v) => {
+    const ac = statusVenc(v.venc_crlv);
+    const as = statusVenc(v.venc_seguro_obrigatorio);
+    return (ac && ac.cor !== "#4ade80") || (as && as.cor !== "#4ade80");
+  }).length;
+  const alertasMot = motoristas.filter((m) => {
+    const s = statusVenc(m.venc_cnh);
+    return s && s.cor !== "#4ade80";
+  }).length;
+  const totalAlertas = alertasVeic + alertasMot;
+
   const TABS = [
     ...(!isOperador ? [["dashboard", "📊 Dashboard"]] : []),
     ["registrar", "Registrar"],
@@ -1639,9 +1667,19 @@ export default function App() {
             </div>
           </div>
           <div className="nav-tabs" style={{ display: "flex", gap: 0, marginTop: 16, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
-            {TABS.map(([id, label]) => (
-              <button key={id} className="tab-btn" onClick={() => setActiveTab(id)} style={{ background: "none", border: "none", cursor: "pointer", padding: "10px 16px", fontSize: 11, fontFamily: "inherit", whiteSpace: "nowrap", color: activeTab === id ? "#f97316" : "#5a5a6a", borderBottom: activeTab === id ? "2px solid #f97316" : "2px solid transparent", fontWeight: activeTab === id ? 500 : 400, letterSpacing: 0.5 }}>{label}</button>
-            ))}
+            {TABS.map(([id, label]) => {
+              const showBadge = totalAlertas > 0 && (id === "veiculos" || id === "motoristas");
+              return (
+                <button key={id} className="tab-btn" onClick={() => setActiveTab(id)} style={{ background: "none", border: "none", cursor: "pointer", padding: "10px 16px", fontSize: 11, fontFamily: "inherit", whiteSpace: "nowrap", color: activeTab === id ? "#f97316" : "#5a5a6a", borderBottom: activeTab === id ? "2px solid #f97316" : "2px solid transparent", fontWeight: activeTab === id ? 500 : 400, letterSpacing: 0.5, position: "relative" }}>
+                  {label}
+                  {showBadge && (
+                    <span style={{ position:"absolute", top:6, right:4, background:"#ef4444", color:"#fff", fontSize:8, fontWeight:700, minWidth:14, height:14, borderRadius:7, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" }}>
+                      {totalAlertas}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
