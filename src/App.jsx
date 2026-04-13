@@ -514,6 +514,8 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   const [aba, setAba] = useState("resumo"); // resumo | secretaria | historico | consumo | financeiro
   const [tipo, setTipo] = useState("departamento");
   const [periodo, setPeriodo] = useState("todos");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
   const [filtroEst, setFiltroEst] = useState("");
   const [filtroSecretaria, setFiltroSecretaria] = useState("");
   const [filtroHistorico, setFiltroHistorico] = useState("veiculo");
@@ -522,9 +524,11 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
 
   const filtrarPeriodo = (regs) => {
     return regs.filter((r) => {
-      const dt = r.data_hora || "";
-      if (periodo === "hoje" && !dt.startsWith(hoje.toISOString().slice(0, 10))) return false;
+      const dt = (r.data_hora || "").slice(0, 10);
+      if (periodo === "hoje" && dt !== hoje.toISOString().slice(0, 10)) return false;
       if (periodo === "mes" && !dt.startsWith(hoje.toISOString().slice(0, 7))) return false;
+      if (periodo === "periodo" && dataInicio && dt < dataInicio) return false;
+      if (periodo === "periodo" && dataFim && dt > dataFim) return false;
       if (filtroEst && r.operador !== filtroEst) return false;
       return true;
     });
@@ -651,9 +655,9 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
       </div>
 
       {/* Filtros de período */}
-      <div className="period-btns" style={{ display:"flex", gap:6, marginBottom:16, background:"#1a1c27", borderRadius:10, padding:4 }}>
-        {[["todos","Todos"],["mes","Este mês"],["hoje","Hoje"]].map(([id,label]) => (
-          <button key={id} onClick={() => setPeriodo(id)} style={{ flex:1, padding:"7px 8px", background:periodo===id?"#16a34a":"transparent", border:"none", borderRadius:8, color:periodo===id?"#fff":"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer", fontWeight:periodo===id?600:400 }}>{label}</button>
+      <div className="period-btns" style={{ display:"flex", gap:6, marginBottom: periodo==="periodo" ? 8 : 16, background:"#1a1c27", borderRadius:10, padding:4 }}>
+        {[["todos","Todos"],["mes","Este mês"],["hoje","Hoje"],["periodo","Por data"]].map(([id,label]) => (
+          <button key={id} onClick={() => setPeriodo(id)} style={{ flex:1, padding:"7px 6px", background:periodo===id?"#16a34a":"transparent", border:"none", borderRadius:8, color:periodo===id?"#fff":"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer", fontWeight:periodo===id?600:400, whiteSpace:"nowrap" }}>{label}</button>
         ))}
         {isAdmin && (
           <select value={filtroEst} onChange={(e) => setFiltroEst(e.target.value)} style={{ ...iS(), fontSize:11, padding:"7px 12px", width:"auto" }}>
@@ -662,6 +666,23 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
           </select>
         )}
       </div>
+
+      {/* Filtro por data específica */}
+      {periodo === "periodo" && (
+        <div style={{ display:"flex", gap:8, marginBottom:16, alignItems:"center", flexWrap:"wrap" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6, flex:1 }}>
+            <label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:1, whiteSpace:"nowrap" }}>DE</label>
+            <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} style={{ ...iS(), flex:1, fontSize:12 }} />
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:6, flex:1 }}>
+            <label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:1, whiteSpace:"nowrap" }}>ATÉ</label>
+            <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} style={{ ...iS(), flex:1, fontSize:12 }} />
+          </div>
+          {(dataInicio || dataFim) && (
+            <button onClick={() => { setDataInicio(""); setDataFim(""); }} style={{ padding:"10px 14px", background:"none", border:"1px solid #3a2020", borderRadius:8, color:"#ef4444", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>✕ Limpar</button>
+          )}
+        </div>
+      )}
 
       {/* Cards resumo */}
       <div className="stats-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:20 }}>
