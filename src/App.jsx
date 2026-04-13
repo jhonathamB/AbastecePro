@@ -496,7 +496,7 @@ function Divider() { return <div style={{ borderTop: "1px dashed #ccc", margin: 
 function Row({ label, value }) { return <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}><span style={{ color: "#666" }}>{label}:</span><span style={{ fontWeight: 500, textAlign: "right", maxWidth: "60%" }}>{value}</span></div>; }
 
 // ── Relatórios ────────────────────────────────────────
-function Relatorios({ registros, isAdmin, veiculos }) {
+function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, podePDF, podeKmL, podeFinanceiro }) {
   const [aba, setAba] = useState("resumo"); // resumo | secretaria | historico | consumo | financeiro
   const [tipo, setTipo] = useState("departamento");
   const [periodo, setPeriodo] = useState("todos");
@@ -620,7 +620,7 @@ function Relatorios({ registros, isAdmin, veiculos }) {
           {[["resumo","📊 Resumo"],["secretaria","🏢 Secretaria"],["historico","📋 Histórico"],["consumo","⛽ km/L"],["financeiro","💰 Financeiro"]].map(([id,label]) => {
             const bloqueado = (!podeRelatorios && id === "secretaria") || (!podeKmL && id === "consumo") || (!podeFinanceiro && id === "financeiro");
             return (
-              <button key={id} onClick={() => bloqueado ? alert(`${label} está disponível no Plano Profissional. Faça upgrade!`) : setAba(id)} style={{
+              <button key={id} onClick={() => { if (bloqueado) { alert(label + " disponivel no Plano Profissional. Faca upgrade!"); } else { setAba(id); } }} style={{
                 padding:"9px 14px", background: bloqueado ? "#1a1c27" : aba===id?"#f97316":"#1a1c27",
                 border:`1px solid ${bloqueado ? "#2a2c3a" : aba===id?"#f97316":"#2a2c3a"}`,
                 borderRadius:20, color: bloqueado ? "#3a3a4a" : aba===id?"#fff":"#8a8a9a",
@@ -1428,8 +1428,8 @@ export default function App() {
               <Field label="TELEFONE"><input type="text" placeholder="(44) 99999-9999" value={editEst.telefone || ""} onChange={(e) => setEditEst((x) => ({ ...x, telefone: e.target.value }))} style={iS()} /></Field>
               <Field label="PLANO">
                 <select value={editEst.plano || "basico"} onChange={(e) => setEditEst((x) => ({ ...x, plano: e.target.value }))} style={iS()}>
-                  <option value="basico">Básico — R$ 299/mês</option>
-                  <option value="profissional">Profissional — R$ 599/mês</option>
+                  <option value="basico">Básico</option>
+                  <option value="profissional">Profissional</option>
                   <option value="enterprise">Enterprise</option>
                 </select>
               </Field>
@@ -1845,7 +1845,7 @@ export default function App() {
         )}
 
         {/* RELATÓRIOS */}
-        {!loading && activeTab === "relatorios" && <Relatorios registros={registros} isAdmin={isAdmin} veiculos={veiculos} />}
+        {!loading && activeTab === "relatorios" && <Relatorios registros={registros} isAdmin={isAdmin} veiculos={veiculos} podeRelatorios={podeRelatorios} podeCSV={podeCSV} podePDF={podePDF} podeKmL={podeKmL} podeFinanceiro={podeFinanceiro} />}
 
         {/* MOTORISTAS */}
         {!loading && activeTab === "motoristas" && (
@@ -2007,8 +2007,8 @@ export default function App() {
                   <Field label="TELEFONE (OPCIONAL)"><input type="text" placeholder="(44) 99999-9999" value={estForm.telefone} onChange={(e) => setEstForm((f) => ({ ...f, telefone: e.target.value }))} style={iS()} /></Field>
                   <Field label="PLANO">
                     <select value={estForm.plano} onChange={(e) => setEstForm((f) => ({ ...f, plano: e.target.value }))} style={iS()}>
-                      <option value="basico">Básico — R$ 299/mês</option>
-                      <option value="profissional">Profissional — R$ 599/mês</option>
+                      <option value="basico">Básico</option>
+                      <option value="profissional">Profissional</option>
                       <option value="enterprise">Enterprise</option>
                     </select>
                   </Field>
