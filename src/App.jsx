@@ -1668,13 +1668,13 @@ export default function App() {
           </div>
           <div className="nav-tabs" style={{ display: "flex", gap: 0, marginTop: 16, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {TABS.map(([id, label]) => {
-              const showBadge = totalAlertas > 0 && (id === "veiculos" || id === "motoristas");
+              const badgeCount = id === "motoristas" ? alertasMot : id === "veiculos" ? alertasVeic : 0;
               return (
                 <button key={id} className="tab-btn" onClick={() => setActiveTab(id)} style={{ background: "none", border: "none", cursor: "pointer", padding: "10px 16px", fontSize: 11, fontFamily: "inherit", whiteSpace: "nowrap", color: activeTab === id ? "#f97316" : "#5a5a6a", borderBottom: activeTab === id ? "2px solid #f97316" : "2px solid transparent", fontWeight: activeTab === id ? 500 : 400, letterSpacing: 0.5, position: "relative" }}>
                   {label}
-                  {showBadge && (
+                  {badgeCount > 0 && (
                     <span style={{ position:"absolute", top:6, right:4, background:"#ef4444", color:"#fff", fontSize:8, fontWeight:700, minWidth:14, height:14, borderRadius:7, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" }}>
-                      {totalAlertas}
+                      {badgeCount}
                     </span>
                   )}
                 </button>
