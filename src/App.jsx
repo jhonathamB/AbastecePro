@@ -1393,13 +1393,15 @@ export default function App() {
 
   if (!usuario) return <LoginScreen onLogin={handleLogin} />;
 
-  // Calcular alertas de vencimento
-  const alertasVeic = veiculos.filter((v) => {
+  // Calcular alertas de vencimento — filtrado por estabelecimento se admin
+  const veiculosFiltradosAlerta = isAdmin && filtroEstAdmin ? veiculos.filter((v) => v.estabelecimento_id === filtroEstAdmin) : veiculos;
+  const motoristasFiltradosAlerta = isAdmin && filtroEstAdmin ? motoristas.filter((m) => m.estabelecimento_id === filtroEstAdmin) : motoristas;
+  const alertasVeic = veiculosFiltradosAlerta.filter((v) => {
     const ac = statusVenc(v.venc_crlv);
     const as = statusVenc(v.venc_seguro_obrigatorio);
     return (ac && ac.cor !== "#4ade80") || (as && as.cor !== "#4ade80");
   }).length;
-  const alertasMot = motoristas.filter((m) => {
+  const alertasMot = motoristasFiltradosAlerta.filter((m) => {
     const s = statusVenc(m.venc_cnh);
     return s && s.cor !== "#4ade80";
   }).length;
@@ -1656,6 +1658,17 @@ export default function App() {
                   )}
                 </div>
               </div>
+              {isAdmin && estabelecimentos.filter((e) => e.nome !== "Administrador").length > 0 && (
+                <div style={{ display:"flex", alignItems:"center", gap:8, background:"#0f1117", border:"1px solid #2a2c3a", borderRadius:8, padding:"6px 10px" }}>
+                  <span style={{ fontSize:10, color:"#5a5a6a", whiteSpace:"nowrap" }}>🏪</span>
+                  <select value={filtroEstAdmin} onChange={(e) => setFiltroEstAdmin(e.target.value)} style={{ background:"transparent", border:"none", color:"#f97316", fontFamily:"inherit", fontSize:12, cursor:"pointer", outline:"none", maxWidth:140 }}>
+                    <option value="">Todos</option>
+                    {estabelecimentos.filter((e) => e.nome !== "Administrador").map((e) => (
+                      <option key={e.id} value={e.id}>{e.nome}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {pendentes > 0 && <div style={{ background: "#92400e", borderRadius: 8, padding: "3px 8px", fontSize: 10, color: "#fbbf24" }}>{pendentes} pendente{pendentes > 1 ? "s" : ""}</div>}
