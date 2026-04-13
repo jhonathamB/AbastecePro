@@ -413,85 +413,27 @@ function LoginScreen({ onLogin }) {
     setLoading(false);
   };
 
-  const vantagens = [
-    { icon: "💰", titulo: "Elimina fraudes", desc: "Controle preciso de cada abastecimento por veículo e motorista" },
-    { icon: "📊", titulo: "Relatórios completos", desc: "Dashboard em tempo real, PDF mensal e exportação CSV" },
-    { icon: "📱", titulo: "Funciona no celular", desc: "QR Code para registrar em segundos, sem instalar nada" },
-    { icon: "📡", titulo: "Modo offline", desc: "Sem internet não para o trabalho — sincroniza depois" },
-    { icon: "⚠️", titulo: "Alertas automáticos", desc: "CRLV, seguro, CNH vencendo e consumo anormal" },
-    { icon: "🔒", titulo: "100% seguro", desc: "Dados isolados por empresa, senhas criptografadas" },
-  ];
-
   return (
-    <div style={{ minHeight: "100vh", background: "#0f1117", fontFamily: "'DM Mono','Courier New',monospace" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap'); *{box-sizing:border-box} input{outline:none} @media(min-width:768px){.login-layout{display:grid!important;grid-template-columns:1fr 1fr!important;min-height:100vh!important}.login-right{display:flex!important}}`}</style>
-      <div className="login-layout" style={{ display:"flex", flexDirection:"column" }}>
-
-        {/* Lado esquerdo — vantagens (só desktop) */}
-        <div className="login-right" style={{ display:"none", background:"linear-gradient(135deg,#1a1c27 0%,#0f1117 100%)", borderRight:"1px solid #2a2c3a", padding:"48px 40px", flexDirection:"column", justifyContent:"center" }}>
-          <div style={{ marginBottom:40 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:12 }}>
-              <div style={{ width:48, height:48, borderRadius:14, background:"#f97316", display:"flex", alignItems:"center", justifyContent:"center", fontSize:26 }}>⛽</div>
-              <div>
-                <div style={{ fontFamily:"'Syne',sans-serif", fontSize:24, fontWeight:800, color:"#fff" }}>AbastecePro</div>
-                <div style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2 }}>GESTÃO DE FROTA PROFISSIONAL</div>
-              </div>
-            </div>
-            <div style={{ fontSize:13, color:"#8a8a9a", lineHeight:1.6, marginTop:16 }}>
-              O sistema completo para controlar o abastecimento da sua frota com segurança, praticidade e total rastreabilidade.
-            </div>
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-            {vantagens.map((v, i) => (
-              <div key={i} style={{ display:"flex", gap:14, alignItems:"flex-start" }}>
-                <div style={{ width:38, height:38, borderRadius:10, background:"#f9731620", border:"1px solid #f9731640", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 }}>{v.icon}</div>
-                <div>
-                  <div style={{ fontSize:13, fontWeight:600, color:"#fff", marginBottom:2 }}>{v.titulo}</div>
-                  <div style={{ fontSize:11, color:"#5a5a6a", lineHeight:1.5 }}>{v.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop:40, padding:"16px 20px", background:"#f9731610", border:"1px solid #f9731640", borderRadius:12 }}>
-            <div style={{ fontSize:11, color:"#f97316", fontWeight:600, marginBottom:4 }}>🚀 COMECE AGORA</div>
-            <div style={{ fontSize:12, color:"#8a8a9a" }}>Entre em contato pelo WhatsApp e solicite uma demonstração gratuita para sua empresa.</div>
+    <div style={{ minHeight:"100vh", background:"#0f1117", fontFamily:"'DM Mono','Courier New',monospace", display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap'); *{box-sizing:border-box} input{outline:none}`}</style>
+      <div style={{ width:"100%", maxWidth:400 }}>
+        {!online && <div style={{ background:"#2d1f0a", border:"1px solid #b45309", borderRadius:10, padding:"10px 16px", marginBottom:16, fontSize:12, color:"#fbbf24", textAlign:"center" }}>📡 Sem conexão — modo offline</div>}
+        <div style={{ textAlign:"center", marginBottom:36 }}>
+          <div style={{ width:64, height:64, borderRadius:18, background:"#f97316", display:"flex", alignItems:"center", justifyContent:"center", fontSize:34, margin:"0 auto 18px", boxShadow:"0 8px 32px rgba(249,115,22,0.3)" }}>⛽</div>
+          <div style={{ fontFamily:"'Syne',sans-serif", fontSize:28, fontWeight:800, color:"#fff", letterSpacing:-0.5 }}>AbastecePro</div>
+          <div style={{ fontSize:11, color:"#5a5a6a", letterSpacing:2, marginTop:6 }}>GESTÃO DE FROTA PROFISSIONAL</div>
+        </div>
+        <div style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:16, padding:28 }}>
+          <div style={{ fontSize:13, color:"#fff", fontWeight:600, marginBottom:20, textAlign:"center" }}>Acesse sua conta</div>
+          {error && <div style={{ background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:8, padding:"10px 14px", fontSize:12, color:"#ef4444", marginBottom:16 }}>{error}</div>}
+          <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+            <div><label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>E-MAIL</label><input type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()} style={{ ...iS(), width:"100%" }} /></div>
+            <div><label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>SENHA</label><input type="password" placeholder="••••••••" value={senha} onChange={(e) => setSenha(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()} style={{ ...iS(), width:"100%" }} /></div>
+            <button onClick={handleLogin} disabled={loading} style={{ padding:"14px", background:"#f97316", border:"none", borderRadius:10, color:"#fff", fontFamily:"inherit", fontSize:13, fontWeight:500, letterSpacing:1.5, cursor:loading?"not-allowed":"pointer", marginTop:4, opacity:loading?0.7:1 }}>{loading ? "ENTRANDO..." : "ENTRAR"}</button>
           </div>
         </div>
-
-        {/* Lado direito — formulário */}
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", padding:24, minHeight:"100vh" }}>
-          <div style={{ width:"100%", maxWidth:400 }}>
-            {!online && <div style={{ background:"#2d1f0a", border:"1px solid #b45309", borderRadius:10, padding:"10px 16px", marginBottom:16, fontSize:12, color:"#fbbf24", textAlign:"center" }}>📡 Sem conexão — modo offline</div>}
-            <div style={{ textAlign:"center", marginBottom:32 }}>
-              <div style={{ width:60, height:60, borderRadius:16, background:"#f97316", display:"flex", alignItems:"center", justifyContent:"center", fontSize:32, margin:"0 auto 16px" }}>⛽</div>
-              <div style={{ fontFamily:"'Syne',sans-serif", fontSize:28, fontWeight:800, color:"#fff", letterSpacing:-0.5 }}>AbastecePro</div>
-              <div style={{ fontSize:11, color:"#5a5a6a", letterSpacing:2, marginTop:4 }}>GESTÃO DE FROTA PROFISSIONAL</div>
-              <div style={{ fontSize:12, color:"#8a8a9a", marginTop:10 }}>Controle total da sua frota em um só lugar</div>
-            </div>
-
-            {/* Vantagens rápidas — só mobile */}
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:24 }} className="mobile-only">
-              {[["💰","Sem fraudes"],["📱","Mobile"],["📡","Offline"],["📊","Relatórios"],["⚠️","Alertas"],["🔒","Seguro"]].map(([icon, label]) => (
-                <div key={label} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:8, padding:"8px 6px", textAlign:"center" }}>
-                  <div style={{ fontSize:16, marginBottom:2 }}>{icon}</div>
-                  <div style={{ fontSize:9, color:"#8a8a9a", letterSpacing:0.5 }}>{label}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:16, padding:28 }}>
-              <div style={{ fontSize:13, color:"#fff", fontWeight:600, marginBottom:20, textAlign:"center" }}>Acesse sua conta</div>
-              {error && <div style={{ background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:8, padding:"10px 14px", fontSize:12, color:"#ef4444", marginBottom:16 }}>{error}</div>}
-              <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-                <div><label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>E-MAIL</label><input type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()} style={{ ...iS(), width:"100%" }} /></div>
-                <div><label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>SENHA</label><input type="password" placeholder="••••••••" value={senha} onChange={(e) => setSenha(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()} style={{ ...iS(), width:"100%" }} /></div>
-                <button onClick={handleLogin} disabled={loading} style={{ padding:"14px", background:"#f97316", border:"none", borderRadius:10, color:"#fff", fontFamily:"inherit", fontSize:13, fontWeight:500, letterSpacing:1.5, cursor:loading?"not-allowed":"pointer", marginTop:4, opacity:loading?0.7:1 }}>{loading ? "ENTRANDO..." : "ENTRAR"}</button>
-              </div>
-            </div>
-            <div style={{ textAlign:"center", marginTop:20, fontSize:11, color:"#3a3a4a" }}>
-              Precisa de acesso? Entre em contato com o administrador.
-            </div>
-          </div>
+        <div style={{ textAlign:"center", marginTop:20, fontSize:11, color:"#3a3a4a" }}>
+          Precisa de acesso? Entre em contato com o administrador.
         </div>
       </div>
     </div>
