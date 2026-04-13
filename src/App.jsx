@@ -109,7 +109,7 @@ function useQRScanner(onResult) {
 }
 
 // ── Dashboard ─────────────────────────────────────────
-function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabelecimentos, isDark }) {
+function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabelecimentos, isDark, totalAlertas, alertasVeic, alertasMot }) {
   const [periodo, setPeriodo] = useState("mes");
   const [filtroEst, setFiltroEst] = useState("");
   const hoje = new Date();
@@ -1731,7 +1731,7 @@ export default function App() {
                 </div>
               ) : null;
             })()}
-            <Dashboard registros={registros} motoristas={motoristas} veiculos={veiculos} estNome={estNome} isAdmin={isAdmin} estabelecimentos={estabelecimentos} isDark={isDark} />
+            <Dashboard registros={registros} motoristas={motoristas} veiculos={veiculos} estNome={estNome} isAdmin={isAdmin} estabelecimentos={estabelecimentos} isDark={isDark} totalAlertas={totalAlertas} alertasVeic={alertasVeic} alertasMot={alertasMot} />
           </div>
         )}
 
