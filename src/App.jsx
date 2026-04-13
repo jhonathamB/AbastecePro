@@ -1965,11 +1965,14 @@ export default function App() {
                               {ok && (
                                 <span style={{ fontSize:9, padding:"2px 7px", background:"#14532d", border:"1px solid #16a34a", borderRadius:4, color:"#4ade80" }}>CNH OK</span>
                               )}
-                              {!sCnh && m.venc_cnh === null && (
-                                <span style={{ fontSize:9, padding:"2px 7px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:4, color:"#4a4a5a" }}>Sem CNH cadastrada</span>
+                              {!sCnh && !m.venc_cnh && (
+                                <span style={{ fontSize:9, padding:"2px 7px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:4, color:"#4a4a5a" }}>Sem venc. CNH</span>
                               )}
                             </div>
-                            <div style={{ fontSize:11, color:"#8a8a9a", marginTop:3 }}>{m.departamento}{m.cnh ? " · CNH " + m.cnh : ""}</div>
+                            <div style={{ fontSize:11, color:"#8a8a9a", marginTop:3 }}>
+                              {m.departamento}{m.cnh ? " · CNH " + m.cnh : ""}
+                              {m.venc_cnh && <span style={{ marginLeft:6, color: sCnh?.cor || "#8a8a9a" }}>· venc. {new Date(m.venc_cnh + "T00:00:00").toLocaleDateString("pt-BR")}</span>}
+                            </div>
                           </div>
                           <div style={{ display:"flex", gap:6 }}>
                             {podeGerenciar && (
