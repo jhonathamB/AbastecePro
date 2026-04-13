@@ -111,6 +111,7 @@ function useQRScanner(onResult) {
 // ── Dashboard ─────────────────────────────────────────
 function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabelecimentos, isDark }) {
   const [periodo, setPeriodo] = useState("mes");
+  const [filtroEst, setFiltroEst] = useState("");
   const hoje = new Date();
   const bg = isDark ? "#1a1c27" : "#fff";
   const bg2 = isDark ? "#0f1117" : "#f0f0f5";
@@ -119,10 +120,13 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
   const txt2 = isDark ? "#8a8a9a" : "#666";
 
   const filtrar = (regs) => {
-    if (periodo === "hoje") return regs.filter((r) => (r.data_hora||"").startsWith(hoje.toISOString().slice(0,10)));
-    if (periodo === "mes") return regs.filter((r) => (r.data_hora||"").startsWith(hoje.toISOString().slice(0,7)));
-    if (periodo === "ano") return regs.filter((r) => (r.data_hora||"").startsWith(String(hoje.getFullYear())));
-    return regs;
+    return regs.filter((r) => {
+      if (periodo === "hoje" && !(r.data_hora||"").startsWith(hoje.toISOString().slice(0,10))) return false;
+      if (periodo === "mes" && !(r.data_hora||"").startsWith(hoje.toISOString().slice(0,7))) return false;
+      if (periodo === "ano" && !(r.data_hora||"").startsWith(String(hoje.getFullYear()))) return false;
+      if (filtroEst && r.operador !== filtroEst) return false;
+      return true;
+    });
   };
 
   const regs = filtrar(registros);
@@ -198,6 +202,16 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
           }}>{label}</button>
         ))}
       </div>
+
+      {/* Filtro por posto — só admin */}
+      {isAdmin && estabelecimentos && estabelecimentos.length > 0 && (
+        <select value={filtroEst} onChange={(e) => setFiltroEst(e.target.value)} style={{ width:"100%", padding:"10px 14px", background:bg, border:`1px solid ${border}`, borderRadius:10, color:txt2, fontFamily:"inherit", fontSize:13, outline:"none" }}>
+          <option value="">🏪 Todos os estabelecimentos</option>
+          {estabelecimentos.filter((e) => e.nome !== "Administrador").map((e) => (
+            <option key={e.id} value={e.nome}>{e.nome}</option>
+          ))}
+        </select>
+      )}
 
       {/* Cards 2x2 */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
