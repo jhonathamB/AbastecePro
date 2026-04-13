@@ -402,6 +402,11 @@ function LoginScreen({ onLogin }) {
           onLogin(u); return;
         }
         const u = { ...users[0], accessToken: authData.access_token };
+        // Verificar se estabelecimento está ativo
+        if (u.estabelecimentos?.ativo === false) {
+          setError("Acesso suspenso. Entre em contato com o administrador.");
+          setLoading(false); return;
+        }
         cache.set("usuario_sessao", u);
         onLogin(u); return;
       } catch (e) { setError(e.message || "E-mail ou senha incorretos"); setLoading(false); return; }
@@ -612,16 +617,22 @@ function Relatorios({ registros, isAdmin, veiculos }) {
       {/* Abas internas — scroll horizontal */}
       <div className="tabs-scroll" style={{ overflowX:"auto", marginBottom:16, paddingBottom:4 }}>
         <div style={{ display:"flex", gap:6, minWidth:"max-content" }}>
-          {[["resumo","📊 Resumo"],["secretaria","🏢 Secretaria"],["historico","📋 Histórico"],["consumo","⛽ km/L"],["financeiro","💰 Financeiro"]].map(([id,label]) => (
-            <button key={id} onClick={() => setAba(id)} style={{
-              padding:"9px 14px", background:aba===id?"#f97316":"#1a1c27",
-              border:`1px solid ${aba===id?"#f97316":"#2a2c3a"}`,
-              borderRadius:20, color:aba===id?"#fff":"#8a8a9a",
-              fontFamily:"inherit", fontSize:12, cursor:"pointer",
-              fontWeight:aba===id?600:400, whiteSpace:"nowrap", transition:"all 0.2s"
-            }}>{label}</button>
-          ))}
-          <button onClick={exportPDF} style={{ padding:"9px 14px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:20, color:"#a78bfa", fontFamily:"inherit", fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>📄 PDF</button>
+          {[["resumo","📊 Resumo"],["secretaria","🏢 Secretaria"],["historico","📋 Histórico"],["consumo","⛽ km/L"],["financeiro","💰 Financeiro"]].map(([id,label]) => {
+            const bloqueado = (!podeRelatorios && id === "secretaria") || (!podeKmL && id === "consumo") || (!podeFinanceiro && id === "financeiro");
+            return (
+              <button key={id} onClick={() => bloqueado ? alert(`${label} está disponível no Plano Profissional. Faça upgrade!`) : setAba(id)} style={{
+                padding:"9px 14px", background: bloqueado ? "#1a1c27" : aba===id?"#f97316":"#1a1c27",
+                border:`1px solid ${bloqueado ? "#2a2c3a" : aba===id?"#f97316":"#2a2c3a"}`,
+                borderRadius:20, color: bloqueado ? "#3a3a4a" : aba===id?"#fff":"#8a8a9a",
+                fontFamily:"inherit", fontSize:12, cursor: bloqueado ? "not-allowed" : "pointer",
+                fontWeight:aba===id?600:400, whiteSpace:"nowrap", transition:"all 0.2s"
+              }}>{label}{bloqueado ? " 🔒" : ""}</button>
+            );
+          })}
+          {podePDF
+            ? <button onClick={exportPDF} style={{ padding:"9px 14px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:20, color:"#a78bfa", fontFamily:"inherit", fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>📄 PDF</button>
+            : <div style={{ padding:"9px 14px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:20, color:"#3a3a4a", fontSize:12, whiteSpace:"nowrap", cursor:"not-allowed" }} title="Disponível no Plano Profissional">📄 PDF 🔒</div>
+          }
         </div>
       </div>
 
@@ -999,7 +1010,7 @@ export default function App() {
   const [novoDpto, setNovoDpto] = useState("");
   const [dptoError, setDptoError] = useState("");
   const [dptoOk, setDptoOk] = useState(false);
-  const [estForm, setEstForm] = useState({ nome: "", cnpj: "", telefone: "" });
+  const [estForm, setEstForm] = useState({ nome: "", cnpj: "", telefone: "", plano: "basico", ativo: true });
   const [estOk, setEstOk] = useState(false);
   const [editEst, setEditEst] = useState(null);
   const [editEstOk, setEditEstOk] = useState(false);
@@ -1011,8 +1022,24 @@ export default function App() {
   const isAdmin = usuario?.perfil === "admin";
   const isGestor = usuario?.perfil === "gestor";
   const isOperador = usuario?.perfil === "operador";
-  const podeGerenciar = isAdmin || isGestor; // pode cadastrar veículos, motoristas etc
-  const podeDashboard = isAdmin || isGestor; // pode ver dashboard e relatórios
+  const podeGerenciar = isAdmin || isGestor;
+  const podeDashboard = isAdmin || isGestor;
+
+  // ── Controle de Planos ─────────────────────────────
+  const plano = usuario?.estabelecimentos?.plano || "basico";
+  const PLANOS = {
+    basico:       { label: "Básico",       maxVeiculos: 15, maxUsuarios: 2,  relatorios: false, csv: false, pdf: false, kmL: false, financeiro: false },
+    profissional: { label: "Profissional", maxVeiculos: 50, maxUsuarios: 5,  relatorios: true,  csv: true,  pdf: true,  kmL: true,  financeiro: true  },
+    enterprise:   { label: "Enterprise",   maxVeiculos: 999,maxUsuarios: 999,relatorios: true,  csv: true,  pdf: true,  kmL: true,  financeiro: true  },
+  };
+  const planoAtual = isAdmin ? PLANOS.enterprise : (PLANOS[plano] || PLANOS.basico);
+  const podeRelatorios = isAdmin || planoAtual.relatorios;
+  const podeCSV = isAdmin || planoAtual.csv;
+  const podePDF = isAdmin || planoAtual.pdf;
+  const podeKmL = isAdmin || planoAtual.kmL;
+  const podeFinanceiro = isAdmin || planoAtual.financeiro;
+  const limiteVeiculos = planoAtual.maxVeiculos;
+  const limiteUsuarios = planoAtual.maxUsuarios;
   const estId = usuario?.estabelecimento_id;
   const estNome = usuario?.estabelecimentos?.nome || "";
 
@@ -1134,6 +1161,11 @@ export default function App() {
   };
 
   const handleVeicSubmit = async () => {
+    // Verificar limite do plano
+    if (!isAdmin && veiculos.length >= limiteVeiculos) {
+      alert(`Limite de ${limiteVeiculos} veículos atingido para o plano ${planoAtual.label}. Faça upgrade para continuar.`);
+      return;
+    }
     const e = {}; if (!veicForm.placa.trim()) e.placa = "Obrigatório"; else if (veiculos.some((v) => v.placa.toUpperCase() === veicForm.placa.toUpperCase())) e.placa = "Placa já cadastrada"; if (!veicForm.departamento) e.departamento = "Selecione";
     if (Object.keys(e).length > 0) { setVeicErrors(e); return; }
     if (!online) { alert("Precisa de conexão."); return; }
@@ -1168,7 +1200,7 @@ export default function App() {
       await fetch(`${SUPABASE_URL}/rest/v1/estabelecimentos?id=eq.${editEst.id}`, {
         method: "PATCH",
         headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
-        body: JSON.stringify({ nome: editEst.nome, cnpj: editEst.cnpj, telefone: editEst.telefone }),
+        body: JSON.stringify({ nome: editEst.nome, cnpj: editEst.cnpj, telefone: editEst.telefone, plano: editEst.plano || 'basico' }),
       });
       setEstabelecimentos((ests) => ests.map((e) => e.id === editEst.id ? { ...e, ...editEst } : e));
       setEditEst(null);
@@ -1394,6 +1426,13 @@ export default function App() {
               <Field label="NOME"><input type="text" value={editEst.nome} onChange={(e) => setEditEst((x) => ({ ...x, nome: e.target.value }))} style={iS()} /></Field>
               <Field label="CNPJ"><input type="text" placeholder="00.000.000/0001-00" value={editEst.cnpj || ""} onChange={(e) => setEditEst((x) => ({ ...x, cnpj: e.target.value }))} style={iS()} /></Field>
               <Field label="TELEFONE"><input type="text" placeholder="(44) 99999-9999" value={editEst.telefone || ""} onChange={(e) => setEditEst((x) => ({ ...x, telefone: e.target.value }))} style={iS()} /></Field>
+              <Field label="PLANO">
+                <select value={editEst.plano || "basico"} onChange={(e) => setEditEst((x) => ({ ...x, plano: e.target.value }))} style={iS()}>
+                  <option value="basico">Básico — R$ 299/mês</option>
+                  <option value="profissional">Profissional — R$ 599/mês</option>
+                  <option value="enterprise">Enterprise</option>
+                </select>
+              </Field>
             </div>
             <div style={{ display:"flex", gap:8, marginTop:20 }}>
               <button onClick={handleUpdateEst} style={{ flex:1, padding:"13px", background:"#f97316", border:"none", borderRadius:10, color:"#fff", fontFamily:"inherit", fontSize:13, fontWeight:700, cursor:"pointer" }}>✓ SALVAR</button>
@@ -1542,11 +1581,16 @@ export default function App() {
               <div style={{ width: 38, height: 38, borderRadius: 10, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⛽</div>
               <div>
                 <div style={{ fontFamily: "'Syne',sans-serif", fontSize: "clamp(14px, 4vw, 20px)", fontWeight: 800, letterSpacing: -0.5, color: "#fff" }}>AbastecePro</div>
-                <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:-2 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:-2, flexWrap:"wrap" }}>
                   <div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2 }}>{estNome.toUpperCase()}</div>
                   <span style={{ fontSize:9, padding:"1px 6px", borderRadius:4, background: isAdmin?"#2d1f0a":isGestor?"#1e3a2a":"#1e2535", color: isAdmin?"#fbbf24":isGestor?"#4ade80":"#38bdf8" }}>
                     {isAdmin?"ADMIN":isGestor?"GESTOR":"OPERADOR"}
                   </span>
+                  {!isAdmin && (
+                    <span style={{ fontSize:9, padding:"1px 6px", borderRadius:4, background: plano==="enterprise"?"#2d1a50":plano==="profissional"?"#1a2535":"#1a1c27", color: plano==="enterprise"?"#a78bfa":plano==="profissional"?"#38bdf8":"#5a5a6a", border:`1px solid ${plano==="enterprise"?"#a78bfa":plano==="profissional"?"#38bdf8":"#3a3a4a"}` }}>
+                      {planoAtual.label}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -1903,7 +1947,12 @@ export default function App() {
               </div>
             </div>
             <div>
-              <SectionTitle icon="🚗">Veículos ({veiculos.length})</SectionTitle>
+              <SectionTitle icon="🚗">Veículos ({veiculos.length}{!isAdmin ? `/${limiteVeiculos}` : ""})</SectionTitle>
+              {!isAdmin && veiculos.length >= limiteVeiculos && (
+                <div style={{ background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:8, padding:"10px 14px", fontSize:12, color:"#ef4444", marginBottom:12 }}>
+                  🔒 Limite de veículos atingido. Faça upgrade para o próximo plano.
+                </div>
+              )}
               {veiculos.length === 0 ? <EmptyState>Nenhum veículo.</EmptyState> : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {veiculos.map((v) => {
@@ -1956,6 +2005,13 @@ export default function App() {
                   <Field label="NOME"><input type="text" placeholder="Nome do estabelecimento" value={estForm.nome} onChange={(e) => setEstForm((f) => ({ ...f, nome: e.target.value }))} style={iS()} /></Field>
                   <Field label="CNPJ (OPCIONAL)"><input type="text" placeholder="00.000.000/0001-00" value={estForm.cnpj} onChange={(e) => setEstForm((f) => ({ ...f, cnpj: e.target.value }))} style={iS()} /></Field>
                   <Field label="TELEFONE (OPCIONAL)"><input type="text" placeholder="(44) 99999-9999" value={estForm.telefone} onChange={(e) => setEstForm((f) => ({ ...f, telefone: e.target.value }))} style={iS()} /></Field>
+                  <Field label="PLANO">
+                    <select value={estForm.plano} onChange={(e) => setEstForm((f) => ({ ...f, plano: e.target.value }))} style={iS()}>
+                      <option value="basico">Básico — R$ 299/mês</option>
+                      <option value="profissional">Profissional — R$ 599/mês</option>
+                      <option value="enterprise">Enterprise</option>
+                    </select>
+                  </Field>
                   <button className="sbtn" onClick={handleEstSubmit} style={{ padding: "13px", background: "#f97316", border: "none", borderRadius: 10, color: "#fff", fontFamily: "inherit", fontSize: 13, fontWeight: 500, letterSpacing: 1.5, cursor: "pointer" }}>CRIAR ESTABELECIMENTO</button>
                 </div>
                 {estabelecimentos.filter((e) => e.nome !== "Administrador").length === 0 ? <EmptyState>Nenhum estabelecimento.</EmptyState> : (
@@ -1963,12 +2019,24 @@ export default function App() {
                     {estabelecimentos.filter((e) => e.nome !== "Administrador").map((e) => (
                       <div key={e.id} className="row-item" style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 8, padding: "10px 14px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{e.nome}</div>
+                          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: e.ativo === false ? "#5a5a6a" : "#fff" }}>{e.nome}</div>
+                            <span style={{ fontSize:9, padding:"2px 7px", borderRadius:4, background: e.ativo===false?"#2d0f0f": e.plano==="enterprise"?"#2d1a50":e.plano==="profissional"?"#1a2535":"#1a1c27", color: e.ativo===false?"#ef4444":e.plano==="enterprise"?"#a78bfa":e.plano==="profissional"?"#38bdf8":"#5a5a6a", border:`1px solid ${e.ativo===false?"#ef4444":e.plano==="enterprise"?"#a78bfa":e.plano==="profissional"?"#38bdf8":"#3a3a4a"}` }}>
+                              {e.ativo===false?"BLOQUEADO":e.plano==="enterprise"?"ENTERPRISE":e.plano==="profissional"?"PROFISSIONAL":"BÁSICO"}
+                            </span>
+                          </div>
                           {e.cnpj && <div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{e.cnpj}</div>}
                           {e.telefone && <div style={{ fontSize: 11, color: "#8a8a9a" }}>{e.telefone}</div>}
                         </div>
                         <div style={{ display:"flex", gap:6 }}>
                           <button onClick={() => setEditEst({ ...e })} className="sbtn" style={{ background:"#1e2535", border:"1px solid #f97316", borderRadius:6, color:"#f97316", cursor:"pointer", padding:"5px 10px", fontSize:11, fontFamily:"inherit" }}>✏️</button>
+                          <button onClick={async () => {
+                            const novoAtivo = e.ativo === false ? true : false;
+                            await fetch(`${SUPABASE_URL}/rest/v1/estabelecimentos?id=eq.${e.id}`, { method:"PATCH", headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`,"Content-Type":"application/json","Prefer":"return=minimal"}, body:JSON.stringify({ativo:novoAtivo}) });
+                            setEstabelecimentos((ests) => ests.map((x) => x.id===e.id?{...x,ativo:novoAtivo}:x));
+                          }} className="sbtn" style={{ background: e.ativo===false?"#1e3a2a":"#2d1f0a", border:`1px solid ${e.ativo===false?"#16a34a":"#b45309"}`, borderRadius:6, color:e.ativo===false?"#4ade80":"#fbbf24", cursor:"pointer", padding:"5px 10px", fontSize:11, fontFamily:"inherit" }}>
+                            {e.ativo===false?"✓ Ativar":"⊘ Bloquear"}
+                          </button>
                           <button className="del-btn" onClick={() => handleDeleteEst(e.id)} style={{ background:"none", border:"1px solid #3a2020", borderRadius:6, color:"#ef4444", cursor:"pointer", padding:"4px 8px", fontSize:12, fontFamily:"inherit" }}>✕</button>
                         </div>
                       </div>
