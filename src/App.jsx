@@ -1946,27 +1946,39 @@ export default function App() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {motoristas.map((m) => {
                     const sCnh = statusVenc(m.venc_cnh);
-                    const temAlerta = sCnh && sCnh.cor !== "#4ade80";
+                    const vencida = sCnh && sCnh.cor === "#ef4444";
+                    const vencendo = sCnh && sCnh.cor === "#fbbf24";
+                    const ok = sCnh && sCnh.cor === "#4ade80";
+                    const borderColor = vencida ? "#ef4444" : vencendo ? "#b45309" : "#2a2c3a";
                     return (
-                        <div key={m.id} className="row-item" style={{ background: "#1a1c27", border: `1px solid ${temAlerta ? "#b45309" : "#2a2c3a"}`, borderRadius: 10, padding: "12px 14px" }}>
-                          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                            <div>
-                              <div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{m.nome}</div>
-                              <div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{m.departamento}{m.cnh ? " · CNH " + m.cnh : ""}</div>
-                            </div>
-                            <div style={{ display:"flex", gap:6 }}>
-                              {podeGerenciar && (
-                                <button onClick={() => setEditMotorista({ ...m })} className="sbtn" style={{ background:"#1e3a2a", border:"1px solid #4ade80", borderRadius:6, color:"#4ade80", cursor:"pointer", padding:"5px 10px", fontSize:11, fontFamily:"inherit" }}>✏️</button>
+                      <div key={m.id} className="row-item" style={{ background:"#1a1c27", border:`1px solid ${borderColor}`, borderRadius:10, padding:"12px 14px" }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                          <div>
+                            <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                              <div style={{ fontSize:13, fontWeight:500, color:"#fff" }}>{m.nome}</div>
+                              {vencida && (
+                                <span style={{ fontSize:9, padding:"2px 7px", background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:4, color:"#ef4444", fontWeight:600 }}>🔴 CNH VENCIDA</span>
                               )}
-                              <button onClick={() => setQrModal({ tipo: "motorista", item: m })} className="sbtn" style={{ background: "#1e2535", border: "1px solid #f97316", borderRadius: 6, color: "#f97316", cursor: "pointer", padding: "5px 10px", fontSize: 11, fontFamily: "inherit" }}>QR</button>
+                              {vencendo && (
+                                <span style={{ fontSize:9, padding:"2px 7px", background:"#2d1f0a", border:"1px solid #b45309", borderRadius:4, color:"#fbbf24", fontWeight:600 }}>⚠️ CNH {sCnh.texto}</span>
+                              )}
+                              {ok && (
+                                <span style={{ fontSize:9, padding:"2px 7px", background:"#14532d", border:"1px solid #16a34a", borderRadius:4, color:"#4ade80" }}>CNH OK</span>
+                              )}
+                              {!sCnh && m.venc_cnh === null && (
+                                <span style={{ fontSize:9, padding:"2px 7px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:4, color:"#4a4a5a" }}>Sem CNH cadastrada</span>
+                              )}
                             </div>
+                            <div style={{ fontSize:11, color:"#8a8a9a", marginTop:3 }}>{m.departamento}{m.cnh ? " · CNH " + m.cnh : ""}</div>
                           </div>
-                          {sCnh && (
-                            <div style={{ marginTop:8 }}>
-                              <span style={{ fontSize:10, padding:"3px 8px", borderRadius:6, background:sCnh.bg, border:`1px solid ${sCnh.border}`, color:sCnh.cor }}>{sCnh.icone} CNH: {sCnh.texto}</span>
-                            </div>
-                          )}
+                          <div style={{ display:"flex", gap:6 }}>
+                            {podeGerenciar && (
+                              <button onClick={() => setEditMotorista({ ...m })} className="sbtn" style={{ background:"#1e3a2a", border:"1px solid #4ade80", borderRadius:6, color:"#4ade80", cursor:"pointer", padding:"5px 10px", fontSize:11, fontFamily:"inherit" }}>✏️</button>
+                            )}
+                            <button onClick={() => setQrModal({ tipo: "motorista", item: m })} className="sbtn" style={{ background:"#1e2535", border:"1px solid #f97316", borderRadius:6, color:"#f97316", cursor:"pointer", padding:"5px 10px", fontSize:11, fontFamily:"inherit" }}>QR</button>
+                          </div>
                         </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -2228,20 +2240,29 @@ function PainelAlertas({ veiculos, motoristas }) {
   veiculos.forEach((v) => {
     const ac = statusVenc(v.venc_crlv);
     const as = statusVenc(v.venc_seguro_obrigatorio);
-    if (ac && ac.cor !== "#4ade80") alertas.push({ texto: `${ac.icone} CRLV ${v.placa}: ${ac.texto}`, ...ac });
-    if (as && as.cor !== "#4ade80") alertas.push({ texto: `${as.icone} Seguro ${v.placa}: ${as.texto}`, ...as });
+    if (ac && ac.cor !== "#4ade80") alertas.push({ placa: v.placa, doc: "CRLV", status: ac });
+    if (as && as.cor !== "#4ade80") alertas.push({ placa: v.placa, doc: "Seguro", status: as });
   });
   motoristas.forEach((m) => {
     const s = statusVenc(m.venc_cnh);
-    if (s && s.cor !== "#4ade80") alertas.push({ texto: `${s.icone} CNH ${m.nome}: ${s.texto}`, ...s });
+    if (s && s.cor !== "#4ade80") alertas.push({ nome: m.nome, doc: "CNH", status: s });
   });
   if (alertas.length === 0) return null;
   return (
-    <div style={{ background:"#1a1c27", border:"1px solid #b45309", borderRadius:12, padding:"16px 20px", marginBottom:20 }}>
-      <div style={{ fontSize:11, color:"#fbbf24", letterSpacing:2, marginBottom:12 }}>⚠️ DOCUMENTOS — ATENÇÃO NECESSÁRIA</div>
+    <div style={{ background:"#1a1c27", border:"1px solid #b45309", borderRadius:12, padding:"14px 16px", marginBottom:20 }}>
+      <div style={{ fontSize:10, color:"#fbbf24", letterSpacing:2, marginBottom:10 }}>⚠️ ATENÇÃO — DOCUMENTOS</div>
       <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
         {alertas.map((a, i) => (
-          <div key={i} style={{ fontSize:12, padding:"6px 10px", borderRadius:6, background:a.bg, border:`1px solid ${a.border}`, color:a.cor }}>{a.texto}</div>
+          <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 10px", borderRadius:8, background:a.status.bg, border:`1px solid ${a.status.border}` }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <span style={{ fontSize:10 }}>{a.status.icone}</span>
+              <span style={{ fontSize:13, fontWeight:600, color:"#fff", fontFamily:"'Syne',sans-serif", letterSpacing: a.placa ? 1 : 0 }}>
+                {a.placa || a.nome}
+              </span>
+              <span style={{ fontSize:10, color:a.status.cor, background:"rgba(0,0,0,0.2)", padding:"1px 6px", borderRadius:4 }}>{a.doc}</span>
+            </div>
+            <span style={{ fontSize:11, color:a.status.cor, whiteSpace:"nowrap" }}>{a.status.texto}</span>
+          </div>
         ))}
       </div>
     </div>
