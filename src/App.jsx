@@ -233,7 +233,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
               <div style={{ fontSize:10, color:txt2, letterSpacing:1, fontWeight:500 }}>{label.toUpperCase()}</div>
               <span style={{ fontSize:16, opacity:0.15 }}>{icon}</span>
             </div>
-            <div style={{ fontSize:22, fontFamily:"'Syne',sans-serif", fontWeight:800, color, lineHeight:1, marginTop:8, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+            <div style={{ fontSize:20, fontFamily:"'DM Mono',monospace", fontWeight:500, color, lineHeight:1, marginTop:8, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
               {val}{unit && <span style={{ fontSize:12, marginLeft:3, color:txt2 }}>{unit}</span>}
             </div>
           </div>
@@ -698,7 +698,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
         {[["REGISTROS", regs.length, "", "#f97316"], ["TOTAL LITROS", fmtNum(regs.reduce((a,b)=>a+Number(b.quantidade||0),0)), "L", "#38bdf8"], ["TOTAL GASTO", fmtBRL(regs.reduce((a,b)=>a+Number(b.custo||0),0)), "", "#4ade80"]].map(([label,val,unit,cor]) => (
           <div key={label} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"12px 14px", overflow:"hidden", minHeight:72, display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
             <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:1, fontWeight:500 }}>{label}</div>
-            <div style={{ fontSize:18, fontFamily:"'Syne',sans-serif", fontWeight:800, color:cor, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:6 }}>{val}{unit&&<span style={{fontSize:11,marginLeft:2,color:"#5a5a6a"}}>{unit}</span>}</div>
+            <div style={{ fontSize:18, fontFamily:"'DM Mono',monospace", fontWeight:500, color:cor, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:6 }}>{val}{unit&&<span style={{fontSize:11,marginLeft:2,color:"#5a5a6a"}}>{unit}</span>}</div>
           </div>
         ))}
       </div>
@@ -758,7 +758,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
                 {[["REGISTROS",regsSecretaria.length,""],["LITROS",fmtNum(regsSecretaria.reduce((a,b)=>a+Number(b.quantidade||0),0)),"L"],["GASTO",fmtBRL(regsSecretaria.reduce((a,b)=>a+Number(b.custo||0),0)),""]].map(([label,val,unit]) => (
                   <div key={label} style={{ background:"#1e3a2a", border:"1px solid #16a34a", borderRadius:10, padding:"12px 14px", overflow:"hidden", minHeight:72, display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
                     <div style={{ fontSize:9, color:"#4ade80", letterSpacing:1, fontWeight:500 }}>{label}</div>
-                    <div style={{ fontSize:18, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#4ade80", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:6 }}>{val}{unit&&<span style={{fontSize:11,marginLeft:2}}>{unit}</span>}</div>
+                    <div style={{ fontSize:18, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#4ade80", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:6 }}>{val}{unit&&<span style={{fontSize:11,marginLeft:2}}>{unit}</span>}</div>
                   </div>
                 ))}
               </div>
@@ -807,7 +807,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
                 {[["REGISTROS",regsHistorico.length,""],["LITROS",fmtNum(regsHistorico.reduce((a,b)=>a+Number(b.quantidade||0),0)),"L"],["GASTO",fmtBRL(regsHistorico.reduce((a,b)=>a+Number(b.custo||0),0)),""]].map(([label,val,unit]) => (
                   <div key={label} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"12px 14px", overflow:"hidden", minHeight:72, display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
                     <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:1, fontWeight:500 }}>{label}</div>
-                    <div style={{ fontSize:18, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#38bdf8", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:6 }}>{val}{unit&&<span style={{fontSize:11,marginLeft:2,color:"#5a5a6a"}}>{unit}</span>}</div>
+                    <div style={{ fontSize:18, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#38bdf8", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:6 }}>{val}{unit&&<span style={{fontSize:11,marginLeft:2,color:"#5a5a6a"}}>{unit}</span>}</div>
                   </div>
                 ))}
               </div>
@@ -950,17 +950,17 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
                   <div className="stats-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:20 }}>
                     <div style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px" }}>
                       <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:1, fontWeight:500 }}>MÊS ATUAL</div>
-                      <div style={{ fontSize:18, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#f97316", marginTop:6, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{fmtBRL(mesAtual.custo)}</div>
+                      <div style={{ fontSize:18, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#f97316", marginTop:6, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{fmtBRL(mesAtual.custo)}</div>
                       <div style={{ fontSize:10, color:"#5a5a6a", marginTop:2 }}>{fmtNum(mesAtual.litros)} L · {mesAtual.count} abast.</div>
                     </div>
                     <div style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px" }}>
                       <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:1, fontWeight:500 }}>MÊS ANTERIOR</div>
-                      <div style={{ fontSize:18, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#8a8a9a", marginTop:6, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{fmtBRL(mesAnterior.custo)}</div>
+                      <div style={{ fontSize:18, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#8a8a9a", marginTop:6, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{fmtBRL(mesAnterior.custo)}</div>
                       <div style={{ fontSize:10, color:"#5a5a6a", marginTop:2 }}>{fmtNum(mesAnterior.litros)} L · {mesAnterior.count} abast.</div>
                     </div>
                     <div style={{ background: variacao > 0 ? "#2d0f0f" : "#14532d", border:`1px solid ${variacao > 0 ? "#ef4444" : "#16a34a"}`, borderRadius:10, padding:"14px 18px" }}>
                       <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:1, fontWeight:500 }}>VARIAÇÃO</div>
-                      <div style={{ fontSize:18, fontFamily:"'Syne',sans-serif", fontWeight:800, color: variacao > 0 ? "#ef4444" : "#4ade80", marginTop:6, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                      <div style={{ fontSize:18, fontFamily:"'DM Mono',monospace", fontWeight:500, color: variacao > 0 ? "#ef4444" : "#4ade80", marginTop:6, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                         {variacao > 0 ? "▲" : "▼"} {Math.abs(variacao).toFixed(1)}%
                       </div>
                       <div style={{ fontSize:10, color:"#5a5a6a", marginTop:2 }}>{variacao > 0 ? "aumento" : "redução"} vs mês anterior</div>
@@ -1891,7 +1891,7 @@ export default function App() {
           <div className="fade-in">
             <div style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px", marginBottom:16 }}>
               <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:1, fontWeight:500 }}>SEUS REGISTROS DE HOJE</div>
-              <div style={{ fontSize:18, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#f97316", marginTop:6 }}>
+              <div style={{ fontSize:18, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#f97316", marginTop:6 }}>
                 {registros.filter((r) => (r.data_hora||"").startsWith(new Date().toISOString().slice(0,10)) && r.operador === estNome).length}
                 <span style={{ fontSize:12, marginLeft:6, color:"#5a5a6a" }}>abastecimentos</span>
               </div>
