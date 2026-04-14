@@ -526,9 +526,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [filtroEst, setFiltroEst] = useState("");
-  const [filtroVeiculo, setFiltroVeiculo] = useState("");
-  const [filtroMotorista, setFiltroMotorista] = useState("");
-  const [filtroSecretariaRel, setFiltroSecretariaRel] = useState("");
+
   const [filtroSecretaria, setFiltroSecretaria] = useState("");
   const [filtroHistorico, setFiltroHistorico] = useState("veiculo");
   const [filtroHistoricoValor, setFiltroHistoricoValor] = useState("");
@@ -542,9 +540,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
       if (periodo === "periodo" && dataInicio && dt < dataInicio) return false;
       if (periodo === "periodo" && dataFim && dt > dataFim) return false;
       if (filtroEst && r.operador !== filtroEst) return false;
-      if (filtroVeiculo && r.placa !== filtroVeiculo) return false;
-      if (filtroMotorista && r.motorista_nome !== filtroMotorista) return false;
-      if (filtroSecretariaRel && r.departamento !== filtroSecretariaRel) return false;
+
       return true;
     });
   };
@@ -639,9 +635,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   const exportPDFAtual = () => {
     const filtros = [];
     if (dataInicio || dataFim) filtros.push(`Período: ${dataInicio || "..."} até ${dataFim || "..."}`);
-    if (filtroVeiculo) filtros.push(`Veículo: ${filtroVeiculo}`);
-    if (filtroMotorista) filtros.push(`Motorista: ${filtroMotorista}`);
-    if (filtroSecretariaRel) filtros.push(`Secretaria: ${filtroSecretariaRel}`);
+
     if (filtroEst) filtros.push(`Posto: ${filtroEst}`);
 
     const totalL = regs.reduce((a,b) => a+Number(b.quantidade||0), 0);
@@ -793,24 +787,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
         </div>
       )}
 
-      {/* Filtros adicionais: veículo, motorista, secretaria */}
-      <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap" }}>
-        <select value={filtroVeiculo} onChange={(e) => setFiltroVeiculo(e.target.value)} style={{ ...iS(), width:"auto", flex:1, fontSize:12, minWidth:120 }}>
-          <option value="">🚗 Todos os veículos</option>
-          {placasUnicas.map((p) => <option key={p}>{p}</option>)}
-        </select>
-        <select value={filtroMotorista} onChange={(e) => setFiltroMotorista(e.target.value)} style={{ ...iS(), width:"auto", flex:1, fontSize:12, minWidth:120 }}>
-          <option value="">👤 Todos os motoristas</option>
-          {motoristasUnicos.map((m) => <option key={m}>{m}</option>)}
-        </select>
-        <select value={filtroSecretariaRel} onChange={(e) => setFiltroSecretariaRel(e.target.value)} style={{ ...iS(), width:"auto", flex:1, fontSize:12, minWidth:120 }}>
-          <option value="">🏢 Todas as secretarias</option>
-          {secretariasUnicas.map((s) => <option key={s}>{s}</option>)}
-        </select>
-        {(filtroVeiculo || filtroMotorista || filtroSecretariaRel) && (
-          <button onClick={() => { setFiltroVeiculo(""); setFiltroMotorista(""); setFiltroSecretariaRel(""); }} style={{ padding:"10px 14px", background:"none", border:"1px solid #3a2020", borderRadius:8, color:"#ef4444", fontFamily:"inherit", fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>✕ Limpar filtros</button>
-        )}
-      </div>
+
 
       {/* Cards resumo */}
       <div className="stats-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:20 }}>
