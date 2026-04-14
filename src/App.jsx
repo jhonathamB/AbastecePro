@@ -713,9 +713,8 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
       r.hodometro ? String(r.hodometro) : "",
       r.operador||"",
     ]);
-    const csv = [header, ...rows].map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(";")).join("
-");
-    const blob = new Blob(["﻿"+csv], { type:"text/csv;charset=utf-8;" });
+    const csv = [header, ...rows].map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""')+'"').join(";")).join("\r\n");
+    const blob = new Blob(["\uFEFF"+csv], { type:"text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = "relatorio_" + new Date().toISOString().slice(0,10) + ".csv"; a.click();
@@ -726,7 +725,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
     const h = ["Data/Hora","Secretaria","Placa","Motorista","Combustível","Qtd (L)","Custo (R$)","Hodômetro","Operador"];
     const rows = regsSecretaria.map((r) => [(r.data_hora||"").slice(0,16).replace("T"," "),r.departamento,r.placa,r.motorista_nome,r.combustivel,r.quantidade,r.custo,r.hodometro||"",r.operador]);
     const csv = [h,...rows].map((r)=>r.map((c)=>`"${c??''}"`).join(";")).join("\n");
-    const blob = new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8;"});
+    const blob = new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
     const url = URL.createObjectURL(blob); const a = document.createElement("a");
     a.href=url; a.download=`secretaria_${filtroSecretaria||"todas"}_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
   };
