@@ -493,6 +493,7 @@ function Comprovante({ registro, estabelecimento, onClose }) {
           {registro.modelo && <Row label="Modelo" value={registro.modelo} />}
           <Row label="Depto" value={registro.departamento} />
           {registro.hodometro && <Row label="Hodômetro" value={`${fmtNum(registro.hodometro, 0)} km`} />}
+          {registro.cupom_fiscal && <Row label="Cupom Fiscal" value={registro.cupom_fiscal} />}
           <Divider />
           <Row label="Combustível" value={registro.combustivel} />
           <Row label="Quantidade" value={`${fmtNum(registro.quantidade)} L`} />
@@ -699,21 +700,29 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   };
 
   const exportCSVAtual = () => {
-    const header = ["Data/Hora","Motorista","CNH","Placa","Modelo","Secretaria","Combustivel","Quantidade(L)","Custo(R$)","Hodometro","Posto"];
-    const rows = regs.sort((a,b) => new Date(b.data_hora)-new Date(a.data_hora)).map((r) => [
-      (r.data_hora||"").slice(0,16).replace("T"," "),
-      r.motorista_nome||"",
-      "	" + (r.motorista_cnh||""),
-      r.placa||"",
-      r.modelo||"",
-      r.departamento||"",
-      r.combustivel||"",
-      Number(r.quantidade||0).toFixed(2).replace(".",","),
-      Number(r.custo||0).toFixed(2).replace(".",","),
-      r.hodometro ? String(r.hodometro) : "",
-      r.operador||"",
-    ]);
-    const csv = [header, ...rows].map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""')+'"').join(";")).join("\r\n");
+    const titulo = [["Listagem dos abastecimentos"]];
+    const vazio = [[""]];
+    const header = ["Placa","Marca/Modelo","Centro Custo","Data","Tipo","Litros","Odometro","Preco Litro","Valor R$","Agente","Cupom fiscal"];
+    const rows = regs.sort((a,b) => new Date(b.data_hora)-new Date(a.data_hora)).map((r) => {
+      const totalL = Number(r.quantidade||0);
+      const totalC = Number(r.custo||0);
+      const precoL = totalL > 0 ? (totalC/totalL).toFixed(2).replace(".",",") : "";
+      return [
+        r.placa||"",
+        r.modelo||"",
+        r.departamento||"",
+        (r.data_hora||"").slice(0,16).replace("T"," "),
+        r.combustivel||"",
+        totalL.toFixed(2).replace(".",","),
+        r.hodometro ? String(r.hodometro) : "",
+        precoL,
+        totalC.toFixed(2).replace(".",","),
+        r.motorista_nome||"",
+        r.cupom_fiscal||"",
+      ];
+    });
+    const todas = [...titulo, ...vazio, ...vazio, header, ...rows];
+    const csv = todas.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(";")).join("\r\n");
     const blob = new Blob(["\uFEFF"+csv], { type:"text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1136,7 +1145,7 @@ export default function App() {
   const [pagina, setPagina] = useState(1);
   const POR_PAGINA = 20;
 
-  const [form, setForm] = useState({ dataHora: now(), combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "" });
+  const [form, setForm] = useState({ dataHora: now(), combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "", cupom_fiscal: "" });
   const [ultimoMot, setUltimoMot] = useState(() => cache.get("ultimo_motorista"));
   const [ultimoVeic, setUltimoVeic] = useState(() => cache.get("ultimo_veiculo"));
   const [formErrors, setFormErrors] = useState({});
@@ -1283,6 +1292,7 @@ export default function App() {
       departamento: scannedVeic.departamento, combustivel: form.combustivel,
       quantidade: parseFloat(form.quantidade), custo: parseFloat(form.custo),
       hodometro: form.hodometro ? parseFloat(form.hodometro) : null,
+      cupom_fiscal: form.cupom_fiscal || null,
       operador: estNome, estabelecimento_id: estId,
     };
     if (online) {
@@ -1295,7 +1305,7 @@ export default function App() {
     // Salvar último motorista e veículo usados
     if (mot) { setUltimoMot(mot); cache.set("ultimo_motorista", mot); }
     if (veic) { setUltimoVeic(veic); cache.set("ultimo_veiculo", veic); }
-    setForm({ dataHora: now(), combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "" });
+    setForm({ dataHora: now(), combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "", cupom_fiscal: "" });
     setScannedMot(null); setScannedVeic(null);
   };
 
@@ -1905,6 +1915,7 @@ export default function App() {
               </Field>
               <Field label="TIPO DE COMBUSTÍVEL"><select value={form.combustivel} onChange={(e) => setForm((f) => ({ ...f, combustivel: e.target.value }))} style={iS()}>{COMBUSTIVEIS.map((c) => <option key={c}>{c}</option>)}</select></Field>
               <Field label="HODÔMETRO (KM) — OPCIONAL"><input type="number" placeholder="Ex: 45230" min="0" value={form.hodometro} onChange={(e) => setForm((f) => ({ ...f, hodometro: e.target.value }))} style={iS()} /></Field>
+              <Field label="CUPOM FISCAL — OPCIONAL"><input type="text" placeholder="Ex: 257302" value={form.cupom_fiscal} onChange={(e) => setForm((f) => ({ ...f, cupom_fiscal: e.target.value }))} style={iS()} /></Field>
               <div />
               <Field label="QUANTIDADE (LITROS)" error={formErrors.quantidade}><input type="number" placeholder="0.00" min="0" step="0.01" value={form.quantidade} onChange={(e) => { setForm((f) => ({ ...f, quantidade: e.target.value })); setFormErrors((err) => ({ ...err, quantidade: undefined })); }} style={iS(formErrors.quantidade)} /></Field>
               <Field label="CUSTO TOTAL (R$)" error={formErrors.custo}><input type="number" placeholder="0.00" min="0" step="0.01" value={form.custo} onChange={(e) => { setForm((f) => ({ ...f, custo: e.target.value })); setFormErrors((err) => ({ ...err, custo: undefined })); }} style={iS(formErrors.custo)} /></Field>
