@@ -109,9 +109,8 @@ function useQRScanner(onResult) {
 }
 
 // ── Dashboard ─────────────────────────────────────────
-function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabelecimentos, isDark, totalAlertas, alertasVeic, alertasMot }) {
+function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabelecimentos, isDark, totalAlertas, alertasVeic, alertasMot, filtroEst }) {
   const [periodo, setPeriodo] = useState("mes");
-  const [filtroEst, setFiltroEst] = useState("");
   const hoje = new Date();
   const bg = isDark ? "#1a1c27" : "#fff";
   const bg2 = isDark ? "#0f1117" : "#f0f0f5";
@@ -219,15 +218,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
         ))}
       </div>
 
-      {/* Filtro por posto — só admin */}
-      {isAdmin && estabelecimentos && estabelecimentos.length > 0 && (
-        <select value={filtroEst} onChange={(e) => setFiltroEst(e.target.value)} style={{ width:"100%", padding:"10px 14px", background:bg, border:`1px solid ${border}`, borderRadius:10, color:txt2, fontFamily:"inherit", fontSize:13, outline:"none" }}>
-          <option value="">🏪 Todos os estabelecimentos</option>
-          {estabelecimentos.filter((e) => e.nome !== "Administrador").map((e) => (
-            <option key={e.id} value={e.nome}>{e.nome}</option>
-          ))}
-        </select>
-      )}
+
 
       {/* Cards 2x2 */}
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
@@ -703,9 +694,9 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
       {/* Cards resumo */}
       <div className="stats-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:20 }}>
         {[["REGISTROS",regs.length,""],["TOTAL LITROS",fmtNum(regs.reduce((a,b)=>a+Number(b.quantidade||0),0)),"L"],["TOTAL GASTO",fmtBRL(regs.reduce((a,b)=>a+Number(b.custo||0),0)),""]].map(([label,val,unit]) => (
-          <div key={label} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px" }}>
-            <div style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2 }}>{label}</div>
-            <div style={{ fontSize:18, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#f97316", marginTop:4 }}>{val}{unit&&<span style={{fontSize:12,marginLeft:3,color:"#8a8a9a"}}>{unit}</span>}</div>
+          <div key={label} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"10px 10px", overflow:"hidden" }}>
+            <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:1, marginBottom:4 }}>{label}</div>
+            <div style={{ fontSize:15, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#f97316", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{val}{unit&&<span style={{fontSize:10,marginLeft:2,color:"#8a8a9a"}}>{unit}</span>}</div>
           </div>
         ))}
       </div>
@@ -725,8 +716,14 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
                 return (
                   <div key={chave} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px" }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-                      <div><div style={{ fontSize:14, fontWeight:500, color:"#fff" }}>{chave}</div><div style={{ fontSize:11, color:"#5a5a6a", marginTop:2 }}>{dados.count} registro{dados.count!==1?"s":""} · {fmtNum(dados.litros)} L</div></div>
-                      <div style={{ textAlign:"right" }}><div style={{ fontSize:16, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#f97316" }}>{fmtBRL(dados.custo)}</div><div style={{ fontSize:11, color:"#5a5a6a" }}>{pct.toFixed(1)}%</div></div>
+                      <div>
+                        <div style={{ fontSize:14, fontWeight:500, color:"#fff" }}>{chave}</div>
+                        <div style={{ fontSize:11, color:"#5a5a6a", marginTop:2 }}>{dados.count} registro{dados.count!==1?"s":""} · {fmtNum(dados.litros)} L</div>
+                      </div>
+                      <div style={{ textAlign:"right" }}>
+                        <div style={{ fontSize:16, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#f97316" }}>{fmtBRL(dados.custo)}</div>
+                        <div style={{ fontSize:11, color:"#5a5a6a" }}>{pct.toFixed(1)}%</div>
+                      </div>
                     </div>
                     <div style={{ height:4, background:"#2a2c3a", borderRadius:2 }}><div style={{ height:4, background:"#f97316", borderRadius:2, width:`${pct}%`, transition:"width 0.5s ease" }} /></div>
                   </div>
@@ -757,9 +754,9 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
             <div>
               <div className="stats-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }}>
                 {[["REGISTROS",regsSecretaria.length,""],["LITROS",fmtNum(regsSecretaria.reduce((a,b)=>a+Number(b.quantidade||0),0)),"L"],["GASTO",fmtBRL(regsSecretaria.reduce((a,b)=>a+Number(b.custo||0),0)),""]].map(([label,val,unit]) => (
-                  <div key={label} style={{ background:"#1e3a2a", border:"1px solid #16a34a", borderRadius:10, padding:"12px 16px" }}>
-                    <div style={{ fontSize:9, color:"#4ade80", letterSpacing:2 }}>{label}</div>
-                    <div style={{ fontSize:16, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#4ade80", marginTop:4 }}>{val}{unit&&<span style={{fontSize:11,marginLeft:3}}>{unit}</span>}</div>
+                  <div key={label} style={{ background:"#1e3a2a", border:"1px solid #16a34a", borderRadius:10, padding:"10px 12px", overflow:"hidden" }}>
+                    <div style={{ fontSize:9, color:"#4ade80", letterSpacing:1, marginBottom:3 }}>{label}</div>
+                    <div style={{ fontSize:15, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#4ade80", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{val}{unit&&<span style={{fontSize:10,marginLeft:2}}>{unit}</span>}</div>
                   </div>
                 ))}
               </div>
@@ -770,7 +767,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
                       <div style={{ fontSize:12, fontWeight:500, color:"#fff" }}>{r.motorista_nome}</div>
                       <div style={{ fontSize:10, color:"#5a5a6a", marginTop:1 }}>{(r.data_hora||"").slice(0,16).replace("T"," ")}</div>
                     </div>
-                    <div style={{ fontSize:12, fontFamily:"'Syne',sans-serif", fontWeight:700, letterSpacing:1 }}>{r.placa}</div>
+                    <div style={{ fontSize:12, fontFamily:"'Syne',sans-serif", fontWeight:700, letterSpacing:1, color:"#fff" }}>{r.placa}</div>
                     <div style={{ fontSize:11, color:"#f97316" }}>{r.combustivel}</div>
                     <div style={{ textAlign:"right" }}>
                       <div style={{ fontSize:13, fontWeight:500 }}>{fmtNum(r.quantidade)} L</div>
@@ -806,15 +803,15 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
             <div>
               <div className="stats-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }}>
                 {[["REGISTROS",regsHistorico.length,""],["LITROS",fmtNum(regsHistorico.reduce((a,b)=>a+Number(b.quantidade||0),0)),"L"],["GASTO",fmtBRL(regsHistorico.reduce((a,b)=>a+Number(b.custo||0),0)),""]].map(([label,val,unit]) => (
-                  <div key={label} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"12px 16px" }}>
-                    <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:2 }}>{label}</div>
-                    <div style={{ fontSize:16, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#38bdf8", marginTop:4 }}>{val}{unit&&<span style={{fontSize:11,marginLeft:3,color:"#5a5a6a"}}>{unit}</span>}</div>
+                  <div key={label} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"10px 12px", overflow:"hidden" }}>
+                    <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:1, marginBottom:3 }}>{label}</div>
+                    <div style={{ fontSize:15, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#38bdf8", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{val}{unit&&<span style={{fontSize:10,marginLeft:2,color:"#5a5a6a"}}>{unit}</span>}</div>
                   </div>
                 ))}
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
                 {regsHistorico.sort((a,b) => new Date(b.data_hora) - new Date(a.data_hora)).map((r) => (
-                  <div key={r.id||r._localId} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:8, padding:"12px 16px" }}>
+                  <div key={r.id||r._localId} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:8, padding:"10px 14px" }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                       <div>
                         <div style={{ fontSize:12, fontWeight:500, color:"#fff" }}>{filtroHistorico==="veiculo" ? r.motorista_nome : r.placa}</div>
@@ -1038,6 +1035,7 @@ export default function App() {
   const [qrModal, setQrModal] = useState(null);
   const [search, setSearch] = useState("");
   const [filtroEstAdmin, setFiltroEstAdmin] = useState("");
+  const [filtroEstDash, setFiltroEstDash] = useState("");
   const [pagina, setPagina] = useState(1);
   const POR_PAGINA = 20;
 
@@ -1393,13 +1391,24 @@ export default function App() {
 
   if (!usuario) return <LoginScreen onLogin={handleLogin} />;
 
-  // Calcular alertas de vencimento
-  const alertasVeic = veiculos.filter((v) => {
+  // Filtrar por estabelecimento selecionado no header
+  const estFiltradoId = filtroEstDash
+    ? (estabelecimentos.find((e) => e.nome === filtroEstDash) || {}).id
+    : null;
+  const veiculosFiltradosDash = estFiltradoId
+    ? veiculos.filter((v) => v.estabelecimento_id === estFiltradoId)
+    : veiculos;
+  const motoristasFiltradosDash = estFiltradoId
+    ? motoristas.filter((m) => m.estabelecimento_id === estFiltradoId)
+    : motoristas;
+
+  // Calcular alertas — separado por veículos e motoristas, respeitando filtro
+  const alertasVeic = veiculosFiltradosDash.filter((v) => {
     const ac = statusVenc(v.venc_crlv);
     const as = statusVenc(v.venc_seguro_obrigatorio);
     return (ac && ac.cor !== "#4ade80") || (as && as.cor !== "#4ade80");
   }).length;
-  const alertasMot = motoristas.filter((m) => {
+  const alertasMot = motoristasFiltradosDash.filter((m) => {
     const s = statusVenc(m.venc_cnh);
     return s && s.cor !== "#4ade80";
   }).length;
@@ -1661,6 +1670,14 @@ export default function App() {
               {pendentes > 0 && <div style={{ background: "#92400e", borderRadius: 8, padding: "3px 8px", fontSize: 10, color: "#fbbf24" }}>{pendentes} pendente{pendentes > 1 ? "s" : ""}</div>}
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: online ? "#4ade80" : "#f97316" }} />
               <span style={{ fontSize: 10, color: online ? "#4ade80" : "#f97316" }}>{online ? "online" : "offline"}</span>
+              {isAdmin && estabelecimentos.length > 0 && (
+                <select value={filtroEstDash} onChange={(e) => setFiltroEstDash(e.target.value)} style={{ background: isDark?"#1a1c27":"#fff", border:`1px solid ${filtroEstDash?"#f97316":isDark?"#2a2c3a":"#ccc"}`, borderRadius:8, color:filtroEstDash?"#f97316":isDark?"#8a8a9a":"#666", fontFamily:"inherit", fontSize:11, padding:"6px 10px", outline:"none", maxWidth:160, cursor:"pointer" }}>
+                  <option value="">🏪 Todos</option>
+                  {estabelecimentos.filter((e) => e.nome !== "Administrador").map((e) => (
+                    <option key={e.id} value={e.nome}>{e.nome}</option>
+                  ))}
+                </select>
+              )}
               <button onClick={toggleTema} title="Alternar tema" style={{ background: "none", border: `1px solid ${isDark ? "#2a2c3a" : "#ccc"}`, borderRadius: 8, color: isDark ? "#f97316" : "#666", cursor: "pointer", padding: "6px 10px", fontSize: 14 }}>{isDark ? "☀️" : "🌙"}</button>
               {!isOperador && <button onClick={() => setMinhaConta(true)} title="Minha conta" style={{ background: "none", border: `1px solid ${isDark ? "#2a2c3a" : "#ccc"}`, borderRadius: 8, color: isDark ? "#8a8a9a" : "#666", cursor: "pointer", padding: "6px 10px", fontSize: 14 }}>👤</button>}
               <button onClick={handleLogout} style={{ background: "none", border: `1px solid ${isDark ? "#2a2c3a" : "#ccc"}`, borderRadius: 8, color: isDark ? "#5a5a6a" : "#666", cursor: "pointer", padding: "6px 12px", fontSize: 11, fontFamily: "inherit" }}>Sair</button>
@@ -1668,13 +1685,13 @@ export default function App() {
           </div>
           <div className="nav-tabs" style={{ display: "flex", gap: 0, marginTop: 16, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {TABS.map(([id, label]) => {
-              const showBadge = totalAlertas > 0 && (id === "veiculos" || id === "motoristas");
+              const badgeCount = id === "veiculos" ? alertasVeic : id === "motoristas" ? alertasMot : 0;
               return (
                 <button key={id} className="tab-btn" onClick={() => setActiveTab(id)} style={{ background: "none", border: "none", cursor: "pointer", padding: "10px 16px", fontSize: 11, fontFamily: "inherit", whiteSpace: "nowrap", color: activeTab === id ? "#f97316" : "#5a5a6a", borderBottom: activeTab === id ? "2px solid #f97316" : "2px solid transparent", fontWeight: activeTab === id ? 500 : 400, letterSpacing: 0.5, position: "relative" }}>
                   {label}
-                  {showBadge && (
+                  {badgeCount > 0 && (
                     <span style={{ position:"absolute", top:6, right:4, background:"#ef4444", color:"#fff", fontSize:8, fontWeight:700, minWidth:14, height:14, borderRadius:7, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" }}>
-                      {totalAlertas}
+                      {badgeCount}
                     </span>
                   )}
                 </button>
@@ -1731,7 +1748,7 @@ export default function App() {
                 </div>
               ) : null;
             })()}
-            <Dashboard registros={registros} motoristas={motoristas} veiculos={veiculos} estNome={estNome} isAdmin={isAdmin} estabelecimentos={estabelecimentos} isDark={isDark} totalAlertas={totalAlertas} alertasVeic={alertasVeic} alertasMot={alertasMot} />
+            <Dashboard registros={registros} motoristas={motoristasFiltradosDash} veiculos={veiculosFiltradosDash} estNome={estNome} isAdmin={isAdmin} estabelecimentos={estabelecimentos} isDark={isDark} totalAlertas={totalAlertas} alertasVeic={alertasVeic} alertasMot={alertasMot} filtroEst={filtroEstDash} />
           </div>
         )}
 
@@ -1841,7 +1858,7 @@ export default function App() {
                       {isAdmin && <div style={{ fontSize: 10, color: "#f97316", marginTop: 2 }}>🏪 {r.operador}</div>}
                     </div>
                     <div>
-                      <div style={{ fontSize: 13, fontFamily: "'Syne',sans-serif", fontWeight: 700, letterSpacing: 1 }}>{r.placa}</div>
+                      <div style={{ fontSize:13, fontFamily:"'Syne',sans-serif", fontWeight:700, letterSpacing:1, color:"#fff" }}>{r.placa}</div>
                       <div style={{ fontSize: 11, color: "#f97316", marginTop: 2 }}>{r.combustivel}</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
@@ -1891,7 +1908,7 @@ export default function App() {
                         <div style={{ fontSize:11, color:"#5a5a6a", marginTop:2 }}>{(r.data_hora||"").slice(11,16)}</div>
                       </div>
                       <div>
-                        <div style={{ fontSize:13, fontFamily:"'Syne',sans-serif", fontWeight:700, letterSpacing:1 }}>{r.placa}</div>
+                        <div style={{ fontSize:13, fontFamily:"'Syne',sans-serif", fontWeight:700, letterSpacing:1, color:"#fff" }}>{r.placa}</div>
                         <div style={{ fontSize:11, color:"#f97316", marginTop:2 }}>{r.combustivel}</div>
                       </div>
                       <div style={{ textAlign:"right" }}>
