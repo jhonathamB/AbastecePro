@@ -270,7 +270,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5 }}>
                     <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                       <div style={{ width:24, height:24, borderRadius:6, background:COLORS[i%COLORS.length]+"22", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:800, color:COLORS[i%COLORS.length] }}>{i+1}</div>
-                      <div style={{ fontSize:13, fontWeight:700, color:txt, fontFamily:"'Syne',sans-serif", letterSpacing:1 }}>{placa}</div>
+                      <div style={{ fontSize:13, fontWeight:500, color:txt, fontFamily:"'DM Mono',monospace" }}>{placa}</div>
                     </div>
                     <div style={{ textAlign:"right" }}>
                       <div style={{ fontSize:13, fontWeight:700, color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)}</div>
@@ -719,11 +719,11 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
                   <div key={chave} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px" }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
                       <div>
-                        <div style={{ fontSize:14, fontWeight:500, color:"#fff" }}>{chave}</div>
+                        <div style={{ fontSize:14, fontWeight:500, color:"#fff", fontFamily:"'DM Mono',monospace" }}>{chave}</div>
                         <div style={{ fontSize:11, color:"#5a5a6a", marginTop:2 }}>{dados.count} registro{dados.count!==1?"s":""} · {fmtNum(dados.litros)} L</div>
                       </div>
                       <div style={{ textAlign:"right" }}>
-                        <div style={{ fontSize:16, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#f97316" }}>{fmtBRL(dados.custo)}</div>
+                        <div style={{ fontSize:16, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#f97316" }}>{fmtBRL(dados.custo)}</div>
                         <div style={{ fontSize:11, color:"#5a5a6a" }}>{pct.toFixed(1)}%</div>
                       </div>
                     </div>
@@ -769,7 +769,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
                       <div style={{ fontSize:12, fontWeight:500, color:"#fff" }}>{r.motorista_nome}</div>
                       <div style={{ fontSize:10, color:"#5a5a6a", marginTop:1 }}>{(r.data_hora||"").slice(0,16).replace("T"," ")}</div>
                     </div>
-                    <div style={{ fontSize:12, fontFamily:"'Syne',sans-serif", fontWeight:700, letterSpacing:1, color:"#fff" }}>{r.placa}</div>
+                    <div style={{ fontSize:12, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#fff" }}>{r.placa}</div>
                     <div style={{ fontSize:11, color:"#f97316" }}>{r.combustivel}</div>
                     <div style={{ textAlign:"right" }}>
                       <div style={{ fontSize:13, fontWeight:500 }}>{fmtNum(r.quantidade)} L</div>
@@ -848,13 +848,13 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                     <div>
                       <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        <div style={{ fontSize:14, fontFamily:"'Syne',sans-serif", fontWeight:800, letterSpacing:1 }}>{v.placa}</div>
+                        <div style={{ fontSize:14, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#fff" }}>{v.placa}</div>
                         {v.alerta && <span style={{ fontSize:9, background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:4, padding:"2px 6px", color:"#ef4444" }}>⚠️ CONSUMO ANORMAL</span>}
                       </div>
                       <div style={{ fontSize:11, color:"#8a8a9a", marginTop:2 }}>{v.departamento}{v.modelo?" · "+v.modelo:""} · {v.totalRegs} registros com hodômetro</div>
                     </div>
                     <div style={{ textAlign:"right" }}>
-                      <div style={{ fontSize:22, fontFamily:"'Syne',sans-serif", fontWeight:800, color: v.alerta?"#ef4444":"#4ade80" }}>{v.kmL.toFixed(1)}</div>
+                      <div style={{ fontSize:20, fontFamily:"'DM Mono',monospace", fontWeight:500, color: v.alerta?"#ef4444":"#4ade80" }}>{v.kmL.toFixed(1)}</div>
                       <div style={{ fontSize:10, color:"#5a5a6a" }}>km/L</div>
                     </div>
                   </div>
@@ -905,13 +905,13 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
                     <div key={v.id} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                       <div>
                         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                          <div style={{ fontSize:14, fontFamily:"'Syne',sans-serif", fontWeight:800, letterSpacing:1 }}>{v.placa}</div>
+                          <div style={{ fontSize:14, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#fff" }}>{v.placa}</div>
                         </div>
                         <div style={{ fontSize:11, color:"#8a8a9a", marginTop:2 }}>{v.departamento}{v.modelo?" · "+v.modelo:""} · {fmtNum(v.kmTotal,0)} km rodados</div>
                         <div style={{ fontSize:11, color:"#5a5a6a", marginTop:1 }}>Total gasto: {fmtBRL(v.custoTotal)}</div>
                       </div>
                       <div style={{ textAlign:"right" }}>
-                        <div style={{ fontSize:24, fontFamily:"'Syne',sans-serif", fontWeight:800, color:"#38bdf8" }}>{fmtBRL(v.custoPorKm)}</div>
+                        <div style={{ fontSize:18, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#38bdf8" }}>{fmtBRL(v.custoPorKm)}</div>
                         <div style={{ fontSize:10, color:"#5a5a6a" }}>por km</div>
                       </div>
                     </div>
@@ -993,7 +993,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
                           <div style={{ fontSize:13, fontWeight:500, color:"#fff", textTransform:"capitalize" }}>{new Date(m.key+"-15").toLocaleDateString("pt-BR",{month:"long",year:"numeric"})}</div>
                           <div style={{ fontSize:11, color:"#5a5a6a", marginTop:1 }}>{m.count} abastecimento{m.count!==1?"s":""} · {fmtNum(m.litros)} L</div>
                         </div>
-                        <div style={{ fontSize:16, fontFamily:"'Syne',sans-serif", fontWeight:800, color: m.key===hoje.toISOString().slice(0,7)?"#f97316":"#8a8a9a" }}>{fmtBRL(m.custo)}</div>
+                        <div style={{ fontSize:15, fontFamily:"'DM Mono',monospace", fontWeight:500, color: m.key===hoje.toISOString().slice(0,7)?"#f97316":"#8a8a9a" }}>{fmtBRL(m.custo)}</div>
                       </div>
                     ))}
                   </div>
@@ -1860,7 +1860,7 @@ export default function App() {
                       {isAdmin && <div style={{ fontSize: 10, color: "#f97316", marginTop: 2 }}>🏪 {r.operador}</div>}
                     </div>
                     <div>
-                      <div style={{ fontSize:13, fontFamily:"'Syne',sans-serif", fontWeight:700, letterSpacing:1, color:"#fff" }}>{r.placa}</div>
+                      <div style={{ fontSize:13, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#fff" }}>{r.placa}</div>
                       <div style={{ fontSize: 11, color: "#f97316", marginTop: 2 }}>{r.combustivel}</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
@@ -1910,7 +1910,7 @@ export default function App() {
                         <div style={{ fontSize:11, color:"#5a5a6a", marginTop:2 }}>{(r.data_hora||"").slice(11,16)}</div>
                       </div>
                       <div>
-                        <div style={{ fontSize:13, fontFamily:"'Syne',sans-serif", fontWeight:700, letterSpacing:1, color:"#fff" }}>{r.placa}</div>
+                        <div style={{ fontSize:13, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#fff" }}>{r.placa}</div>
                         <div style={{ fontSize:11, color:"#f97316", marginTop:2 }}>{r.combustivel}</div>
                       </div>
                       <div style={{ textAlign:"right" }}>
@@ -2291,7 +2291,7 @@ function PainelAlertas({ veiculos, motoristas, filtroEst, estabelecimentos }) {
           return (
             <div key={placa} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 10px", borderRadius:8, background:ps.status.bg, border:`1px solid ${ps.status.border}` }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-                <span style={{ fontSize:13, fontWeight:600, color:"#fff", fontFamily:"'Syne',sans-serif", letterSpacing:1 }}>{placa}</span>
+                <span style={{ fontSize:13, fontWeight:500, color:"#fff", fontFamily:"'DM Mono',monospace" }}>{placa}</span>
                 {docs.map((d, i) => (
                   <span key={i} style={{ fontSize:10, color:d.status.cor, background:"rgba(0,0,0,0.25)", padding:"1px 6px", borderRadius:4 }}>
                     {d.status.icone} {d.doc}
