@@ -700,34 +700,42 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   };
 
   const exportCSVAtual = () => {
-    // Carrega SheetJS dinamicamente e gera XLSX profissional
     const script = document.createElement("script");
     script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
     script.onload = () => {
       const XLSX = window.XLSX;
       const wb = XLSX.utils.book_new();
 
-      // Dados
+      const fmtData = (dt) => {
+        if (!dt) return "";
+        const d = new Date(dt);
+        const dia = String(d.getDate()).padStart(2,"0");
+        const mes = String(d.getMonth()+1).padStart(2,"0");
+        const ano = d.getFullYear();
+        const h = String(d.getHours()).padStart(2,"0");
+        const m = String(d.getMinutes()).padStart(2,"0");
+        return dia + "/" + mes + "/" + ano + " " + h + ":" + m;
+      };
+
       const rows = regs.sort((a,b) => new Date(b.data_hora)-new Date(a.data_hora)).map((r) => {
         const totalL = Number(r.quantidade||0);
         const totalC = Number(r.custo||0);
-        const precoL = totalL > 0 ? totalC/totalL : 0;
+        const precoL = totalL > 0 ? Math.round((totalC/totalL)*100)/100 : 0;
         return [
           r.placa||"",
           r.modelo||"",
           r.departamento||"",
-          (r.data_hora||"").slice(0,16).replace("T"," "),
+          fmtData(r.data_hora),
           r.combustivel||"",
-          totalL,
+          Math.round(totalL*100)/100,
           r.hodometro ? Number(r.hodometro) : "",
           precoL,
-          totalC,
+          Math.round(totalC*100)/100,
           r.motorista_nome||"",
           r.cupom_fiscal||"",
         ];
       });
 
-      // Monta sheet com título + cabeçalho + dados
       const wsData = [
         ["Listagem dos abastecimentos"],
         [],
@@ -738,13 +746,21 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
 
       const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-      // Larguras das colunas
       ws["!cols"] = [
-        {wch:12},{wch:18},{wch:22},{wch:18},{wch:18},
+        {wch:12},{wch:18},{wch:22},{wch:20},{wch:18},
         {wch:10},{wch:12},{wch:12},{wch:12},{wch:24},{wch:14},
       ];
 
-      // Mesclar título
+      // Formato 2 casas decimais para Litros, Preço Litro, Valor R$
+      const nRows = rows.length;
+      for (let i = 0; i < nRows; i++) {
+        const row = i + 5; // linha 5 em diante (1-indexed)
+        ["F","H","I"].forEach((col) => {
+          const cell = ws[col + row];
+          if (cell && cell.t === "n") cell.z = "#,##0.00";
+        });
+      }
+
       ws["!merges"] = [{ s:{r:0,c:0}, e:{r:0,c:10} }];
 
       XLSX.utils.book_append_sheet(wb, ws, "Abastecimentos");
