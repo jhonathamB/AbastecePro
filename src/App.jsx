@@ -294,7 +294,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
             {topComb.map(([comb,d],i) => (
               <div key={comb} style={{ background:bg2, borderRadius:10, padding:"10px 12px", borderLeft:`4px solid ${COLORS[i%COLORS.length]}`, border:`1px solid ${border}`, borderLeftWidth:4, borderLeftColor:COLORS[i%COLORS.length] }}>
-                <div style={{ fontSize:11, fontWeight:600, color:txt, marginBottom:3, fontFamily:"'DM Mono',monospace" }}>{comb}</div>
+                <div style={{ fontSize:13, fontWeight:500, color:txt, marginBottom:3, fontFamily:"'DM Mono',monospace" }}>{comb}</div>
                 <div style={{ fontSize:14, fontWeight:500, fontFamily:"'DM Mono',monospace", color:COLORS[i%COLORS.length] }}>{fmtNum(d.litros)} L</div>
                 <div style={{ fontSize:10, color:txt2 }}>{fmtBRL(d.custo)}</div>
               </div>
@@ -314,7 +314,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
               return (
                 <div key={depto}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:txt, fontFamily:"'DM Mono',monospace" }}>{depto}</div>
+                    <div style={{ fontSize:13, fontWeight:500, color:txt, fontFamily:"'DM Mono',monospace" }}>{depto}</div>
                     <div style={{ fontSize:12, fontWeight:500, fontFamily:"'DM Mono',monospace", color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)} <span style={{ fontSize:10, color: isDark?"#5a5a6a":"#666677" }}>({pct.toFixed(0)}%)</span></div>
                   </div>
                   <div style={{ height:4, background:isDark?"#2a2c3a":"#eee", borderRadius:2 }}>
@@ -337,7 +337,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
               return (
                 <div key={est}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:txt }}>{est}</div>
+                    <div style={{ fontSize:13, fontWeight:500, color:txt, fontFamily:"'DM Mono',monospace" }}>{est}</div>
                     <div style={{ fontSize:12, fontWeight:500, fontFamily:"'DM Mono',monospace", color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)}</div>
                   </div>
                   <div style={{ height:4, background:isDark?"#2a2c3a":"#eee", borderRadius:2 }}>
