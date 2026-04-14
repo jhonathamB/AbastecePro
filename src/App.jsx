@@ -112,11 +112,11 @@ function useQRScanner(onResult) {
 function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabelecimentos, isDark, totalAlertas, alertasVeic, alertasMot, filtroEst }) {
   const [periodo, setPeriodo] = useState("mes");
   const hoje = new Date();
-  const bg = isDark ? "#1a1c27" : "#fff";
-  const bg2 = isDark ? "#0f1117" : "#f0f0f5";
-  const border = isDark ? "#2a2c3a" : "#e0e0e8";
-  const txt = isDark ? "#e8e4d9" : "#1a1a2e";
-  const txt2 = isDark ? "#8a8a9a" : "#666";
+  const bg = isDark ? "#1a1c27" : "#f8f8fc";
+  const bg2 = isDark ? "#0f1117" : "#eeeef5";
+  const border = isDark ? "#2a2c3a" : "#c8c8d8";
+  const txt = isDark ? "#e8e4d9" : "#111122";
+  const txt2 = isDark ? "#8a8a9a" : "#444455";
 
   const filtrar = (regs) => {
     return regs.filter((r) => {
@@ -207,11 +207,11 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
       )}
 
       {/* Seletor de período — pill style */}
-      <div style={{ display:"flex", background:bg, borderRadius:12, padding:4, border:`1px solid ${border}` }}>
+      <div style={{ display:"flex", background:"#1a1c27", borderRadius:12, padding:4, border:"1px solid #2a2c3a" }}>
         {[["hoje","Hoje"],["mes","Mês"],["ano","Ano"],["todos","Tudo"]].map(([id,label]) => (
           <button key={id} onClick={() => setPeriodo(id)} style={{
             flex:1, padding:"8px 4px", background: periodo===id?"#f97316":"transparent",
-            border:"none", borderRadius:8, color: periodo===id?"#fff":txt2,
+            border:"none", borderRadius:8, color: periodo===id?"#fff":"#8a8a9a",
             fontFamily:"inherit", fontSize:12, cursor:"pointer", fontWeight: periodo===id?600:400,
             transition:"all 0.2s"
           }}>{label}</button>
@@ -228,7 +228,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
           ["Total Gasto", fmtBRL(totalCusto), "", "#4ade80", "💰"],
           ["Preço/Litro", fmtBRL(precioMedio), "", "#a78bfa", "⛽"],
         ].map(([label, val, unit, color, icon]) => (
-          <div key={label} style={{ background:bg, border:`1px solid ${border}`, borderRadius:14, padding:"14px 16px", position:"relative", overflow:"hidden", minHeight:80, display:"flex", flexDirection:"column", justifyContent:"space-between" }}>
+          <div key={label} style={{ background:bg, border:`1px solid ${border}`, borderRadius:14, padding:"14px 16px", position:"relative", overflow:"hidden", minHeight:80, display:"flex", flexDirection:"column", justifyContent:"space-between", boxShadow: isDark?"none":"0 1px 4px rgba(0,0,0,0.08)" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
               <div style={{ fontSize:10, color:txt2, letterSpacing:1, fontWeight:500 }}>{label.toUpperCase()}</div>
               <span style={{ fontSize:16, opacity:0.15 }}>{icon}</span>
@@ -293,9 +293,9 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
           <div style={{ fontSize:11, color:txt2, fontWeight:600, marginBottom:12, letterSpacing:0.5 }}>⛽ COMBUSTÍVEIS</div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
             {topComb.map(([comb,d],i) => (
-              <div key={comb} style={{ background:bg2, borderRadius:10, padding:"10px 12px", borderLeft:`3px solid ${COLORS[i%COLORS.length]}` }}>
-                <div style={{ fontSize:11, fontWeight:600, color:txt, marginBottom:3 }}>{comb}</div>
-                <div style={{ fontSize:13, fontWeight:500, fontFamily:"'DM Mono',monospace", color:COLORS[i%COLORS.length] }}>{fmtNum(d.litros)} L</div>
+              <div key={comb} style={{ background:bg2, borderRadius:10, padding:"10px 12px", borderLeft:`4px solid ${COLORS[i%COLORS.length]}`, border:`1px solid ${border}`, borderLeftWidth:4, borderLeftColor:COLORS[i%COLORS.length] }}>
+                <div style={{ fontSize:11, fontWeight:600, color:txt, marginBottom:3, fontFamily:"'DM Mono',monospace" }}>{comb}</div>
+                <div style={{ fontSize:14, fontWeight:500, fontFamily:"'DM Mono',monospace", color:COLORS[i%COLORS.length] }}>{fmtNum(d.litros)} L</div>
                 <div style={{ fontSize:10, color:txt2 }}>{fmtBRL(d.custo)}</div>
               </div>
             ))}
@@ -314,8 +314,8 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
               return (
                 <div key={depto}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:txt }}>{depto}</div>
-                    <div style={{ fontSize:12, fontWeight:500, fontFamily:"'DM Mono',monospace", color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)} <span style={{ fontSize:10, color:txt2 }}>({pct.toFixed(0)}%)</span></div>
+                    <div style={{ fontSize:12, fontWeight:600, color:txt, fontFamily:"'DM Mono',monospace" }}>{depto}</div>
+                    <div style={{ fontSize:12, fontWeight:500, fontFamily:"'DM Mono',monospace", color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)} <span style={{ fontSize:10, color: isDark?"#5a5a6a":"#666677" }}>({pct.toFixed(0)}%)</span></div>
                   </div>
                   <div style={{ height:4, background:isDark?"#2a2c3a":"#eee", borderRadius:2 }}>
                     <div style={{ height:4, background:COLORS[i%COLORS.length], borderRadius:2, width:`${pct}%`, transition:"width 0.5s" }} />
