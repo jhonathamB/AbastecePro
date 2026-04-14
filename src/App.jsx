@@ -700,34 +700,57 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   };
 
   const exportCSVAtual = () => {
-    const titulo = [["Listagem dos abastecimentos"]];
-    const vazio = [[""]];
-    const header = ["Placa","Marca/Modelo","Centro Custo","Data","Tipo","Litros","Odometro","Preco Litro","Valor R$","Agente","Cupom fiscal"];
-    const rows = regs.sort((a,b) => new Date(b.data_hora)-new Date(a.data_hora)).map((r) => {
-      const totalL = Number(r.quantidade||0);
-      const totalC = Number(r.custo||0);
-      const precoL = totalL > 0 ? (totalC/totalL).toFixed(2).replace(".",",") : "";
-      return [
-        r.placa||"",
-        r.modelo||"",
-        r.departamento||"",
-        (r.data_hora||"").slice(0,16).replace("T"," "),
-        r.combustivel||"",
-        totalL.toFixed(2).replace(".",","),
-        r.hodometro ? String(r.hodometro) : "",
-        precoL,
-        totalC.toFixed(2).replace(".",","),
-        r.motorista_nome||"",
-        r.cupom_fiscal||"",
+    // Carrega SheetJS dinamicamente e gera XLSX profissional
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    script.onload = () => {
+      const XLSX = window.XLSX;
+      const wb = XLSX.utils.book_new();
+
+      // Dados
+      const rows = regs.sort((a,b) => new Date(b.data_hora)-new Date(a.data_hora)).map((r) => {
+        const totalL = Number(r.quantidade||0);
+        const totalC = Number(r.custo||0);
+        const precoL = totalL > 0 ? totalC/totalL : 0;
+        return [
+          r.placa||"",
+          r.modelo||"",
+          r.departamento||"",
+          (r.data_hora||"").slice(0,16).replace("T"," "),
+          r.combustivel||"",
+          totalL,
+          r.hodometro ? Number(r.hodometro) : "",
+          precoL,
+          totalC,
+          r.motorista_nome||"",
+          r.cupom_fiscal||"",
+        ];
+      });
+
+      // Monta sheet com título + cabeçalho + dados
+      const wsData = [
+        ["Listagem dos abastecimentos"],
+        [],
+        [],
+        ["Placa","Marca/Modelo","Centro Custo","Data","Tipo","Litros","Odômetro","Preço Litro","Valor R$","Agente","Cupom Fiscal"],
+        ...rows,
       ];
-    });
-    const todas = [...titulo, ...vazio, ...vazio, header, ...rows];
-    const csv = todas.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(";")).join("\r\n");
-    const blob = new Blob(["\uFEFF"+csv], { type:"text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "relatorio_" + new Date().toISOString().slice(0,10) + ".csv"; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+      // Larguras das colunas
+      ws["!cols"] = [
+        {wch:12},{wch:18},{wch:22},{wch:18},{wch:18},
+        {wch:10},{wch:12},{wch:12},{wch:12},{wch:24},{wch:14},
+      ];
+
+      // Mesclar título
+      ws["!merges"] = [{ s:{r:0,c:0}, e:{r:0,c:10} }];
+
+      XLSX.utils.book_append_sheet(wb, ws, "Abastecimentos");
+      XLSX.writeFile(wb, "relatorio_" + new Date().toISOString().slice(0,10) + ".xlsx");
+    };
+    document.head.appendChild(script);
   };
 
   const exportCSVSecretaria = () => {
@@ -761,8 +784,8 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
             : <div style={{ padding:"9px 14px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:20, color:"#3a3a4a", fontSize:12, whiteSpace:"nowrap", cursor:"not-allowed" }} title="Disponível no Plano Profissional">🖨️ Imprimir 🔒</div>
           }
           {podeCSV
-            ? <button onClick={exportCSVAtual} style={{ padding:"9px 14px", background:"#1a3a2a", border:"1px solid #16a34a", borderRadius:20, color:"#4ade80", fontFamily:"inherit", fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>↓ CSV</button>
-            : <div style={{ padding:"9px 14px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:20, color:"#3a3a4a", fontSize:12, whiteSpace:"nowrap", cursor:"not-allowed" }} title="Disponível no Plano Profissional">↓ CSV 🔒</div>
+            ? <button onClick={exportCSVAtual} style={{ padding:"9px 14px", background:"#1a3a2a", border:"1px solid #16a34a", borderRadius:20, color:"#4ade80", fontFamily:"inherit", fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>↓ XLSX</button>
+            : <div style={{ padding:"9px 14px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:20, color:"#3a3a4a", fontSize:12, whiteSpace:"nowrap", cursor:"not-allowed" }} title="Disponível no Plano Profissional">↓ XLSX 🔒</div>
           }
         </div>
       </div>
