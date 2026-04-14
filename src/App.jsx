@@ -273,7 +273,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
                       <div style={{ fontSize:13, fontWeight:500, color:txt, fontFamily:"'DM Mono',monospace" }}>{placa}</div>
                     </div>
                     <div style={{ textAlign:"right" }}>
-                      <div style={{ fontSize:13, fontWeight:700, color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)}</div>
+                      <div style={{ fontSize:13, fontWeight:500, fontFamily:"'DM Mono',monospace", color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)}</div>
                       <div style={{ fontSize:10, color:txt2 }}>{fmtNum(d.litros)} L · {d.count} abast.</div>
                     </div>
                   </div>
@@ -295,7 +295,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
             {topComb.map(([comb,d],i) => (
               <div key={comb} style={{ background:bg2, borderRadius:10, padding:"10px 12px", borderLeft:`3px solid ${COLORS[i%COLORS.length]}` }}>
                 <div style={{ fontSize:11, fontWeight:600, color:txt, marginBottom:3 }}>{comb}</div>
-                <div style={{ fontSize:13, fontWeight:800, color:COLORS[i%COLORS.length] }}>{fmtNum(d.litros)} L</div>
+                <div style={{ fontSize:13, fontWeight:500, fontFamily:"'DM Mono',monospace", color:COLORS[i%COLORS.length] }}>{fmtNum(d.litros)} L</div>
                 <div style={{ fontSize:10, color:txt2 }}>{fmtBRL(d.custo)}</div>
               </div>
             ))}
@@ -315,7 +315,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
                 <div key={depto}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
                     <div style={{ fontSize:12, fontWeight:600, color:txt }}>{depto}</div>
-                    <div style={{ fontSize:12, fontWeight:700, color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)} <span style={{ fontSize:10, color:txt2 }}>({pct.toFixed(0)}%)</span></div>
+                    <div style={{ fontSize:12, fontWeight:500, fontFamily:"'DM Mono',monospace", color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)} <span style={{ fontSize:10, color:txt2 }}>({pct.toFixed(0)}%)</span></div>
                   </div>
                   <div style={{ height:4, background:isDark?"#2a2c3a":"#eee", borderRadius:2 }}>
                     <div style={{ height:4, background:COLORS[i%COLORS.length], borderRadius:2, width:`${pct}%`, transition:"width 0.5s" }} />
@@ -338,7 +338,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
                 <div key={est}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
                     <div style={{ fontSize:12, fontWeight:600, color:txt }}>{est}</div>
-                    <div style={{ fontSize:12, fontWeight:700, color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)}</div>
+                    <div style={{ fontSize:12, fontWeight:500, fontFamily:"'DM Mono',monospace", color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)}</div>
                   </div>
                   <div style={{ height:4, background:isDark?"#2a2c3a":"#eee", borderRadius:2 }}>
                     <div style={{ height:4, background:COLORS[i%COLORS.length], borderRadius:2, width:`${pct}%`, transition:"width 0.5s" }} />
@@ -500,7 +500,7 @@ function Comprovante({ registro, estabelecimento, onClose }) {
           <Divider />
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
             <span style={{ fontSize: 13, fontWeight: 600 }}>TOTAL</span>
-            <span style={{ fontSize: 20, fontFamily: "'Syne',sans-serif", fontWeight: 800 }}>{fmtBRL(registro.custo)}</span>
+            <span style={{ fontSize: 20, fontFamily: "'DM Mono',monospace", fontWeight: 500 }}>{fmtBRL(registro.custo)}</span>
           </div>
           {registro._offline && <div style={{ marginTop: 8, fontSize: 10, color: "#b45309", textAlign: "center" }}>⏳ Pendente de sincronização</div>}
           <Divider />
@@ -1833,7 +1833,7 @@ export default function App() {
               {[["REGISTROS", filtered.length, ""], ["TOTAL LITROS", fmtNum(filtered.reduce((a, b) => a + Number(b.quantidade || 0), 0)), "L"], ["TOTAL GASTO", fmtBRL(filtered.reduce((a, b) => a + Number(b.custo || 0), 0)), ""]].map(([label, val, unit]) => (
                 <div key={label} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 10, padding: "10px 8px" }}>
                   <div style={{ fontSize: 8, color: "#5a5a6a", letterSpacing: 1 }}>{label}</div>
-                  <div style={{ fontSize: 14, fontFamily: "'Syne',sans-serif", fontWeight: 800, color: "#f97316", marginTop: 3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{val}{unit && <span style={{ fontSize: 10, marginLeft: 2, color: "#8a8a9a" }}>{unit}</span>}</div>
+                  <div style={{ fontSize: 14, fontFamily: "'DM Mono',monospace", fontWeight: 500, color: "#f97316", marginTop: 3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{val}{unit && <span style={{ fontSize: 10, marginLeft: 2, color: "#8a8a9a" }}>{unit}</span>}</div>
                 </div>
               ))}
             </div>
@@ -2068,7 +2068,7 @@ export default function App() {
                         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                           <div>
                             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                              <div style={{ fontSize: 13, fontFamily: "'Syne',sans-serif", fontWeight: 700, letterSpacing: 1 }}>{v.placa}</div>
+                              <div style={{ fontSize: 13, fontFamily: "'DM Mono',monospace", fontWeight: 500, color:"#fff" }}>{v.placa}</div>
                               <span style={{ fontSize:9, padding:"2px 6px", borderRadius:4, background: v.status==="ativo"?"#14532d":v.status==="manutencao"?"#2d1f0a":"#2d0f0f", color: v.status==="ativo"?"#4ade80":v.status==="manutencao"?"#fbbf24":"#ef4444" }}>
                                 {v.status==="ativo"?"ATIVO":v.status==="manutencao"?"MANUTENÇÃO":"INATIVO"}
                               </span>
