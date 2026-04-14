@@ -112,11 +112,11 @@ function useQRScanner(onResult) {
 function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabelecimentos, isDark, totalAlertas, alertasVeic, alertasMot, filtroEst }) {
   const [periodo, setPeriodo] = useState("mes");
   const hoje = new Date();
-  const bg = isDark ? "#1a1c27" : "#f8f8fc";
-  const bg2 = isDark ? "#0f1117" : "#eeeef5";
-  const border = isDark ? "#2a2c3a" : "#c8c8d8";
-  const txt = isDark ? "#e8e4d9" : "#111122";
-  const txt2 = isDark ? "#8a8a9a" : "#444455";
+  const bg = isDark ? "#1a1c27" : "#b8b8cc";
+  const bg2 = isDark ? "#0f1117" : "#c8c8dc";
+  const border = isDark ? "#2a2c3a" : "#a8a8c0";
+  const txt = isDark ? "#e8e4d9" : "#0a0a1a";
+  const txt2 = isDark ? "#8a8a9a" : "#333344";
 
   const filtrar = (regs) => {
     return regs.filter((r) => {
@@ -231,7 +231,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
           <div key={label} style={{ background:bg, border:`1px solid ${border}`, borderRadius:14, padding:"14px 16px", position:"relative", overflow:"hidden", minHeight:80, display:"flex", flexDirection:"column", justifyContent:"space-between", boxShadow: isDark?"none":"0 1px 4px rgba(0,0,0,0.08)" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
               <div style={{ fontSize:10, color:txt2, letterSpacing:1, fontWeight:500 }}>{label.toUpperCase()}</div>
-              <span style={{ fontSize:16, opacity:0.15 }}>{icon}</span>
+              <span style={{ fontSize:18, opacity:0.6 }}>{icon}</span>
             </div>
             <div style={{ fontSize:20, fontFamily:"'DM Mono',monospace", fontWeight:500, color, lineHeight:1, marginTop:8, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
               {val}{unit && <span style={{ fontSize:12, marginLeft:3, color:txt2 }}>{unit}</span>}
@@ -294,7 +294,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
             {topComb.map(([comb,d],i) => (
               <div key={comb} style={{ background:bg2, borderRadius:10, padding:"10px 12px", borderLeft:`4px solid ${COLORS[i%COLORS.length]}`, border:`1px solid ${border}`, borderLeftWidth:4, borderLeftColor:COLORS[i%COLORS.length] }}>
-                <div style={{ fontSize:13, fontWeight:500, color:txt, marginBottom:3, fontFamily:"'DM Mono',monospace" }}>{comb}</div>
+                <div style={{ fontSize:11, fontWeight:500, color:txt, marginBottom:3, fontFamily:"'DM Mono',monospace" }}>{comb}</div>
                 <div style={{ fontSize:14, fontWeight:500, fontFamily:"'DM Mono',monospace", color:COLORS[i%COLORS.length] }}>{fmtNum(d.litros)} L</div>
                 <div style={{ fontSize:10, color:txt2 }}>{fmtBRL(d.custo)}</div>
               </div>
@@ -314,7 +314,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
               return (
                 <div key={depto}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
-                    <div style={{ fontSize:13, fontWeight:500, color:txt, fontFamily:"'DM Mono',monospace" }}>{depto}</div>
+                    <div style={{ fontSize:12, fontWeight:500, color:txt, fontFamily:"'DM Mono',monospace" }}>{depto}</div>
                     <div style={{ fontSize:12, fontWeight:500, fontFamily:"'DM Mono',monospace", color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)} <span style={{ fontSize:10, color: isDark?"#5a5a6a":"#666677" }}>({pct.toFixed(0)}%)</span></div>
                   </div>
                   <div style={{ height:4, background:isDark?"#2a2c3a":"#eee", borderRadius:2 }}>
@@ -337,7 +337,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
               return (
                 <div key={est}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
-                    <div style={{ fontSize:13, fontWeight:500, color:txt, fontFamily:"'DM Mono',monospace" }}>{est}</div>
+                    <div style={{ fontSize:12, fontWeight:500, color:txt, fontFamily:"'DM Mono',monospace" }}>{est}</div>
                     <div style={{ fontSize:12, fontWeight:500, fontFamily:"'DM Mono',monospace", color:COLORS[i%COLORS.length] }}>{fmtBRL(d.custo)}</div>
                   </div>
                   <div style={{ height:4, background:isDark?"#2a2c3a":"#eee", borderRadius:2 }}>
@@ -1426,7 +1426,7 @@ export default function App() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: isDark ? "#0f1117" : "#f0f0f5", fontFamily: "'DM Mono','Courier New',monospace", color: isDark ? "#e8e4d9" : "#1a1a2e" }}>
+    <div style={{ minHeight: "100vh", background: isDark ? "#0f1117" : "#b8b8cc", fontFamily: "'DM Mono','Courier New',monospace", color: isDark ? "#e8e4d9" : "#1a1a2e" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
@@ -1673,7 +1673,7 @@ export default function App() {
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: online ? "#4ade80" : "#f97316" }} />
               <span style={{ fontSize: 10, color: online ? "#4ade80" : "#f97316" }}>{online ? "online" : "offline"}</span>
               {isAdmin && estabelecimentos.length > 0 && (
-                <select value={filtroEstDash} onChange={(e) => setFiltroEstDash(e.target.value)} style={{ background: isDark?"#1a1c27":"#fff", border:`1px solid ${filtroEstDash?"#f97316":isDark?"#2a2c3a":"#ccc"}`, borderRadius:8, color:filtroEstDash?"#f97316":isDark?"#8a8a9a":"#666", fontFamily:"inherit", fontSize:11, padding:"6px 10px", outline:"none", maxWidth:160, cursor:"pointer" }}>
+                <select value={filtroEstDash} onChange={(e) => setFiltroEstDash(e.target.value)} style={{ background: isDark?"#1a1c27":"#c8c8da", border:`1px solid ${filtroEstDash?"#f97316":isDark?"#2a2c3a":"#ccc"}`, borderRadius:8, color:filtroEstDash?"#f97316":isDark?"#8a8a9a":"#666", fontFamily:"inherit", fontSize:11, padding:"6px 10px", outline:"none", maxWidth:160, cursor:"pointer" }}>
                   <option value="">🏪 Todos</option>
                   {estabelecimentos.filter((e) => e.nome !== "Administrador").map((e) => (
                     <option key={e.id} value={e.nome}>{e.nome}</option>
@@ -1735,7 +1735,7 @@ export default function App() {
               const hoje_litros = hoje_regs.reduce((a,b) => a+Number(b.quantidade||0), 0);
               const hoje_custo = hoje_regs.reduce((a,b) => a+Number(b.custo||0), 0);
               return hoje_regs.length > 0 ? (
-                <div style={{ background: isDark?"#1a1c27":"#fff", border:"1px solid #f97316", borderRadius:12, padding:"14px 20px", marginBottom:20, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
+                <div style={{ background: isDark?"#1a1c27":"#c8c8da", border:"1px solid #f97316", borderRadius:12, padding:"14px 20px", marginBottom:20, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
                   <div>
                     <div style={{ fontSize:10, color:"#f97316", letterSpacing:2, marginBottom:4 }}>HOJE</div>
                     <div style={{ fontSize:13, color: isDark?"#e8e4d9":"#1a1a2e" }}>
@@ -1780,7 +1780,7 @@ export default function App() {
 
             {/* Atalho: usar último */}
             {(ultimoMot || ultimoVeic) && !scannedMot && !scannedVeic && (
-              <div style={{ background: isDark?"#1a1c27":"#fff", border:"1px solid #2a2c3a", borderRadius:10, padding:"10px 16px", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
+              <div style={{ background: isDark?"#1a1c27":"#c8c8da", border:"1px solid #2a2c3a", borderRadius:10, padding:"10px 16px", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
                 <div style={{ fontSize:11, color: isDark?"#5a5a6a":"#888" }}>⚡ Último usado:</div>
                 <div style={{ display:"flex", gap:8 }}>
                   {ultimoMot && (
@@ -1797,7 +1797,7 @@ export default function App() {
               </div>
             )}
 
-            <div style={{ background: isDark?"#1a1c27":"#fff", border: "1px solid #2a2c3a", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ background: isDark?"#1a1c27":"#c8c8da", border: "1px solid #2a2c3a", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div><div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2, marginBottom: 2 }}>ESTABELECIMENTO</div><div style={{ fontSize: 14, fontWeight: 500, color: "#f97316" }}>{estNome}</div></div>
               <span style={{ fontSize: 11, color: "#4ade80" }}>✓ fixo</span>
             </div>
@@ -1874,7 +1874,7 @@ export default function App() {
             )}
             {/* Botão carregar mais */}
             {filtered.length > pagina * POR_PAGINA && (
-              <button onClick={() => setPagina((p) => p + 1)} className="sbtn" style={{ width:"100%", marginTop:12, padding:"12px", background: isDark?"#1a1c27":"#fff", border:"1px solid #f97316", borderRadius:10, color:"#f97316", fontFamily:"inherit", fontSize:12, cursor:"pointer", letterSpacing:1 }}>
+              <button onClick={() => setPagina((p) => p + 1)} className="sbtn" style={{ width:"100%", marginTop:12, padding:"12px", background: isDark?"#1a1c27":"#c8c8da", border:"1px solid #f97316", borderRadius:10, color:"#f97316", fontFamily:"inherit", fontSize:12, cursor:"pointer", letterSpacing:1 }}>
                 Carregar mais ({filtered.length - pagina * POR_PAGINA} restantes)
               </button>
             )}
