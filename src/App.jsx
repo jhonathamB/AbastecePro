@@ -526,6 +526,9 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [filtroEst, setFiltroEst] = useState("");
+  const [filtroVeiculo, setFiltroVeiculo] = useState("");
+  const [filtroMotorista, setFiltroMotorista] = useState("");
+  const [filtroSecretariaRel, setFiltroSecretariaRel] = useState("");
   const [filtroSecretaria, setFiltroSecretaria] = useState("");
   const [filtroHistorico, setFiltroHistorico] = useState("veiculo");
   const [filtroHistoricoValor, setFiltroHistoricoValor] = useState("");
@@ -539,6 +542,9 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
       if (periodo === "periodo" && dataInicio && dt < dataInicio) return false;
       if (periodo === "periodo" && dataFim && dt > dataFim) return false;
       if (filtroEst && r.operador !== filtroEst) return false;
+      if (filtroVeiculo && r.placa !== filtroVeiculo) return false;
+      if (filtroMotorista && r.motorista_nome !== filtroMotorista) return false;
+      if (filtroSecretariaRel && r.departamento !== filtroSecretariaRel) return false;
       return true;
     });
   };
@@ -630,6 +636,97 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
     if (w) setTimeout(() => w.print(), 800);
   };
 
+  const exportPDFAtual = () => {
+    const filtros = [];
+    if (dataInicio || dataFim) filtros.push(`Período: ${dataInicio || "..."} até ${dataFim || "..."}`);
+    if (filtroVeiculo) filtros.push(`Veículo: ${filtroVeiculo}`);
+    if (filtroMotorista) filtros.push(`Motorista: ${filtroMotorista}`);
+    if (filtroSecretariaRel) filtros.push(`Secretaria: ${filtroSecretariaRel}`);
+    if (filtroEst) filtros.push(`Posto: ${filtroEst}`);
+
+    const totalL = regs.reduce((a,b) => a+Number(b.quantidade||0), 0);
+    const totalC = regs.reduce((a,b) => a+Number(b.custo||0), 0);
+
+    // Agrupar por tipo selecionado
+    const campos = { departamento:"departamento", veiculo:"placa", motorista:"motorista_nome", combustivel:"combustivel", estabelecimento:"operador" };
+    const campo = campos[tipo] || "departamento";
+    const grupos = {};
+    regs.forEach((r) => {
+      const k = r[campo] || "—";
+      if (!grupos[k]) grupos[k] = { litros:0, custo:0, count:0 };
+      grupos[k].litros += Number(r.quantidade||0);
+      grupos[k].custo += Number(r.custo||0);
+      grupos[k].count++;
+    });
+    const linhasResumo = Object.entries(grupos)
+      .sort((a,b) => b[1].custo - a[1].custo)
+      .map(([k,v]) => `<tr><td>${k}</td><td>${v.count}</td><td>${fmtNum(v.litros)} L</td><td><strong>${fmtBRL(v.custo)}</strong></td></tr>`).join("");
+
+    const linhasRegs = regs.sort((a,b) => new Date(b.data_hora) - new Date(a.data_hora)).map((r) =>
+      `<tr><td>${(r.data_hora||"").slice(0,16).replace("T"," ")}</td><td>${r.motorista_nome||"—"}</td><td>${r.placa||"—"}</td><td>${r.departamento||"—"}</td><td>${r.combustivel||"—"}</td><td>${fmtNum(r.quantidade)} L</td><td><strong>${fmtBRL(r.custo)}</strong></td></tr>`
+    ).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>Relatório AbastecePro</title>
+    <style>
+      body{font-family:Arial,sans-serif;padding:24px;color:#111;font-size:13px}
+      h1{color:#f97316;margin-bottom:4px;font-size:22px}
+      .sub{color:#666;font-size:12px;margin-bottom:16px}
+      .filtros{background:#fff8f0;border:1px solid #f97316;border-radius:6px;padding:10px 16px;margin-bottom:16px;font-size:12px;color:#333}
+      .cards{display:flex;gap:16px;margin-bottom:20px}
+      .card{background:#fff8f0;border:1px solid #f97316;border-radius:8px;padding:10px 16px;text-align:center;flex:1}
+      .card-label{font-size:10px;color:#888;letter-spacing:1px}
+      .card-val{font-size:20px;font-weight:bold;color:#f97316}
+      table{width:100%;border-collapse:collapse;margin-bottom:24px}
+      th{background:#f97316;color:#fff;padding:8px;text-align:left;font-size:12px}
+      td{padding:7px 8px;border-bottom:1px solid #eee;font-size:12px}
+      tr:nth-child(even){background:#fafafa}
+      h2{color:#333;border-bottom:2px solid #f97316;padding-bottom:4px;margin:20px 0 10px;font-size:15px}
+      @media print{body{padding:0}}
+    </style></head>
+    <body>
+      <h1>⛽ AbastecePro — Relatório de Abastecimento</h1>
+      <div class="sub">Gerado em ${new Date().toLocaleString("pt-BR")}</div>
+      ${filtros.length > 0 ? `<div class="filtros">🔍 <strong>Filtros aplicados:</strong> ${filtros.join(" &nbsp;|&nbsp; ")}</div>` : ""}
+      <div class="cards">
+        <div class="card"><div class="card-label">REGISTROS</div><div class="card-val">${regs.length}</div></div>
+        <div class="card"><div class="card-label">TOTAL LITROS</div><div class="card-val">${fmtNum(totalL)} L</div></div>
+        <div class="card"><div class="card-label">TOTAL GASTO</div><div class="card-val">${fmtBRL(totalC)}</div></div>
+      </div>
+      <h2>Resumo por ${tipo==="departamento"?"Secretaria":tipo==="veiculo"?"Veículo":tipo==="motorista"?"Motorista":tipo==="combustivel"?"Combustível":"Posto"}</h2>
+      <table><thead><tr><th>Nome</th><th>Registros</th><th>Litros</th><th>Custo</th></tr></thead><tbody>${linhasResumo}</tbody></table>
+      <h2>Registros Detalhados (${regs.length})</h2>
+      <table><thead><tr><th>Data/Hora</th><th>Motorista</th><th>Placa</th><th>Secretaria</th><th>Combustível</th><th>Qtd</th><th>Custo</th></tr></thead><tbody>${linhasRegs}</tbody></table>
+    </body></html>`;
+    const blob = new Blob([html], { type:"text/html" });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, "_blank");
+    if (w) setTimeout(() => w.print(), 800);
+  };
+
+  const exportCSVAtual = () => {
+    const header = ["Data/Hora","Motorista","CNH","Placa","Modelo","Secretaria","Combustível","Quantidade(L)","Custo(R$)","Hodômetro","Posto"];
+    const rows = regs.sort((a,b) => new Date(b.data_hora)-new Date(a.data_hora)).map((r) => [
+      (r.data_hora||"").slice(0,16).replace("T"," "),
+      r.motorista_nome||"",
+      r.motorista_cnh||"",
+      r.placa||"",
+      r.modelo||"",
+      r.departamento||"",
+      r.combustivel||"",
+      String(r.quantidade||0).replace(".",","),
+      String(r.custo||0).replace(".",","),
+      r.hodometro||"",
+      r.operador||"",
+    ]);
+    const csv = [header, ...rows].map((r) => r.map((c) => `"${c}"`).join(";")).join("
+");
+    const blob = new Blob(["﻿"+csv], { type:"text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `relatorio_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  };
+
   const exportCSVSecretaria = () => {
     const h = ["Data/Hora","Secretaria","Placa","Motorista","Combustível","Qtd (L)","Custo (R$)","Hodômetro","Operador"];
     const rows = regsSecretaria.map((r) => [(r.data_hora||"").slice(0,16).replace("T"," "),r.departamento,r.placa,r.motorista_nome,r.combustivel,r.quantidade,r.custo,r.hodometro||"",r.operador]);
@@ -657,8 +754,12 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
             );
           })}
           {podePDF
-            ? <button onClick={exportPDF} style={{ padding:"9px 14px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:20, color:"#a78bfa", fontFamily:"inherit", fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>📄 PDF</button>
-            : <div style={{ padding:"9px 14px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:20, color:"#3a3a4a", fontSize:12, whiteSpace:"nowrap", cursor:"not-allowed" }} title="Disponível no Plano Profissional">📄 PDF 🔒</div>
+            ? <button onClick={exportPDFAtual} style={{ padding:"9px 14px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:20, color:"#a78bfa", fontFamily:"inherit", fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>🖨️ Imprimir</button>
+            : <div style={{ padding:"9px 14px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:20, color:"#3a3a4a", fontSize:12, whiteSpace:"nowrap", cursor:"not-allowed" }} title="Disponível no Plano Profissional">🖨️ Imprimir 🔒</div>
+          }
+          {podeCSV
+            ? <button onClick={exportCSVAtual} style={{ padding:"9px 14px", background:"#1a3a2a", border:"1px solid #16a34a", borderRadius:20, color:"#4ade80", fontFamily:"inherit", fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>↓ CSV</button>
+            : <div style={{ padding:"9px 14px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:20, color:"#3a3a4a", fontSize:12, whiteSpace:"nowrap", cursor:"not-allowed" }} title="Disponível no Plano Profissional">↓ CSV 🔒</div>
           }
         </div>
       </div>
@@ -678,7 +779,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
 
       {/* Filtro por data específica */}
       {periodo === "periodo" && (
-        <div style={{ display:"flex", gap:8, marginBottom:16, alignItems:"center", flexWrap:"wrap" }}>
+        <div style={{ display:"flex", gap:8, marginBottom:8, alignItems:"center", flexWrap:"wrap" }}>
           <div style={{ display:"flex", alignItems:"center", gap:6, flex:1 }}>
             <label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:1, whiteSpace:"nowrap" }}>DE</label>
             <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} style={{ ...iS(), flex:1, fontSize:12 }} />
@@ -692,6 +793,25 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
           )}
         </div>
       )}
+
+      {/* Filtros adicionais: veículo, motorista, secretaria */}
+      <div style={{ display:"flex", gap:8, marginBottom:16, flexWrap:"wrap" }}>
+        <select value={filtroVeiculo} onChange={(e) => setFiltroVeiculo(e.target.value)} style={{ ...iS(), width:"auto", flex:1, fontSize:12, minWidth:120 }}>
+          <option value="">🚗 Todos os veículos</option>
+          {placasUnicas.map((p) => <option key={p}>{p}</option>)}
+        </select>
+        <select value={filtroMotorista} onChange={(e) => setFiltroMotorista(e.target.value)} style={{ ...iS(), width:"auto", flex:1, fontSize:12, minWidth:120 }}>
+          <option value="">👤 Todos os motoristas</option>
+          {motoristasUnicos.map((m) => <option key={m}>{m}</option>)}
+        </select>
+        <select value={filtroSecretariaRel} onChange={(e) => setFiltroSecretariaRel(e.target.value)} style={{ ...iS(), width:"auto", flex:1, fontSize:12, minWidth:120 }}>
+          <option value="">🏢 Todas as secretarias</option>
+          {secretariasUnicas.map((s) => <option key={s}>{s}</option>)}
+        </select>
+        {(filtroVeiculo || filtroMotorista || filtroSecretariaRel) && (
+          <button onClick={() => { setFiltroVeiculo(""); setFiltroMotorista(""); setFiltroSecretariaRel(""); }} style={{ padding:"10px 14px", background:"none", border:"1px solid #3a2020", borderRadius:8, color:"#ef4444", fontFamily:"inherit", fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>✕ Limpar filtros</button>
+        )}
+      </div>
 
       {/* Cards resumo */}
       <div className="stats-3" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:20 }}>
@@ -745,7 +865,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
               {secretariasUnicas.map((s) => <option key={s}>{s}</option>)}
             </select>
             {filtroSecretaria && (
-              <button onClick={exportCSVSecretaria} style={{ padding:"10px 16px", background:"#1a3a2a", border:"1px solid #16a34a", borderRadius:8, color:"#4ade80", fontFamily:"inherit", fontSize:12, cursor:"pointer" }}>↓ CSV Secretaria</button>
+
             )}
           </div>
           {!filtroSecretaria ? (
@@ -1845,7 +1965,7 @@ export default function App() {
                   {[...new Set(registros.map((r) => r.operador).filter(Boolean))].map((e) => <option key={e}>{e}</option>)}
                 </select>
               )}
-              <button onClick={exportCSV} disabled={filtered.length === 0} className="sbtn" style={{ padding: "10px 18px", background: filtered.length === 0 ? "#2a2c3a" : "#1a3a2a", border: `1px solid ${filtered.length === 0 ? "#2a2c3a" : "#16a34a"}`, borderRadius: 8, color: filtered.length === 0 ? "#4a4a55" : "#4ade80", fontFamily: "inherit", fontSize: 12, cursor: filtered.length === 0 ? "not-allowed" : "pointer", letterSpacing: 1, whiteSpace: "nowrap" }}>↓ CSV</button>
+
             </div>
             {filtered.length === 0 ? <EmptyState>Nenhum registro.</EmptyState> : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
