@@ -863,9 +863,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
               <option value="">— Selecione a secretaria —</option>
               {secretariasUnicas.map((s) => <option key={s}>{s}</option>)}
             </select>
-            {filtroSecretaria && (
 
-            )}
           </div>
           {!filtroSecretaria ? (
             <EmptyState>Selecione uma secretaria para ver os detalhes.</EmptyState>
