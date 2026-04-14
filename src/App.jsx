@@ -699,25 +699,27 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   };
 
   const exportCSVAtual = () => {
-    const header = ["Data/Hora","Motorista","CNH","Placa","Modelo","Secretaria","Combustível","Quantidade(L)","Custo(R$)","Hodômetro","Posto"];
+    const header = ["Data/Hora","Motorista","CNH","Placa","Modelo","Secretaria","Combustivel","Quantidade(L)","Custo(R$)","Hodometro","Posto"];
     const rows = regs.sort((a,b) => new Date(b.data_hora)-new Date(a.data_hora)).map((r) => [
       (r.data_hora||"").slice(0,16).replace("T"," "),
       r.motorista_nome||"",
-      r.motorista_cnh||"",
+      "	" + (r.motorista_cnh||""),
       r.placa||"",
       r.modelo||"",
       r.departamento||"",
       r.combustivel||"",
-      String(r.quantidade||0).replace(".",","),
-      String(r.custo||0).replace(".",","),
-      r.hodometro||"",
+      Number(r.quantidade||0).toFixed(2).replace(".",","),
+      Number(r.custo||0).toFixed(2).replace(".",","),
+      r.hodometro ? String(r.hodometro) : "",
       r.operador||"",
     ]);
-    const csv = [header, ...rows].map((r) => r.map((c) => '"' + String(c) + '"').join(";")).join("\n");
+    const csv = [header, ...rows].map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(";")).join("
+");
     const blob = new Blob(["﻿"+csv], { type:"text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `relatorio_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    a.href = url; a.download = "relatorio_" + new Date().toISOString().slice(0,10) + ".csv"; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const exportCSVSecretaria = () => {
