@@ -189,7 +189,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
     <div className="fade-in" style={{ display:"flex", flexDirection:"column", gap:16 }}>
 
       {/* Alertas */}
-      <PainelAlertas veiculos={veiculos} motoristas={motoristas} />
+      <PainelAlertas veiculos={veiculos} motoristas={motoristas} filtroEst={filtroEst} estabelecimentos={estabelecimentos} />
 
       {/* Banner de alertas discreto */}
       {totalAlertas > 0 && (
@@ -1668,13 +1668,13 @@ export default function App() {
           </div>
           <div className="nav-tabs" style={{ display: "flex", gap: 0, marginTop: 16, overflowX: "auto", WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {TABS.map(([id, label]) => {
-              const badgeCount = id === "motoristas" ? alertasMot : id === "veiculos" ? alertasVeic : 0;
+              const showBadge = totalAlertas > 0 && (id === "veiculos" || id === "motoristas");
               return (
                 <button key={id} className="tab-btn" onClick={() => setActiveTab(id)} style={{ background: "none", border: "none", cursor: "pointer", padding: "10px 16px", fontSize: 11, fontFamily: "inherit", whiteSpace: "nowrap", color: activeTab === id ? "#f97316" : "#5a5a6a", borderBottom: activeTab === id ? "2px solid #f97316" : "2px solid transparent", fontWeight: activeTab === id ? 500 : 400, letterSpacing: 0.5, position: "relative" }}>
                   {label}
-                  {badgeCount > 0 && (
+                  {showBadge && (
                     <span style={{ position:"absolute", top:6, right:4, background:"#ef4444", color:"#fff", fontSize:8, fontWeight:700, minWidth:14, height:14, borderRadius:7, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" }}>
-                      {badgeCount}
+                      {totalAlertas}
                     </span>
                   )}
                 </button>
@@ -1965,14 +1965,11 @@ export default function App() {
                               {ok && (
                                 <span style={{ fontSize:9, padding:"2px 7px", background:"#14532d", border:"1px solid #16a34a", borderRadius:4, color:"#4ade80" }}>CNH OK</span>
                               )}
-                              {!sCnh && !m.venc_cnh && (
-                                <span style={{ fontSize:9, padding:"2px 7px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:4, color:"#4a4a5a" }}>Sem venc. CNH</span>
+                              {!sCnh && m.venc_cnh === null && (
+                                <span style={{ fontSize:9, padding:"2px 7px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:4, color:"#4a4a5a" }}>Sem CNH cadastrada</span>
                               )}
                             </div>
-                            <div style={{ fontSize:11, color:"#8a8a9a", marginTop:3 }}>
-                              {m.departamento}{m.cnh ? " · CNH " + m.cnh : ""}
-                              {m.venc_cnh && <span style={{ marginLeft:6, color: sCnh?.cor || "#8a8a9a" }}>· venc. {new Date(m.venc_cnh + "T00:00:00").toLocaleDateString("pt-BR")}</span>}
-                            </div>
+                            <div style={{ fontSize:11, color:"#8a8a9a", marginTop:3 }}>{m.departamento}{m.cnh ? " · CNH " + m.cnh : ""}</div>
                           </div>
                           <div style={{ display:"flex", gap:6 }}>
                             {podeGerenciar && (
@@ -2238,11 +2235,18 @@ function AlertasVencimento({ motorista, veiculo }) {
   );
 }
 
-function PainelAlertas({ veiculos, motoristas }) {
+function PainelAlertas({ veiculos, motoristas, filtroEst, estabelecimentos }) {
   const alertas = [];
+  // Filtrar por estabelecimento se necessário
+  const estId = filtroEst && estabelecimentos
+    ? (estabelecimentos.find((e) => e.nome === filtroEst) || {}).id
+    : null;
+  const veiculosFiltrados = estId ? veiculos.filter((v) => v.estabelecimento_id === estId) : veiculos;
+  const motoristasFiltrados = estId ? motoristas.filter((m) => m.estabelecimento_id === estId) : motoristas;
+
   // Agrupar veículos — uma linha por placa
   const veicAlertas = {};
-  veiculos.forEach((v) => {
+  veiculosFiltrados.forEach((v) => {
     const ac = statusVenc(v.venc_crlv);
     const as = statusVenc(v.venc_seguro_obrigatorio);
     const docs = [];
@@ -2252,7 +2256,7 @@ function PainelAlertas({ veiculos, motoristas }) {
   });
   // Motoristas — uma linha por motorista
   const motAlertas = [];
-  motoristas.forEach((m) => {
+  motoristasFiltrados.forEach((m) => {
     const s = statusVenc(m.venc_cnh);
     if (s && s.cor !== "#4ade80") motAlertas.push({ nome: m.nome, status: s });
   });
