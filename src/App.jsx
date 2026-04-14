@@ -700,6 +700,18 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   };
 
   const exportCSVAtual = () => {
+    // Respeita a aba ativa e os filtros aplicados
+    let dadosExport = regs;
+    let nomeArq = "relatorio";
+
+    if (aba === "secretaria" && filtroSecretaria) {
+      dadosExport = regsSecretaria;
+      nomeArq = "secretaria_" + filtroSecretaria.replace(/\s+/g,"_");
+    } else if (aba === "historico" && filtroHistoricoValor) {
+      dadosExport = regsHistorico;
+      nomeArq = (filtroHistorico === "veiculo" ? "veiculo_" : "motorista_") + filtroHistoricoValor.replace(/\s+/g,"_");
+    }
+
     const script = document.createElement("script");
     script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
     script.onload = () => {
@@ -717,7 +729,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
         return dia + "/" + mes + "/" + ano + " " + h + ":" + m;
       };
 
-      const rows = regs.sort((a,b) => new Date(b.data_hora)-new Date(a.data_hora)).map((r) => {
+      const rows = dadosExport.sort((a,b) => new Date(b.data_hora)-new Date(a.data_hora)).map((r) => {
         const totalL = Number(r.quantidade||0);
         const totalC = Number(r.custo||0);
         const precoL = totalL > 0 ? Math.round((totalC/totalL)*100)/100 : 0;
@@ -745,16 +757,14 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
       ];
 
       const ws = XLSX.utils.aoa_to_sheet(wsData);
-
       ws["!cols"] = [
         {wch:12},{wch:18},{wch:22},{wch:20},{wch:18},
         {wch:10},{wch:12},{wch:12},{wch:12},{wch:24},{wch:14},
       ];
 
-      // Formato 2 casas decimais para Litros, Preço Litro, Valor R$
       const nRows = rows.length;
       for (let i = 0; i < nRows; i++) {
-        const row = i + 5; // linha 5 em diante (1-indexed)
+        const row = i + 5;
         ["F","H","I"].forEach((col) => {
           const cell = ws[col + row];
           if (cell && cell.t === "n") cell.z = "#,##0.00";
@@ -762,9 +772,8 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
       }
 
       ws["!merges"] = [{ s:{r:0,c:0}, e:{r:0,c:10} }];
-
       XLSX.utils.book_append_sheet(wb, ws, "Abastecimentos");
-      XLSX.writeFile(wb, "relatorio_" + new Date().toISOString().slice(0,10) + ".xlsx");
+      XLSX.writeFile(wb, nomeArq + "_" + new Date().toISOString().slice(0,10) + ".xlsx");
     };
     document.head.appendChild(script);
   };
