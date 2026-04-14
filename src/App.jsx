@@ -112,11 +112,11 @@ function useQRScanner(onResult) {
 function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabelecimentos, isDark, totalAlertas, alertasVeic, alertasMot, filtroEst }) {
   const [periodo, setPeriodo] = useState("mes");
   const hoje = new Date();
-  const bg = isDark ? "#1a1c27" : "#b8b8cc";
-  const bg2 = isDark ? "#0f1117" : "#c8c8dc";
-  const border = isDark ? "#2a2c3a" : "#a8a8c0";
-  const txt = isDark ? "#e8e4d9" : "#0a0a1a";
-  const txt2 = isDark ? "#8a8a9a" : "#333344";
+  const bg = "#1a1c27";
+  const bg2 = isDark ? "#0f1117" : "#0f1117";
+  const border = isDark ? "#2a2c3a" : "#2a2c3a";
+  const txt = isDark ? "#e8e4d9" : "#e8e4d9";
+  const txt2 = isDark ? "#8a8a9a" : "#8a8a9a";
 
   const filtrar = (regs) => {
     return regs.filter((r) => {
@@ -1426,7 +1426,7 @@ export default function App() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: isDark ? "#0f1117" : "#b8b8cc", fontFamily: "'DM Mono','Courier New',monospace", color: isDark ? "#e8e4d9" : "#1a1a2e" }}>
+    <div style={{ minHeight: "100vh", background: isDark ? "#0f1117" : "#b8b8cc", fontFamily: "'DM Mono','Courier New',monospace", color: "#e8e4d9" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
