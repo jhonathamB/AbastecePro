@@ -249,7 +249,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
             const isHoje = i === 6;
             return (
               <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
-                <div style={{ width:"100%", height:Math.max(h, d.custo>0?3:0), background: isHoje?"#f97316":isDark?"#2a3a5a":"#c8d8f0", borderRadius:"4px 4px 0 0", minHeight:d.custo>0?3:0 }} />
+                <div style={{ width:"100%", height:Math.max(h, d.custo>0?3:0), background: isHoje?"#f97316":"#2a3a5a", borderRadius:"4px 4px 0 0", minHeight:d.custo>0?3:0 }} />
                 <div style={{ fontSize:8, color: isHoje?"#f97316":txt2, fontWeight: isHoje?700:400 }}>{d.label}</div>
               </div>
             );
@@ -1673,7 +1673,7 @@ export default function App() {
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: online ? "#4ade80" : "#f97316" }} />
               <span style={{ fontSize: 10, color: online ? "#4ade80" : "#f97316" }}>{online ? "online" : "offline"}</span>
               {isAdmin && estabelecimentos.length > 0 && (
-                <select value={filtroEstDash} onChange={(e) => setFiltroEstDash(e.target.value)} style={{ background: isDark?"#1a1c27":"#c8c8da", border:`1px solid ${filtroEstDash?"#f97316":isDark?"#2a2c3a":"#ccc"}`, borderRadius:8, color:filtroEstDash?"#f97316":isDark?"#8a8a9a":"#666", fontFamily:"inherit", fontSize:11, padding:"6px 10px", outline:"none", maxWidth:160, cursor:"pointer" }}>
+                <select value={filtroEstDash} onChange={(e) => setFiltroEstDash(e.target.value)} style={{ background: isDark?"#1a1c27":"#1a1c27", border:`1px solid ${filtroEstDash?"#f97316":isDark?"#2a2c3a":"#ccc"}`, borderRadius:8, color:filtroEstDash?"#f97316":isDark?"#8a8a9a":"#666", fontFamily:"inherit", fontSize:11, padding:"6px 10px", outline:"none", maxWidth:160, cursor:"pointer" }}>
                   <option value="">🏪 Todos</option>
                   {estabelecimentos.filter((e) => e.nome !== "Administrador").map((e) => (
                     <option key={e.id} value={e.nome}>{e.nome}</option>
@@ -1735,7 +1735,7 @@ export default function App() {
               const hoje_litros = hoje_regs.reduce((a,b) => a+Number(b.quantidade||0), 0);
               const hoje_custo = hoje_regs.reduce((a,b) => a+Number(b.custo||0), 0);
               return hoje_regs.length > 0 ? (
-                <div style={{ background: isDark?"#1a1c27":"#c8c8da", border:"1px solid #f97316", borderRadius:12, padding:"14px 20px", marginBottom:20, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
+                <div style={{ background: isDark?"#1a1c27":"#1a1c27", border:"1px solid #f97316", borderRadius:12, padding:"14px 20px", marginBottom:20, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:12 }}>
                   <div>
                     <div style={{ fontSize:10, color:"#f97316", letterSpacing:2, marginBottom:4 }}>HOJE</div>
                     <div style={{ fontSize:13, color: isDark?"#e8e4d9":"#1a1a2e" }}>
@@ -1780,7 +1780,7 @@ export default function App() {
 
             {/* Atalho: usar último */}
             {(ultimoMot || ultimoVeic) && !scannedMot && !scannedVeic && (
-              <div style={{ background: isDark?"#1a1c27":"#c8c8da", border:"1px solid #2a2c3a", borderRadius:10, padding:"10px 16px", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
+              <div style={{ background: isDark?"#1a1c27":"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"10px 16px", marginBottom:14, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
                 <div style={{ fontSize:11, color: isDark?"#5a5a6a":"#888" }}>⚡ Último usado:</div>
                 <div style={{ display:"flex", gap:8 }}>
                   {ultimoMot && (
@@ -1797,7 +1797,7 @@ export default function App() {
               </div>
             )}
 
-            <div style={{ background: isDark?"#1a1c27":"#c8c8da", border: "1px solid #2a2c3a", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div><div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2, marginBottom: 2 }}>ESTABELECIMENTO</div><div style={{ fontSize: 14, fontWeight: 500, color: "#f97316" }}>{estNome}</div></div>
               <span style={{ fontSize: 11, color: "#4ade80" }}>✓ fixo</span>
             </div>
@@ -1874,7 +1874,7 @@ export default function App() {
             )}
             {/* Botão carregar mais */}
             {filtered.length > pagina * POR_PAGINA && (
-              <button onClick={() => setPagina((p) => p + 1)} className="sbtn" style={{ width:"100%", marginTop:12, padding:"12px", background: isDark?"#1a1c27":"#c8c8da", border:"1px solid #f97316", borderRadius:10, color:"#f97316", fontFamily:"inherit", fontSize:12, cursor:"pointer", letterSpacing:1 }}>
+              <button onClick={() => setPagina((p) => p + 1)} className="sbtn" style={{ width:"100%", marginTop:12, padding:"12px", background: isDark?"#1a1c27":"#1a1c27", border:"1px solid #f97316", borderRadius:10, color:"#f97316", fontFamily:"inherit", fontSize:12, cursor:"pointer", letterSpacing:1 }}>
                 Carregar mais ({filtered.length - pagina * POR_PAGINA} restantes)
               </button>
             )}
