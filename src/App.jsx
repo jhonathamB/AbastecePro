@@ -1,11 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import jsQR from "jsqr";
 
-// Pré-carrega jsQR para garantir disponibilidade
-if (!window.jsQR) {
-  const s = document.createElement("script");
-  s.src = "https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js";
-  document.head.appendChild(s);
-}
+
 
 // ── Supabase ─────────────────────────────────────────
 const SUPABASE_URL = "https://tyesaqhtiqkakguimsdi.supabase.co";
@@ -113,7 +109,7 @@ function useQRScanner(onResult) {
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState("");
   const videoRef = useRef(null); const streamRef = useRef(null);
-  const intervalRef = useRef(null); const canvasRef = useRef(null);
+  const intervalRef = useRef(null);
 
   const stop = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -130,36 +126,26 @@ function useQRScanner(onResult) {
         video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
       });
       streamRef.current = stream;
-      setTimeout(() => { if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); } }, 100);
+      setTimeout(() => {
+        if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
+      }, 100);
 
-      // Aguardar jsQR estar disponível (máx 5s)
-      if (!window.jsQR) {
-        await new Promise((res) => {
-          let tries = 0;
-          const check = setInterval(() => {
-            tries++;
-            if (window.jsQR || tries > 50) { clearInterval(check); res(); }
-          }, 100);
-        });
-      }
-      if (!window.jsQR) { setError("Erro ao carregar scanner. Recarregue a página."); setScanning(false); return; }
-
+      // Usa jsQR — funciona em todos os navegadores (Chrome, Safari, Firefox)
       const canvas = document.createElement("canvas");
-      canvasRef.current = canvas;
       const ctx = canvas.getContext("2d");
-
       intervalRef.current = setInterval(() => {
         const video = videoRef.current;
-        if (!video || video.readyState !== 4) return;
+        if (!video || video.readyState < 2 || !video.videoWidth) return;
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = window.jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
         if (code) { stop(); onResult(code.data); }
       }, 300);
+
     } catch (e) {
-      setError("Não foi possível acessar a câmera. Verifique as permissões.");
+      setError("Câmera não disponível. Verifique as permissões e tente novamente.");
       setScanning(false);
     }
   }, [onResult, stop]);
