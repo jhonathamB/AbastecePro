@@ -1564,7 +1564,7 @@ export default function App() {
   const TABS = [
     ...(!isOperador ? [["dashboard", "📊 Dashboard"]] : []),
     ["registrar", "Registrar"],
-    ...(isOperador ? [["meus-registros", "Meus Registros Hoje"]] : [["registros", `Registros (${registros.length})`]]),
+    ...(isOperador ? [["meus-registros", "Meus Registros Hoje"]] : [["registros", `Registros (${isAdmin && filtroEstDash ? registros.filter((r) => r.operador === filtroEstDash).length : registros.length})`]]),
     ...(!isOperador ? [["relatorios", "Relatórios"]] : []),
     ...(podeGerenciar ? [["motoristas", `Motoristas (${motoristasVisiveis.length})`], ["veiculos", `Veículos (${veiculosVisiveis.length})`]] : []),
     ...(isAdmin ? [["admin", "⚙️ Admin"]] : []),
@@ -1984,12 +1984,7 @@ export default function App() {
             </div>
             <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
               <input type="text" placeholder="🔍  Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ ...iS(), flex: 1, fontSize: 13, minWidth: 200 }} />
-              {isAdmin && (
-                <select value={filtroEstDash} onChange={(e) => setFiltroEstDash(e.target.value)} style={{ ...iS(), fontSize: 12, width: "auto" }}>
-                  <option value="">Todos os postos</option>
-                  {[...new Set(registros.map((r) => r.operador).filter(Boolean))].map((e) => <option key={e}>{e}</option>)}
-                </select>
-              )}
+
 
             </div>
             {filtered.length === 0 ? <EmptyState>Nenhum registro.</EmptyState> : (
