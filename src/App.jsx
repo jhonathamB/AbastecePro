@@ -1518,7 +1518,35 @@ export default function App() {
     } catch (err) { alert("Erro: " + err.message); }
   };
 
-  const handleSaveEditReg = async () => {
+  
+
+const handleDeleteReg = async (id) => {
+  if (!window.confirm("Excluir abastecimento?")) return;
+
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/abastecimentos?id=eq.${id}`, {
+      method: "DELETE",
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "Prefer": "return=minimal"
+      }
+    });
+
+    setRegistros(prev => prev.filter(r => r.id !== id));
+
+    registrarLog(
+      usuario,
+      "ABASTECIMENTO_EXCLUIDO",
+      "Registro excluído"
+    );
+
+  } catch (err) {
+    alert("Erro ao excluir");
+  }
+};
+
+const handleSaveEditReg = async () => {
     if (!editReg) return;
     const criado = new Date(editReg.data_hora || 0);
     const diffMin = (Date.now() - criado.getTime()) / 60000;
@@ -2113,8 +2141,27 @@ export default function App() {
                           const criado = new Date(r.data_hora || r.created_at || 0);
                           const diffMin = (Date.now() - criado.getTime()) / 60000;
                           const restante = Math.ceil(30 - diffMin);
-                          return diffMin <= 30 && !r._offline ? (
+                          return (isAdmin || diffMin <= 30) && !r._offline ? (
                             <button onClick={() => setEditReg(r)} className="sbtn" style={{ background:"#1e2535", border:"1px solid #38bdf8", borderRadius:6, color:"#38bdf8", cursor:"pointer", padding:"4px 6px", fontSize:10, fontFamily:"inherit", whiteSpace:"nowrap" }}>✏️ {restante}m</button>
+{isAdmin && (
+<button
+onClick={() => handleDeleteReg(r.id)}
+className="sbtn"
+style={{
+background:"#2a0f0f",
+border:"1px solid #ef4444",
+borderRadius:6,
+color:"#ef4444",
+cursor:"pointer",
+padding:"4px 6px",
+fontSize:10,
+fontFamily:"inherit"
+}}
+>
+🗑️
+</button>
+)}
+
                           ) : null;
                         })()}
                       </div>
