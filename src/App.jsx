@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import jsQR from "jsqr";
+import jsQR from "jsqr"; 
 
 
 
@@ -1719,7 +1719,7 @@ export default function App() {
             <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
               <Field label="NOME"><input type="text" value={editMotorista.nome} onChange={(e) => setEditMotorista((m) => ({ ...m, nome: e.target.value }))} style={iS()} /></Field>
               <Field label="CNH"><input type="text" value={editMotorista.cnh || ""} onChange={(e) => setEditMotorista((m) => ({ ...m, cnh: e.target.value }))} style={iS()} /></Field>
-              <Field label="VENCIMENTO CNH"><input type="date" value={editMotorista.venc_cnh || ""} onChange={(e) => setEditMotorista((m) => ({ ...m, venc_cnh: e.target.value }))} style={iS()} /></Field>
+              <Field label="🪪 VENCIMENTO CNH"><input type="date" value={editMotorista.venc_cnh || ""} onChange={(e) => setEditMotorista((m) => ({ ...m, venc_cnh: e.target.value }))} style={iS()} /></Field>
               <Field label="DEPARTAMENTO">
                 <select value={editMotorista.departamento} onChange={(e) => setEditMotorista((m) => ({ ...m, departamento: e.target.value }))} style={iS()}>
                   <option value="">— Selecione —</option>
@@ -2145,7 +2145,7 @@ export default function App() {
                   </select>
                 </Field>
                 <Field label="CNH (OPCIONAL)"><input type="text" placeholder="Número da CNH" value={motForm.cnh} onChange={(e) => setMotForm((f) => ({ ...f, cnh: e.target.value }))} style={iS()} /></Field>
-                <Field label="VENCIMENTO CNH (OPCIONAL)"><input type="date" value={motForm.venc_cnh} onChange={(e) => setMotForm((f) => ({ ...f, venc_cnh: e.target.value }))} style={iS()} /></Field>
+                <Field label="🪪 VENCIMENTO CNH (OPCIONAL)"><input type="date" value={motForm.venc_cnh} onChange={(e) => setMotForm((f) => ({ ...f, venc_cnh: e.target.value }))} style={iS()} /></Field>
                 <button className="sbtn" onClick={handleMotSubmit} disabled={!online} style={{ padding: "13px", background: online ? "#f97316" : "#2a2c3a", border: "none", borderRadius: 10, color: online ? "#fff" : "#5a5a6a", fontFamily: "inherit", fontSize: 13, fontWeight: 500, letterSpacing: 1.5, cursor: online ? "pointer" : "not-allowed" }}>CADASTRAR</button>
               </div>
             </div>
