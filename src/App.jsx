@@ -1183,7 +1183,7 @@ export default function App() {
   const [editReg, setEditReg] = useState(null); // registro sendo editado pelo operador
   const [qrModal, setQrModal] = useState(null);
   const [search, setSearch] = useState("");
-  const [filtroEstAdmin, setFiltroEstAdmin] = useState("");
+  
   const [filtroEstDash, setFiltroEstDash] = useState("");
   const [pagina, setPagina] = useState(1);
   const POR_PAGINA = 20;
@@ -1519,7 +1519,7 @@ export default function App() {
   };
 
   const exportCSV = () => {
-    const regsExport = isAdmin && filtroEstAdmin ? registros.filter((r) => r.operador === filtroEstAdmin) : registros;
+    const regsExport = isAdmin && filtroEstDash ? registros.filter((r) => r.operador === filtroEstDash) : registros;
     const h = ["Data/Hora", "Estabelecimento", "Motorista", "CNH", "Placa", "Departamento", "Combustível", "Qtd (L)", "Hodômetro", "Custo (R$)", "Status"];
     const rows = regsExport.map((r) => [(r.data_hora || "").slice(0, 16).replace("T", " "), r.operador, r.motorista_nome, r.motorista_cnh, r.placa, r.departamento, r.combustivel, r.quantidade, r.hodometro || "", r.custo, r._offline ? "Pendente" : "Sincronizado"]);
     const csv = [h, ...rows].map((r) => r.map((c) => `"${c ?? ""}"`).join(";")).join("\n");
@@ -1531,7 +1531,7 @@ export default function App() {
   const pendentes = getQueue().length;
 
   // Registros filtrados para a lista
-  const regsVisiveis = isAdmin && filtroEstAdmin ? registros.filter((r) => r.operador === filtroEstAdmin) : registros;
+  const regsVisiveis = isAdmin && filtroEstDash ? registros.filter((r) => r.operador === filtroEstDash) : registros;
   const filtered = regsVisiveis.filter((r) =>
     r.placa?.toUpperCase().includes(search.toUpperCase()) ||
     r.motorista_nome?.toLowerCase().includes(search.toLowerCase()) ||
@@ -1895,7 +1895,7 @@ export default function App() {
                 </div>
               ) : null;
             })()}
-            <Dashboard registros={registros} motoristas={motoristasFiltradosDash} veiculos={veiculosFiltradosDash} estNome={estNome} isAdmin={isAdmin} estabelecimentos={estabelecimentos} isDark={isDark} totalAlertas={totalAlertas} alertasVeic={alertasVeic} alertasMot={alertasMot} filtroEst={filtroEstDash} />
+            <Dashboard registros={registros} motoristas={motoristasVisiveis} veiculos={veiculosVisiveis} estNome={estNome} isAdmin={isAdmin} estabelecimentos={estabelecimentos} isDark={isDark} totalAlertas={totalAlertas} alertasVeic={alertasVeic} alertasMot={alertasMot} filtroEst={filtroEstDash} />
           </div>
         )}
 
@@ -1985,7 +1985,7 @@ export default function App() {
             <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
               <input type="text" placeholder="🔍  Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ ...iS(), flex: 1, fontSize: 13, minWidth: 200 }} />
               {isAdmin && (
-                <select value={filtroEstAdmin} onChange={(e) => setFiltroEstAdmin(e.target.value)} style={{ ...iS(), fontSize: 12, width: "auto" }}>
+                <select value={filtroEstDash} onChange={(e) => setFiltroEstDash(e.target.value)} style={{ ...iS(), fontSize: 12, width: "auto" }}>
                   <option value="">Todos os postos</option>
                   {[...new Set(registros.map((r) => r.operador).filter(Boolean))].map((e) => <option key={e}>{e}</option>)}
                 </select>
