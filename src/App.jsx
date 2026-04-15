@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import jsQR from "jsqr";
+import jsQR from "jsqr"; 
 
 
 
