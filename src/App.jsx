@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
+// Pré-carrega jsQR para garantir disponibilidade
+if (!window.jsQR) {
+  const s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js";
+  document.head.appendChild(s);
+}
+
 // ── Supabase ─────────────────────────────────────────
 const SUPABASE_URL = "https://tyesaqhtiqkakguimsdi.supabase.co";
 const SUPABASE_KEY = "sb_publishable_njutNAXOpPS8ueQNykDNLA_OKUOCyXj";
@@ -125,15 +132,17 @@ function useQRScanner(onResult) {
       streamRef.current = stream;
       setTimeout(() => { if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); } }, 100);
 
-      // Carregar jsQR dinamicamente — funciona em Safari/iPhone
+      // Aguardar jsQR estar disponível (máx 5s)
       if (!window.jsQR) {
-        await new Promise((res, rej) => {
-          const s = document.createElement("script");
-          s.src = "https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js";
-          s.onload = res; s.onerror = rej;
-          document.head.appendChild(s);
+        await new Promise((res) => {
+          let tries = 0;
+          const check = setInterval(() => {
+            tries++;
+            if (window.jsQR || tries > 50) { clearInterval(check); res(); }
+          }, 100);
         });
       }
+      if (!window.jsQR) { setError("Erro ao carregar scanner. Recarregue a página."); setScanning(false); return; }
 
       const canvas = document.createElement("canvas");
       canvasRef.current = canvas;
