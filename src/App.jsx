@@ -3,6 +3,23 @@ import { useState, useEffect, useRef, useCallback } from "react";
 // ── Supabase ─────────────────────────────────────────
 const SUPABASE_URL = "https://tyesaqhtiqkakguimsdi.supabase.co";
 const SUPABASE_KEY = "sb_publishable_njutNAXOpPS8ueQNykDNLA_OKUOCyXj";
+
+const registrarLog = async (usuario, acao, descricao) => {
+  try {
+    await fetch(SUPABASE_URL + "/rest/v1/logs", {
+      method: "POST",
+      headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", "Prefer": "return=minimal" },
+      body: JSON.stringify({
+        usuario_nome: usuario?.nome || "—",
+        usuario_perfil: usuario?.perfil || "—",
+        estabelecimento: usuario?.estabelecimentos?.nome || "—",
+        estabelecimento_id: usuario?.estabelecimento_id || null,
+        acao,
+        descricao,
+      })
+    });
+  } catch (e) { console.warn("Log error:", e); }
+};
 const SUPABASE_SERVICE_KEY = process.env.REACT_APP_SUPABASE_SERVICE_KEY || "";
 
 const sb = async (path, opts = {}) => {
@@ -1171,6 +1188,7 @@ export default function App() {
   const [registros, setRegistros] = useState(() => cache.get("registros") || []);
   const [departamentos, setDepartamentos] = useState(() => cache.get("departamentos") || []);
   const [estabelecimentos, setEstabelecimentos] = useState([]);
+  const [logs, setLogs] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -1268,6 +1286,7 @@ export default function App() {
   };
 
   useEffect(() => { if (!usuario || !online) return; loadData(); }, [usuario, online]);
+  useEffect(() => { if (activeTab === "logs" && isAdmin && online) { api.get("logs", "order=created_at.desc&limit=200").then(setLogs).catch(() => {}); } }, [activeTab]);
   useEffect(() => { if (!online || !usuario) return; syncQueue(); }, [online]);
 
   const loadData = async () => {
@@ -1348,6 +1367,7 @@ export default function App() {
     // Salvar último motorista e veículo usados
     if (mot) { setUltimoMot(mot); cache.set("ultimo_motorista", mot); }
     if (veic) { setUltimoVeic(veic); cache.set("ultimo_veiculo", veic); }
+    registrarLog(usuario, "ABASTECIMENTO_CRIADO", (veic?.placa||"") + " · " + (mot?.nome||"") + " · " + fmtBRL(parseFloat(form.custo)||0));
     setForm({ dataHora: now(), combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "", cupom_fiscal: "" });
     setScannedMot(null); setScannedVeic(null);
   };
@@ -1486,6 +1506,7 @@ export default function App() {
         }),
       });
       setRegistros((regs) => regs.map((r) => r.id === editReg.id ? { ...r, ...editReg, quantidade: parseFloat(editReg.quantidade), custo: parseFloat(editReg.custo) } : r));
+      registrarLog(usuario, "ABASTECIMENTO_EDITADO", (editReg.placa||"") + " · " + fmtBRL(parseFloat(editReg.custo)||0));
       setEditReg(null);
     } catch (err) { alert("Erro ao salvar: " + err.message); }
   };
@@ -1567,7 +1588,7 @@ export default function App() {
     ...(isOperador ? [["meus-registros", "Meus Registros Hoje"]] : [["registros", `Registros (${isAdmin && filtroEstDash ? registros.filter((r) => r.operador === filtroEstDash).length : registros.length})`]]),
     ...(!isOperador ? [["relatorios", "Relatórios"]] : []),
     ...(podeGerenciar ? [["motoristas", `Motoristas (${motoristasVisiveis.length})`], ["veiculos", `Veículos (${veiculosVisiveis.length})`]] : []),
-    ...(isAdmin ? [["admin", "⚙️ Admin"]] : []),
+    ...(isAdmin ? [["admin", "⚙️ Admin"], ["logs", "📋 Logs"]] : []),
   ];
 
   return (
@@ -2238,6 +2259,39 @@ export default function App() {
         )}
 
         {/* ADMIN */}
+        {!loading && activeTab === "logs" && isAdmin && (
+          <div className="fade-in">
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
+              <SectionTitle icon="📋">Log de Atividades</SectionTitle>
+              <button onClick={() => api.get("logs","order=created_at.desc&limit=200").then(setLogs)} style={{ padding:"7px 14px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:8, color:"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>🔄 Atualizar</button>
+            </div>
+            {logs.length === 0 ? <EmptyState>Nenhuma atividade registrada.</EmptyState> : (
+              <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                {logs.map((l, i) => (
+                  <div key={i} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"10px 14px", display:"grid", gridTemplateColumns:"1fr 2fr 1.5fr auto", gap:10, alignItems:"center" }}>
+                    <div>
+                      <div style={{ fontSize:10, color:"#5a5a6a", letterSpacing:1 }}>{new Date(l.created_at).toLocaleString("pt-BR")}</div>
+                      <div style={{ fontSize:11, color:"#8a8a9a", marginTop:2 }}>{l.estabelecimento}</div>
+                    </div>
+                    <div style={{ fontSize:12, color:"#fff", fontFamily:"'DM Mono',monospace" }}>{l.descricao}</div>
+                    <div>
+                      <div style={{ fontSize:11, color:"#8a8a9a" }}>{l.usuario_nome}</div>
+                      <div style={{ fontSize:10, color:"#5a5a6a" }}>{l.usuario_perfil}</div>
+                    </div>
+                    <span style={{ fontSize:10, padding:"2px 8px", borderRadius:4,
+                      background: l.acao==="ABASTECIMENTO_CRIADO"?"#14532d": l.acao==="ABASTECIMENTO_EDITADO"?"#1e2535":"#2d0f0f",
+                      color: l.acao==="ABASTECIMENTO_CRIADO"?"#4ade80": l.acao==="ABASTECIMENTO_EDITADO"?"#38bdf8":"#ef4444",
+                      border: `1px solid ${l.acao==="ABASTECIMENTO_CRIADO"?"#16a34a": l.acao==="ABASTECIMENTO_EDITADO"?"#38bdf8":"#ef4444"}`
+                    }}>
+                      {l.acao==="ABASTECIMENTO_CRIADO"?"✚ CRIADO": l.acao==="ABASTECIMENTO_EDITADO"?"✏️ EDITADO":"✕ EXCLUÍDO"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {!loading && activeTab === "admin" && isAdmin && (
           <div className="fade-in">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
