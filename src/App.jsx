@@ -520,13 +520,13 @@ function Divider() { return <div style={{ borderTop: "1px dashed #ccc", margin: 
 function Row({ label, value }) { return <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}><span style={{ color: "#666" }}>{label}:</span><span style={{ fontWeight: 500, textAlign: "right", maxWidth: "60%" }}>{value}</span></div>; }
 
 // ── Relatórios ────────────────────────────────────────
-function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, podePDF, podeKmL, podeFinanceiro }) {
+function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, podePDF, podeKmL, podeFinanceiro, filtroEstDashProp }) {
   const [aba, setAba] = useState("resumo"); // resumo | secretaria | historico | consumo | financeiro
   const [tipo, setTipo] = useState("departamento");
   const [periodo, setPeriodo] = useState("todos");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
-  const [filtroEst, setFiltroEst] = useState("");
+  const filtroEst = filtroEstDashProp || "";
 
   const [filtroSecretaria, setFiltroSecretaria] = useState("");
   const [filtroHistorico, setFiltroHistorico] = useState("veiculo");
@@ -820,12 +820,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
         {[["todos","Todos"],["mes","Este mês"],["hoje","Hoje"],["periodo","Por data"]].map(([id,label]) => (
           <button key={id} onClick={() => setPeriodo(id)} style={{ flex:1, padding:"7px 6px", background:periodo===id?"#16a34a":"transparent", border:"none", borderRadius:8, color:periodo===id?"#fff":"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer", fontWeight:periodo===id?600:400, whiteSpace:"nowrap" }}>{label}</button>
         ))}
-        {isAdmin && (
-          <select value={filtroEst} onChange={(e) => setFiltroEst(e.target.value)} style={{ ...iS(), fontSize:11, padding:"7px 12px", width:"auto" }}>
-            <option value="">Todos os postos</option>
-            {estabelecimentosUnicos.map((e) => <option key={e}>{e}</option>)}
-          </select>
-        )}
+
       </div>
 
       {/* Filtro por data específica */}
@@ -1558,23 +1553,37 @@ export default function App() {
     : motoristas;
 
   // Calcular alertas — separado por veículos e motoristas, respeitando filtro
-  const alertasVeic = veiculosFiltradosDash.filter((v) => {
+  const alertasVeic = veiculosVisiveis.filter((v) => {
     const ac = statusVenc(v.venc_crlv);
     const as = statusVenc(v.venc_seguro_obrigatorio);
     return (ac && ac.cor !== "#4ade80") || (as && as.cor !== "#4ade80");
   }).length;
-  const alertasMot = motoristasFiltradosDash.filter((m) => {
+  const alertasMot = motoristasVisiveis.filter((m) => {
     const s = statusVenc(m.venc_cnh);
     return s && s.cor !== "#4ade80";
   }).length;
   const totalAlertas = alertasVeic + alertasMot;
+
+  // Filtrar motoristas e veículos pelo estabelecimento selecionado no header
+  const motoristasVisiveis = isAdmin && filtroEstDash
+    ? motoristas.filter((m) => {
+        const est = estabelecimentos.find((e) => e.nome === filtroEstDash);
+        return est ? m.estabelecimento_id === est.id : true;
+      })
+    : motoristas;
+  const veiculosVisiveis = isAdmin && filtroEstDash
+    ? veiculos.filter((v) => {
+        const est = estabelecimentos.find((e) => e.nome === filtroEstDash);
+        return est ? v.estabelecimento_id === est.id : true;
+      })
+    : veiculos;
 
   const TABS = [
     ...(!isOperador ? [["dashboard", "📊 Dashboard"]] : []),
     ["registrar", "Registrar"],
     ...(isOperador ? [["meus-registros", "Meus Registros Hoje"]] : [["registros", `Registros (${registros.length})`]]),
     ...(!isOperador ? [["relatorios", "Relatórios"]] : []),
-    ...(podeGerenciar ? [["motoristas", `Motoristas (${motoristas.length})`], ["veiculos", `Veículos (${veiculos.length})`]] : []),
+    ...(podeGerenciar ? [["motoristas", `Motoristas (${motoristasVisiveis.length})`], ["veiculos", `Veículos (${veiculosVisiveis.length})`]] : []),
     ...(isAdmin ? [["admin", "⚙️ Admin"]] : []),
   ];
 
@@ -2090,7 +2099,7 @@ export default function App() {
         )}
 
         {/* RELATÓRIOS */}
-        {!loading && activeTab === "relatorios" && <Relatorios registros={registros} isAdmin={isAdmin} veiculos={veiculos} podeRelatorios={podeRelatorios} podeCSV={podeCSV} podePDF={podePDF} podeKmL={podeKmL} podeFinanceiro={podeFinanceiro} />}
+        {!loading && activeTab === "relatorios" && <Relatorios registros={registros} isAdmin={isAdmin} veiculos={veiculos} podeRelatorios={podeRelatorios} podeCSV={podeCSV} podePDF={podePDF} podeKmL={podeKmL} podeFinanceiro={podeFinanceiro} filtroEstDashProp={filtroEstDash} />}
 
         {/* MOTORISTAS */}
         {!loading && activeTab === "motoristas" && (
@@ -2113,10 +2122,10 @@ export default function App() {
               </div>
             </div>
             <div>
-              <SectionTitle icon="📋">Cadastrados ({motoristas.length})</SectionTitle>
+              <SectionTitle icon="📋">Cadastrados ({motoristasVisiveis.length})</SectionTitle>
               {motoristas.length === 0 ? <EmptyState>Nenhum motorista.</EmptyState> : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {motoristas.map((m) => {
+                  {motoristasVisiveis.map((m) => {
                     const sCnh = statusVenc(m.venc_cnh);
                     const vencida = sCnh && sCnh.cor === "#ef4444";
                     const vencendo = sCnh && sCnh.cor === "#fbbf24";
@@ -2204,7 +2213,7 @@ export default function App() {
               </div>
             </div>
             <div>
-              <SectionTitle icon="🚗">Veículos ({veiculos.length}{!isAdmin ? `/${limiteVeiculos}` : ""})</SectionTitle>
+              <SectionTitle icon="🚗">Veículos ({veiculosVisiveis.length}{!isAdmin ? `/${limiteVeiculos}` : ""})</SectionTitle>
               {!isAdmin && veiculos.length >= limiteVeiculos && (
                 <div style={{ background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:8, padding:"10px 14px", fontSize:12, color:"#ef4444", marginBottom:12 }}>
                   🔒 Limite de veículos atingido. Faça upgrade para o próximo plano.
@@ -2212,7 +2221,7 @@ export default function App() {
               )}
               {veiculos.length === 0 ? <EmptyState>Nenhum veículo.</EmptyState> : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {veiculos.map((v) => {
+                  {veiculosVisiveis.map((v) => {
                     const sCrlv = statusVenc(v.venc_crlv);
                     const sSeg = statusVenc(v.venc_seguro_obrigatorio);
                     const temAlerta = (sCrlv && sCrlv.cor !== "#4ade80") || (sSeg && sSeg.cor !== "#4ade80");
