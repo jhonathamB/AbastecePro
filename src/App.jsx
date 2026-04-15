@@ -105,22 +105,56 @@ function useOnline() {
 function useQRScanner(onResult) {
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState("");
-  const videoRef = useRef(null); const streamRef = useRef(null); const intervalRef = useRef(null);
-  const stop = useCallback(() => { streamRef.current?.getTracks().forEach((t) => t.stop()); streamRef.current = null; clearInterval(intervalRef.current); intervalRef.current = null; setScanning(false); }, []);
+  const videoRef = useRef(null); const streamRef = useRef(null);
+  const intervalRef = useRef(null); const canvasRef = useRef(null);
+
+  const stop = useCallback(() => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    clearInterval(intervalRef.current);
+    intervalRef.current = null;
+    setScanning(false);
+  }, []);
+
   const start = useCallback(async () => {
     setError(""); setScanning(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
       streamRef.current = stream;
-      setTimeout(() => { if (videoRef.current) videoRef.current.srcObject = stream; }, 50);
-      if (!("BarcodeDetector" in window)) { setError("Use Chrome/Android ou selecione manualmente."); return; }
-      const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
-      intervalRef.current = setInterval(async () => {
-        if (!videoRef.current) return;
-        try { const codes = await detector.detect(videoRef.current); if (codes.length > 0) { stop(); onResult(codes[0].rawValue); } } catch (_) {}
-      }, 400);
-    } catch { setError("Não foi possível acessar a câmera."); setScanning(false); }
+      setTimeout(() => { if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); } }, 100);
+
+      // Carregar jsQR dinamicamente — funciona em Safari/iPhone
+      if (!window.jsQR) {
+        await new Promise((res, rej) => {
+          const s = document.createElement("script");
+          s.src = "https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js";
+          s.onload = res; s.onerror = rej;
+          document.head.appendChild(s);
+        });
+      }
+
+      const canvas = document.createElement("canvas");
+      canvasRef.current = canvas;
+      const ctx = canvas.getContext("2d");
+
+      intervalRef.current = setInterval(() => {
+        const video = videoRef.current;
+        if (!video || video.readyState !== 4) return;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = window.jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+        if (code) { stop(); onResult(code.data); }
+      }, 300);
+    } catch (e) {
+      setError("Não foi possível acessar a câmera. Verifique as permissões.");
+      setScanning(false);
+    }
   }, [onResult, stop]);
+
   useEffect(() => () => stop(), [stop]);
   return { scanning, error, videoRef, start, stop };
 }
