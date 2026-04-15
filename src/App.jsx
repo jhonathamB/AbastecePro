@@ -1541,18 +1541,15 @@ export default function App() {
 
   if (!usuario) return <LoginScreen onLogin={handleLogin} />;
 
-  // Filtrar por estabelecimento selecionado no header
-  const estFiltradoId = filtroEstDash
-    ? (estabelecimentos.find((e) => e.nome === filtroEstDash) || {}).id
-    : null;
-  const veiculosFiltradosDash = estFiltradoId
-    ? veiculos.filter((v) => v.estabelecimento_id === estFiltradoId)
-    : veiculos;
-  const motoristasFiltradosDash = estFiltradoId
-    ? motoristas.filter((m) => m.estabelecimento_id === estFiltradoId)
+  // Filtrar motoristas e veículos pelo estabelecimento selecionado no header
+  const motoristasVisiveis = isAdmin && filtroEstDash
+    ? motoristas.filter((m) => { const est = estabelecimentos.find((e) => e.nome === filtroEstDash); return est ? m.estabelecimento_id === est.id : true; })
     : motoristas;
+  const veiculosVisiveis = isAdmin && filtroEstDash
+    ? veiculos.filter((v) => { const est = estabelecimentos.find((e) => e.nome === filtroEstDash); return est ? v.estabelecimento_id === est.id : true; })
+    : veiculos;
 
-  // Calcular alertas — separado por veículos e motoristas, respeitando filtro
+  // Calcular alertas usando listas filtradas
   const alertasVeic = veiculosVisiveis.filter((v) => {
     const ac = statusVenc(v.venc_crlv);
     const as = statusVenc(v.venc_seguro_obrigatorio);
@@ -1563,20 +1560,6 @@ export default function App() {
     return s && s.cor !== "#4ade80";
   }).length;
   const totalAlertas = alertasVeic + alertasMot;
-
-  // Filtrar motoristas e veículos pelo estabelecimento selecionado no header
-  const motoristasVisiveis = isAdmin && filtroEstDash
-    ? motoristas.filter((m) => {
-        const est = estabelecimentos.find((e) => e.nome === filtroEstDash);
-        return est ? m.estabelecimento_id === est.id : true;
-      })
-    : motoristas;
-  const veiculosVisiveis = isAdmin && filtroEstDash
-    ? veiculos.filter((v) => {
-        const est = estabelecimentos.find((e) => e.nome === filtroEstDash);
-        return est ? v.estabelecimento_id === est.id : true;
-      })
-    : veiculos;
 
   const TABS = [
     ...(!isOperador ? [["dashboard", "📊 Dashboard"]] : []),
