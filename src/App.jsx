@@ -1827,7 +1827,7 @@ export default function App() {
         </div>
       )}
 
-      {comprovante && <Comprovante registro={comprovante} estabelecimento={estNome} onClose={() => { setComprovante(null); setScannedMot(null); setScannedVeic(null); }} />}
+      {comprovante && <Comprovante registro={comprovante} estabelecimento={estNome} onClose={() => { setComprovante(null); setScannedMot(null); setScannedVeic(null); setForm({ dataHora: now(), combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "", cupom_fiscal: "" }); setFormErrors({}); }} />}
 
       {qrModal && (
         <div className="qr-overlay" onClick={() => setQrModal(null)}>
