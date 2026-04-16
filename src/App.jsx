@@ -1516,15 +1516,15 @@ export default function App() {
     } catch (err) { alert("Erro: " + err.message); }
   };
 
-  const handleDeleteReg = async (id) => {
+  const handleDeleteReg = async (reg) => {
     if (!window.confirm("Excluir este abastecimento? Esta ação não pode ser desfeita.")) return;
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/abastecimentos?id=eq.${id}`, {
+      await fetch(`${SUPABASE_URL}/rest/v1/abastecimentos?id=eq.${reg.id}`, {
         method: "DELETE",
         headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
       });
-      setRegistros((prev) => prev.filter((r) => r.id !== id));
-      registrarLog(usuario, "ABASTECIMENTO_EXCLUIDO", "ID: " + (id||"").slice(0,8));
+      setRegistros((prev) => prev.filter((r) => r.id !== reg.id));
+      registrarLog(usuario, "ABASTECIMENTO_EXCLUIDO", (reg.placa||"") + " · " + (reg.motorista_nome||"") + " · " + fmtBRL(parseFloat(reg.custo)||0));
     } catch (err) { alert("Erro ao excluir: " + err.message); }
   };
 
@@ -1898,7 +1898,7 @@ export default function App() {
             {TABS.map(([id, label]) => {
               const badgeCount = id === "veiculos" ? alertasVeic : id === "motoristas" ? alertasMot : 0;
               return (
-                <button key={id} className="tab-btn" onClick={() => setActiveTab(id)} style={{ background: "none", border: "none", cursor: "pointer", padding: "10px 16px", fontSize: 11, fontFamily: "inherit", whiteSpace: "nowrap", color: activeTab === id ? "#f97316" : "#5a5a6a", borderBottom: activeTab === id ? "2px solid #f97316" : "2px solid transparent", fontWeight: activeTab === id ? 500 : 400, letterSpacing: 0.5, position: "relative" }}>
+                <button key={id} className="tab-btn" onClick={() => { setActiveTab(id); if (id === "registrar") { setScannedMot(null); setScannedVeic(null); setForm({ dataHora: now(), combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "", cupom_fiscal: "" }); } }} style={{ background: "none", border: "none", cursor: "pointer", padding: "10px 16px", fontSize: 11, fontFamily: "inherit", whiteSpace: "nowrap", color: activeTab === id ? "#f97316" : "#5a5a6a", borderBottom: activeTab === id ? "2px solid #f97316" : "2px solid transparent", fontWeight: activeTab === id ? 500 : 400, letterSpacing: 0.5, position: "relative" }}>
                   {label}
                   {badgeCount > 0 && (
                     <span style={{ position:"absolute", top:6, right:4, background:"#ef4444", color:"#fff", fontSize:8, fontWeight:700, minWidth:14, height:14, borderRadius:7, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" }}>
@@ -2076,7 +2076,7 @@ export default function App() {
                       {isAdmin && !r._offline && (
                         <>
                           <button onClick={() => setEditReg({ ...r, quantidade: r.quantidade, custo: r.custo })} className="sbtn" style={{ background:"#1e3a2a", border:"1px solid #4ade80", borderRadius:6, color:"#4ade80", cursor:"pointer", padding:"6px 8px", fontSize:12, fontFamily:"inherit" }}>✏️</button>
-                          <button onClick={() => handleDeleteReg(r.id)} className="sbtn" style={{ background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:6, color:"#ef4444", cursor:"pointer", padding:"6px 8px", fontSize:12, fontFamily:"inherit" }}>✕</button>
+                          <button onClick={() => handleDeleteReg(r)} className="sbtn" style={{ background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:6, color:"#ef4444", cursor:"pointer", padding:"6px 8px", fontSize:12, fontFamily:"inherit" }}>✕</button>
                         </>
                       )}
                     </div>
