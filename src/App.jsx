@@ -1644,6 +1644,17 @@ export default function App() {
         .field input:focus,.field select:focus{border-color:#f97316!important}
         .tab-btn{transition:all 0.2s} .tab-btn:hover{color:#f97316}
         .del-btn{opacity:0;transition:opacity 0.2s} .row-item:hover .del-btn{opacity:1}
+        @media(max-width:768px){
+          .mot-grid{grid-template-columns:1fr!important;gap:16px!important}
+          .veic-grid{grid-template-columns:1fr!important;gap:16px!important}
+          .admin-grid{grid-template-columns:1fr!important;gap:16px!important}
+          .dash-sections{grid-template-columns:1fr!important;gap:12px!important}
+          .stats-3{grid-template-columns:1fr 1fr!important}
+          .tab-btn{padding:8px 10px!important}
+          .row-item{padding:10px 12px!important}
+          .log-row{grid-template-columns:1fr 1fr!important;gap:6px!important}
+          .reg-row{grid-template-columns:1fr 1fr auto!important}
+        }
         .sbtn{transition:all 0.18s} .sbtn:hover:not(:disabled){filter:brightness(1.15);transform:translateY(-1px)}
         @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}} .fade-in{animation:fadeIn 0.3s ease}
         @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}} .pop{animation:pop 0.35s ease}
@@ -2053,7 +2064,7 @@ export default function App() {
             {filtered.length === 0 ? <EmptyState>Nenhum registro.</EmptyState> : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {filtered.slice(0, pagina * POR_PAGINA).map((r) => (
-                  <div key={r.id || r._localId} className="row-item fade-in" style={{ background: "#1a1c27", border: `1px solid ${r._offline ? "#b45309" : "#2a2c3a"}`, borderRadius: 10, padding: "12px 14px", display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr auto", alignItems: "center", gap: 8 }}>
+                  <div key={r.id || r._localId} className="row-item reg-row fade-in" style={{ background: "#1a1c27", border: `1px solid ${r._offline ? "#b45309" : "#2a2c3a"}`, borderRadius: 10, padding: "12px 14px", display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr auto", alignItems: "center", gap: 8 }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <div style={{ fontSize: 13, fontWeight: 500, color: "#fff" }}>{r.motorista_nome}</div>
@@ -2152,7 +2163,7 @@ export default function App() {
 
         {/* MOTORISTAS */}
         {!loading && activeTab === "motoristas" && (
-          <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, alignItems: "start" }}>
+          <div className="fade-in mot-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, alignItems: "start" }}>
             <div>
               <SectionTitle icon="👤">Cadastrar Motorista</SectionTitle>
               {!online && <Alert type="warn">⚠ Sem conexão. Cadastro indisponível offline.</Alert>}
@@ -2219,7 +2230,7 @@ export default function App() {
 
         {/* VEÍCULOS */}
         {!loading && activeTab === "veiculos" && (
-          <div className="fade-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, alignItems: "start" }}>
+          <div className="fade-in veic-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, alignItems: "start" }}>
             <div>
               <SectionTitle icon="🏢">Departamentos</SectionTitle>
               {dptoOk && <Alert type="success">✓ Adicionado!</Alert>}
@@ -2318,7 +2329,7 @@ export default function App() {
             {logs.length === 0 ? <EmptyState>Nenhuma atividade registrada.</EmptyState> : (
               <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
                 {logs.map((l, i) => (
-                  <div key={i} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"10px 14px", display:"grid", gridTemplateColumns:"1fr 2fr 1.5fr auto", gap:10, alignItems:"center" }}>
+                  <div key={i} className="log-row" style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"10px 14px", display:"grid", gridTemplateColumns:"1fr 2fr 1.5fr auto", gap:10, alignItems:"center" }}>
                     <div>
                       <div style={{ fontSize:10, color:"#5a5a6a", letterSpacing:1 }}>{new Date(l.created_at).toLocaleString("pt-BR")}</div>
                       <div style={{ fontSize:11, color:"#8a8a9a", marginTop:2 }}>{l.estabelecimento}</div>
@@ -2344,7 +2355,7 @@ export default function App() {
 
         {!loading && activeTab === "admin" && isAdmin && (
           <div className="fade-in">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
+            <div className="admin-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
               <div>
                 <SectionTitle icon="🏪">Estabelecimentos</SectionTitle>
                 {estOk && <Alert type="success">✓ Estabelecimento criado!</Alert>}
