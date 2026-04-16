@@ -9,9 +9,10 @@ const SUPABASE_KEY = "sb_publishable_njutNAXOpPS8ueQNykDNLA_OKUOCyXj";
 
 const registrarLog = async (usuario, acao, descricao) => {
   try {
-    await fetch(SUPABASE_URL + "/rest/v1/logs", {
+    const token = usuario?.accessToken || SUPABASE_KEY;
+    const res = await fetch(SUPABASE_URL + "/rest/v1/logs", {
       method: "POST",
-      headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", "Prefer": "return=minimal" },
+      headers: { "apikey": SUPABASE_KEY, "Authorization": "Bearer " + token, "Content-Type": "application/json", "Prefer": "return=minimal" },
       body: JSON.stringify({
         usuario_nome: usuario?.nome || "—",
         usuario_perfil: usuario?.perfil || "—",
@@ -21,6 +22,7 @@ const registrarLog = async (usuario, acao, descricao) => {
         descricao,
       })
     });
+    if (!res.ok) { const err = await res.text(); console.warn("Log error:", res.status, err); }
   } catch (e) { console.warn("Log error:", e); }
 };
 const SUPABASE_SERVICE_KEY = process.env.REACT_APP_SUPABASE_SERVICE_KEY || "";
