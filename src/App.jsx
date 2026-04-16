@@ -1212,9 +1212,6 @@ export default function App() {
   const [veiculos, setVeiculos] = useState(() => cache.get("veiculos") || []);
   const [registros, setRegistros] = useState(() => cache.get("registros") || []);
   const [departamentos, setDepartamentos] = useState(() => cache.get("departamentos") || []);
-  const departamentosVisiveis = isAdmin && filtroEstDash
-    ? departamentos.filter((d) => { const est = estabelecimentos.find((e) => e.nome === filtroEstDash); return est ? d.estabelecimento_id === est.id : true; }).map((d) => d.nome || d)
-    : departamentos.map((d) => d.nome || d);
   const [estabelecimentos, setEstabelecimentos] = useState([]);
   const [logs, setLogs] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
@@ -1603,6 +1600,10 @@ export default function App() {
   if (!usuario) return <LoginScreen onLogin={handleLogin} />;
 
   // Filtrar motoristas e veículos pelo estabelecimento selecionado no header
+  const departamentosVisiveis = isAdmin && filtroEstDash
+    ? departamentos.filter((d) => { const est = estabelecimentos.find((e) => e.nome === filtroEstDash); return est ? d.estabelecimento_id === est.id : true; }).map((d) => d.nome || d)
+    : departamentos.map((d) => d.nome || d);
+
   const motoristasVisiveis = isAdmin && filtroEstDash
     ? motoristas.filter((m) => { const est = estabelecimentos.find((e) => e.nome === filtroEstDash); return est ? m.estabelecimento_id === est.id : true; })
     : motoristas;
