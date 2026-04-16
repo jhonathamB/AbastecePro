@@ -1212,6 +1212,9 @@ export default function App() {
   const [veiculos, setVeiculos] = useState(() => cache.get("veiculos") || []);
   const [registros, setRegistros] = useState(() => cache.get("registros") || []);
   const [departamentos, setDepartamentos] = useState(() => cache.get("departamentos") || []);
+  const departamentosVisiveis = isAdmin && filtroEstDash
+    ? departamentos.filter((d) => { const est = estabelecimentos.find((e) => e.nome === filtroEstDash); return est ? d.estabelecimento_id === est.id : true; }).map((d) => d.nome || d)
+    : departamentos.map((d) => d.nome || d);
   const [estabelecimentos, setEstabelecimentos] = useState([]);
   const [logs, setLogs] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
@@ -1330,7 +1333,7 @@ export default function App() {
       setMotoristas(m); cache.set("motoristas", m);
       setVeiculos(v); cache.set("veiculos", v);
       setRegistros(merged); cache.set("registros", merged);
-      setDepartamentos(d.map((x) => x.nome)); cache.set("departamentos", d.map((x) => x.nome));
+      setDepartamentos(d); cache.set("departamentos", d);
       if (isAdmin) {
         const [ests, users] = await Promise.all([api.get("estabelecimentos"), api.get("usuarios", "select=*,estabelecimentos(*)")]);
         setEstabelecimentos(ests); setUsuarios(users);
@@ -1731,7 +1734,7 @@ export default function App() {
               <Field label="DEPARTAMENTO">
                 <select value={editMotorista.departamento} onChange={(e) => setEditMotorista((m) => ({ ...m, departamento: e.target.value }))} style={iS()}>
                   <option value="">— Selecione —</option>
-                  {departamentos.map((d) => <option key={d}>{d}</option>)}
+                  {departamentosVisiveis.map((d) => <option key={d}>{d}</option>)}
                 </select>
               </Field>
             </div>
@@ -1764,7 +1767,7 @@ export default function App() {
               <Field label="DEPARTAMENTO">
                 <select value={editVeiculo.departamento} onChange={(e) => setEditVeiculo((v) => ({ ...v, departamento: e.target.value }))} style={iS()}>
                   <option value="">— Selecione —</option>
-                  {departamentos.map((d) => <option key={d}>{d}</option>)}
+                  {departamentosVisiveis.map((d) => <option key={d}>{d}</option>)}
                 </select>
               </Field>
             </div>
@@ -2157,7 +2160,7 @@ export default function App() {
                 <Field label="DEPARTAMENTO" error={motErrors.departamento}>
                   <select value={motForm.departamento} onChange={(e) => { setMotForm((f) => ({ ...f, departamento: e.target.value })); setMotErrors((x) => ({ ...x, departamento: undefined })); }} style={iS(motErrors.departamento)}>
                     <option value="">— Selecione —</option>
-                    {departamentos.map((d) => <option key={d}>{d}</option>)}
+                    {departamentosVisiveis.map((d) => <option key={d}>{d}</option>)}
                   </select>
                 </Field>
                 <Field label="CNH (OPCIONAL)"><input type="text" placeholder="Número da CNH" value={motForm.cnh} onChange={(e) => setMotForm((f) => ({ ...f, cnh: e.target.value }))} style={iS()} /></Field>
@@ -2227,7 +2230,7 @@ export default function App() {
               </div>
               {departamentos.length === 0 ? <EmptyState>Nenhum departamento.</EmptyState> : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {departamentos.map((d) => <div key={d} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>🏢 {d}</div>)}
+                  {departamentosVisiveis.map((d) => <div key={d} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>🏢 {d}</div>)}
                 </div>
               )}
               <div style={{ marginTop: 24 }}>
@@ -2238,7 +2241,7 @@ export default function App() {
                   <Field label="DEPARTAMENTO" error={veicErrors.departamento}>
                     <select value={veicForm.departamento} onChange={(e) => { setVeicForm((f) => ({ ...f, departamento: e.target.value })); setVeicErrors((x) => ({ ...x, departamento: undefined })); }} style={iS(veicErrors.departamento)}>
                       <option value="">— Selecione —</option>
-                      {departamentos.map((d) => <option key={d}>{d}</option>)}
+                      {departamentosVisiveis.map((d) => <option key={d}>{d}</option>)}
                     </select>
                   </Field>
                   <Field label="MODELO"><input type="text" placeholder="Ex: Fiat Strada" value={veicForm.modelo} onChange={(e) => setVeicForm((f) => ({ ...f, modelo: e.target.value }))} style={iS()} /></Field>
