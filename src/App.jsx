@@ -1654,6 +1654,9 @@ export default function App() {
           .row-item{padding:10px 12px!important}
           .log-row{grid-template-columns:1fr 1fr!important;gap:6px!important}
           .reg-row{grid-template-columns:1fr 1fr auto!important}
+          .form-grid .field-label{font-size:12px!important;letter-spacing:1px!important}
+          .form-grid input,.form-grid select{font-size:16px!important;padding:13px 12px!important;height:48px!important}
+          .scan-grid{grid-template-columns:1fr!important}
         }
         .sbtn{transition:all 0.18s} .sbtn:hover:not(:disabled){filter:brightness(1.15);transform:translateY(-1px)}
         @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}} .fade-in{animation:fadeIn 0.3s ease}
@@ -2021,17 +2024,12 @@ export default function App() {
               <span style={{ fontSize: 11, color: "#4ade80" }}>✓ fixo</span>
             </div>
             <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <Field label="DATA / HORA (EDITÁVEL)">
-                <div style={{ display: "flex", gap: 6 }}>
-                  <input type="datetime-local" value={form.dataHora} onChange={(e) => setForm((f) => ({ ...f, dataHora: e.target.value }))} style={{ ...iS(), flex: 1 }} />
-                  <button onClick={() => setForm((f) => ({ ...f, dataHora: now() }))} title="Hora atual" style={{ padding: "0 10px", background: "#1e2535", border: "1px solid #f97316", borderRadius: 8, color: "#f97316", cursor: "pointer", fontSize: 14, flexShrink: 0 }}>🕐</button>
-                </div>
-              </Field>
+
               <Field label="TIPO DE COMBUSTÍVEL"><select value={form.combustivel} onChange={(e) => setForm((f) => ({ ...f, combustivel: e.target.value }))} style={iS()}>{COMBUSTIVEIS.map((c) => <option key={c}>{c}</option>)}</select></Field>
-              <Field label="HODÔMETRO (KM) — OPCIONAL"><input type="number" placeholder="Ex: 45230" min="0" value={form.hodometro} onChange={(e) => setForm((f) => ({ ...f, hodometro: e.target.value }))} style={iS()} /></Field>
+              <Field label="HODÔMETRO (KM) — OPCIONAL"><input type="number" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 45230" min="0" value={form.hodometro} onChange={(e) => setForm((f) => ({ ...f, hodometro: e.target.value }))} style={iS()} /></Field>
               <Field label="CUPOM FISCAL — OPCIONAL"><input type="text" placeholder="Ex: 257302" value={form.cupom_fiscal} onChange={(e) => setForm((f) => ({ ...f, cupom_fiscal: e.target.value }))} style={iS()} /></Field>
-              <Field label="QUANTIDADE (LITROS)" error={formErrors.quantidade}><input type="number" placeholder="0.00" min="0" step="0.01" value={form.quantidade} onChange={(e) => { setForm((f) => ({ ...f, quantidade: e.target.value })); setFormErrors((err) => ({ ...err, quantidade: undefined })); }} style={iS(formErrors.quantidade)} /></Field>
-              <Field label="CUSTO TOTAL (R$)" error={formErrors.custo}><input type="number" placeholder="0.00" min="0" step="0.01" value={form.custo} onChange={(e) => { setForm((f) => ({ ...f, custo: e.target.value })); setFormErrors((err) => ({ ...err, custo: undefined })); }} style={iS(formErrors.custo)} /></Field>
+              <Field label="QUANTIDADE (LITROS)" error={formErrors.quantidade}><input type="number" inputMode="decimal" pattern="[0-9]*" placeholder="0.00" min="0" step="0.01" value={form.quantidade} onChange={(e) => { setForm((f) => ({ ...f, quantidade: e.target.value })); setFormErrors((err) => ({ ...err, quantidade: undefined })); }} style={iS(formErrors.quantidade)} /></Field>
+              <Field label="CUSTO TOTAL (R$)" error={formErrors.custo}><input type="number" inputMode="decimal" pattern="[0-9]*" placeholder="0.00" min="0" step="0.01" value={form.custo} onChange={(e) => { setForm((f) => ({ ...f, custo: e.target.value })); setFormErrors((err) => ({ ...err, custo: undefined })); }} style={iS(formErrors.custo)} /></Field>
             </div>
             {+form.quantidade > 0 && +form.custo > 0 && (
               <div style={{ marginTop: 12, padding: "10px 16px", background: "#1a1c27", borderRadius: 8, border: "1px solid #2a2c3a", fontSize: 12, color: "#8a8a9a" }}>
@@ -2574,7 +2572,7 @@ function PainelAlertas({ veiculos, motoristas, filtroEst, estabelecimentos }) {
 function Field({ label, error, children }) {
   return (
     <div className="field" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <label style={{ fontSize: 10, color: error ? "#ef4444" : "#5a5a6a", letterSpacing: 2 }}>{label}</label>
+      <label className="field-label" style={{ fontSize: 10, color: error ? "#ef4444" : "#5a5a6a", letterSpacing: 2 }}>{label}</label>
       {children}
       {error && <span style={{ fontSize: 11, color: "#ef4444" }}>{error}</span>}
     </div>
