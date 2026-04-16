@@ -1625,7 +1625,7 @@ export default function App() {
 
   const TABS = [
     ...(!isOperador ? [["dashboard", "📊 Dashboard"]] : []),
-    ["registrar", "Registrar"],
+    ...(isOperador ? [["registrar", "Registrar"]] : []),
     ...(isOperador ? [["meus-registros", "Meus Registros Hoje"]] : [["registros", `Registros (${isAdmin && filtroEstDash ? registros.filter((r) => r.operador === filtroEstDash).length : registros.length})`]]),
     ...(!isOperador ? [["relatorios", "Relatórios"]] : []),
     ...(podeGerenciar ? [["motoristas", `Motoristas (${motoristasVisiveis.length})`], ["veiculos", `Veículos (${veiculosVisiveis.length})`]] : []),
