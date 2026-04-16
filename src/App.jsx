@@ -401,7 +401,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
 }
 
 // ── ScanBlock ─────────────────────────────────────────
-function ScanBlock({ icon, label, scanned, onClear, onStart, scanning, scanError, videoRef, onStop, accentColor = "#f97316" }) {
+function ScanBlock({ icon, label, scanned, onClear, onStart, onManual, manualOptions, manualValue, manualError, scanning, scanError, videoRef, onStop, accentColor = "#f97316" }) {
   return (
     <div style={{ background: "#1a1c27", border: `1px solid ${scanned ? "#16a34a" : "#2a2c3a"}`, borderRadius: 12, padding: "16px 18px", transition: "border-color 0.3s" }}>
       <div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2, marginBottom: 12 }}>{label}</div>
@@ -435,6 +435,7 @@ function ScanBlock({ icon, label, scanned, onClear, onStart, scanning, scanError
               📷 ESCANEAR QR {label.split(" ").pop()}
             </button>
           )}
+
         </div>
       )}
     </div>
@@ -572,11 +573,6 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   const [filtroSecretaria, setFiltroSecretaria] = useState("");
   const [filtroHistorico, setFiltroHistorico] = useState("veiculo");
   const [filtroHistoricoValor, setFiltroHistoricoValor] = useState("");
-  
-  // Estados para edição de abastecimento (apenas admin)
-  const [editandoAbast, setEditandoAbast] = useState(null);
-  const [formAbast, setFormAbast] = useState({});
-  const [errosAbast, setErrosAbast] = useState({});
   const hoje = new Date();
 
   const filtrarPeriodo = (regs) => {
@@ -778,83 +774,6 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
       const rows = dadosExport.sort((a,b) => new Date(b.data_hora)-new Date(a.data_hora)).map((r) => {
         const totalL = Number(r.quantidade||0);
         const totalC = Number(r.custo||0);
-        return {
-          "Data/Hora": fmtData(r.data_hora),
-          "Motorista": r.motorista_nome || "—",
-          "Placa": r.placa || "—",
-          "Secretaria": r.departamento || "—",
-          "Combustível": r.combustivel || "—",
-          "Litros": totalL.toFixed(2).replace(".",","),
-          "Custo (R$)": totalC.toFixed(2).replace(".",","),
-          "Km": r.hodometro || "",
-          "Posto": r.operador || "—",
-        };
-      });
-
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Abastecimentos");
-      XLSX.writeFile(wb, nomeArq + ".xlsx");
-    };
-    document.head.appendChild(script);
-  };
-
-  // Funções de edição/exclusão de abastecimento (apenas admin)
-  const handleEditarAbast = (registro) => {
-    setEditandoAbast(registro);
-    setFormAbast({
-      id: registro.id,
-      data_hora: registro.data_hora,
-      quantidade: registro.quantidade,
-      custo: registro.custo,
-      hodometro: registro.hodometro || "",
-      combustivel: registro.combustivel,
-      observacoes: registro.observacoes || ""
-    });
-    setErrosAbast({});
-  };
-
-  const handleSalvarEdicaoAbast = async () => {
-    const errs = {};
-    if (!formAbast.quantidade || formAbast.quantidade <= 0) errs.quantidade = "Informe a quantidade";
-    if (!formAbast.custo || formAbast.custo <= 0) errs.custo = "Informe o custo";
-    if (Object.keys(errs).length > 0) { setErrosAbast(errs); return; }
-
-    try {
-      await api.patch("registros", `id=eq.${formAbast.id}`, {
-        data_hora: formAbast.data_hora,
-        quantidade: Number(formAbast.quantidade),
-        custo: Number(formAbast.custo),
-        hodometro: formAbast.hodometro ? Number(formAbast.hodometro) : null,
-        combustivel: formAbast.combustivel,
-        observacoes: formAbast.observacoes || null
-      });
-      
-      // Atualizar localmente
-      const idx = registros.findIndex((r) => r.id === formAbast.id);
-      if (idx !== -1) {
-        registros[idx] = { ...registros[idx], ...formAbast, quantidade: Number(formAbast.quantidade), custo: Number(formAbast.custo), hodometro: formAbast.hodometro ? Number(formAbast.hodometro) : null };
-      }
-      
-      setEditandoAbast(null);
-      alert("✅ Abastecimento atualizado com sucesso!");
-    } catch (e) {
-      alert("❌ Erro ao atualizar: " + e.message);
-    }
-  };
-
-  const handleExcluirAbast = async (registro) => {
-    if (!confirm(`⚠️ Tem certeza que deseja excluir este abastecimento?\n\n${registro.placa} · ${registro.motorista_nome}\n${fmtNum(registro.quantidade)} L · ${fmtBRL(registro.custo)}\n${(registro.data_hora||"").slice(0,16).replace("T"," ")}`)) return;
-    
-    try {
-      await api.delete("registros", `id=eq.${registro.id}`);
-      // Remover localmente
-      const idx = registros.findIndex((r) => r.id === registro.id);
-      if (idx !== -1) registros.splice(idx, 1);
-      alert("✅ Abastecimento excluído com sucesso!");
-    } catch (e) {
-      alert("❌ Erro ao excluir: " + e.message);
-    }
-  };
         const precoL = totalL > 0 ? Math.round((totalC/totalL)*100)/100 : 0;
         return [
           r.placa||"",
@@ -1034,25 +953,17 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
                 {regsSecretaria.map((r) => (
-                  <div key={r.id||r._localId} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:8, padding:"12px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", gap:10 }}>
-                    <div style={{ display:"grid", gridTemplateColumns:"1.2fr 1fr 1fr 1fr", gap:10, alignItems:"center", flex:1 }}>
-                      <div>
-                        <div style={{ fontSize:12, fontWeight:500, color:"#fff" }}>{r.motorista_nome}</div>
-                        <div style={{ fontSize:10, color:"#5a5a6a", marginTop:1 }}>{(r.data_hora||"").slice(0,16).replace("T"," ")}</div>
-                      </div>
-                      <div style={{ fontSize:12, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#fff" }}>{r.placa}</div>
-                      <div style={{ fontSize:11, color:"#f97316" }}>{r.combustivel}</div>
-                      <div style={{ textAlign:"right" }}>
-                        <div style={{ fontSize:13, fontWeight:500 }}>{fmtNum(r.quantidade)} L</div>
-                        <div style={{ fontSize:11, color:"#4ade80" }}>{fmtBRL(r.custo)}</div>
-                      </div>
+                  <div key={r.id||r._localId} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:8, padding:"12px 16px", display:"grid", gridTemplateColumns:"1.2fr 1fr 1fr 1fr", gap:10, alignItems:"center" }}>
+                    <div>
+                      <div style={{ fontSize:12, fontWeight:500, color:"#fff" }}>{r.motorista_nome}</div>
+                      <div style={{ fontSize:10, color:"#5a5a6a", marginTop:1 }}>{(r.data_hora||"").slice(0,16).replace("T"," ")}</div>
                     </div>
-                    {isAdmin && (
-                      <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-                        <button onClick={() => handleEditarAbast(r)} style={{ background:"#1e2535", border:"1px solid #38bdf8", borderRadius:6, color:"#38bdf8", cursor:"pointer", padding:"4px 8px", fontSize:11, fontFamily:"inherit" }}>✏️</button>
-                        <button onClick={() => handleExcluirAbast(r)} style={{ background:"none", border:"1px solid #3a2020", borderRadius:6, color:"#ef4444", cursor:"pointer", padding:"4px 8px", fontSize:11, fontFamily:"inherit" }}>🗑️</button>
-                      </div>
-                    )}
+                    <div style={{ fontSize:12, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#fff" }}>{r.placa}</div>
+                    <div style={{ fontSize:11, color:"#f97316" }}>{r.combustivel}</div>
+                    <div style={{ textAlign:"right" }}>
+                      <div style={{ fontSize:13, fontWeight:500 }}>{fmtNum(r.quantidade)} L</div>
+                      <div style={{ fontSize:11, color:"#4ade80" }}>{fmtBRL(r.custo)}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1093,22 +1004,14 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
                 {regsHistorico.sort((a,b) => new Date(b.data_hora) - new Date(a.data_hora)).map((r) => (
                   <div key={r.id||r._localId} style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:8, padding:"10px 14px" }}>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                      <div style={{ flex:1 }}>
+                      <div>
                         <div style={{ fontSize:12, fontWeight:500, color:"#fff" }}>{filtroHistorico==="veiculo" ? r.motorista_nome : r.placa}</div>
                         <div style={{ fontSize:10, color:"#5a5a6a", marginTop:1 }}>{(r.data_hora||"").slice(0,16).replace("T"," ")} · {r.combustivel}</div>
                         {r.hodometro && <div style={{ fontSize:10, color:"#8a8a9a", marginTop:1 }}>Hodômetro: {fmtNum(r.hodometro,0)} km</div>}
                       </div>
-                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        <div style={{ textAlign:"right" }}>
-                          <div style={{ fontSize:14, fontWeight:500 }}>{fmtNum(r.quantidade)} L</div>
-                          <div style={{ fontSize:11, color:"#4ade80" }}>{fmtBRL(r.custo)}</div>
-                        </div>
-                        {isAdmin && (
-                          <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-                            <button onClick={() => handleEditarAbast(r)} style={{ background:"#1e2535", border:"1px solid #38bdf8", borderRadius:6, color:"#38bdf8", cursor:"pointer", padding:"4px 8px", fontSize:11, fontFamily:"inherit" }}>✏️</button>
-                            <button onClick={() => handleExcluirAbast(r)} style={{ background:"none", border:"1px solid #3a2020", borderRadius:6, color:"#ef4444", cursor:"pointer", padding:"4px 8px", fontSize:11, fontFamily:"inherit" }}>🗑️</button>
-                          </div>
-                        )}
+                      <div style={{ textAlign:"right" }}>
+                        <div style={{ fontSize:14, fontWeight:500 }}>{fmtNum(r.quantidade)} L</div>
+                        <div style={{ fontSize:11, color:"#4ade80" }}>{fmtBRL(r.custo)}</div>
                       </div>
                     </div>
                   </div>
@@ -1286,56 +1189,6 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
                 </div>
               );
             })()}
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Edição de Abastecimento (apenas admin) */}
-      {editandoAbast && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:9999, padding:20 }}>
-          <div style={{ background:"#0f1117", border:"1px solid #2a2c3a", borderRadius:12, padding:"20px 24px", maxWidth:500, width:"100%", maxHeight:"90vh", overflow:"auto" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-              <div>
-                <div style={{ fontSize:16, fontWeight:600, color:"#fff", marginBottom:4 }}>✏️ Editar Abastecimento</div>
-                <div style={{ fontSize:11, color:"#5a5a6a" }}>{editandoAbast.placa} · {editandoAbast.motorista_nome}</div>
-              </div>
-              <button onClick={() => setEditandoAbast(null)} style={{ background:"none", border:"none", color:"#ef4444", fontSize:20, cursor:"pointer" }}>×</button>
-            </div>
-
-            <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-              <Field label="DATA / HORA" error={errosAbast.data_hora}>
-                <input type="datetime-local" value={formAbast.data_hora} onChange={(e) => setFormAbast({...formAbast, data_hora: e.target.value})} style={iS(errosAbast.data_hora)} />
-              </Field>
-
-              <Field label="COMBUSTÍVEL" error={errosAbast.combustivel}>
-                <select value={formAbast.combustivel} onChange={(e) => setFormAbast({...formAbast, combustivel: e.target.value})} style={iS(errosAbast.combustivel)}>
-                  {COMBUSTIVEIS.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </Field>
-
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-                <Field label="QUANTIDADE (LITROS)" error={errosAbast.quantidade}>
-                  <input type="number" step="0.01" value={formAbast.quantidade} onChange={(e) => setFormAbast({...formAbast, quantidade: e.target.value})} style={iS(errosAbast.quantidade)} />
-                </Field>
-
-                <Field label="CUSTO (R$)" error={errosAbast.custo}>
-                  <input type="number" step="0.01" value={formAbast.custo} onChange={(e) => setFormAbast({...formAbast, custo: e.target.value})} style={iS(errosAbast.custo)} />
-                </Field>
-              </div>
-
-              <Field label="HODÔMETRO (KM) - OPCIONAL">
-                <input type="number" step="1" value={formAbast.hodometro} onChange={(e) => setFormAbast({...formAbast, hodometro: e.target.value})} style={iS()} placeholder="Ex: 45000" />
-              </Field>
-
-              <Field label="OBSERVAÇÕES">
-                <textarea value={formAbast.observacoes} onChange={(e) => setFormAbast({...formAbast, observacoes: e.target.value})} style={{...iS(), minHeight:80, resize:"vertical", fontFamily:"inherit"}} placeholder="Observações adicionais..." />
-              </Field>
-
-              <div style={{ display:"flex", gap:10, marginTop:10 }}>
-                <button onClick={handleSalvarEdicaoAbast} style={{ flex:1, padding:"12px", background:"#16a34a", border:"1px solid #16a34a", borderRadius:8, color:"#fff", fontFamily:"inherit", fontSize:13, fontWeight:600, cursor:"pointer" }}>💾 Salvar Alterações</button>
-                <button onClick={() => setEditandoAbast(null)} style={{ padding:"12px 20px", background:"none", border:"1px solid #3a2020", borderRadius:8, color:"#ef4444", fontFamily:"inherit", fontSize:13, cursor:"pointer" }}>Cancelar</button>
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -1659,6 +1512,18 @@ export default function App() {
       }
       setEditUser(null); setEditUserOk(true); setTimeout(() => setEditUserOk(false), 2200);
     } catch (err) { alert("Erro: " + err.message); }
+  };
+
+  const handleDeleteReg = async (id) => {
+    if (!window.confirm("Excluir este abastecimento? Esta ação não pode ser desfeita.")) return;
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/abastecimentos?id=eq.${id}`, {
+        method: "DELETE",
+        headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+      });
+      setRegistros((prev) => prev.filter((r) => r.id !== id));
+      registrarLog(usuario, "ABASTECIMENTO_EXCLUIDO", "ID: " + (id||"").slice(0,8));
+    } catch (err) { alert("Erro ao excluir: " + err.message); }
   };
 
   const handleSaveEditReg = async () => {
@@ -2100,11 +1965,17 @@ export default function App() {
                 scanned={scannedMot ? { linha1: scannedMot.nome, linha2: `${scannedMot.departamento}${scannedMot.cnh ? " · CNH " + scannedMot.cnh : ""}` } : null}
                 onClear={() => setScannedMot(null)} onStart={startMotScan} onStop={motScanner.stop}
                 scanning={motScanner.scanning} scanError={motScanErr || motScanner.error} videoRef={motScanner.videoRef}
+                manualOptions={motoristas.map((m) => ({ value: m.id, label: `${m.nome} · ${m.departamento}` }))}
+                manualValue={scannedMot?.id || ""} manualError={formErrors.motoristaId}
+                onManual={(e) => { const m = motoristas.find((x) => x.id === e.target.value); setScannedMot(m || null); setFormErrors((err) => ({ ...err, motoristaId: undefined })); }}
               />
               <ScanBlock icon="🚗" label="IDENTIFICAÇÃO DO VEÍCULO" accentColor="#38bdf8"
                 scanned={scannedVeic ? { linha1: scannedVeic.placa, linha2: `${scannedVeic.departamento}${scannedVeic.modelo ? " · " + scannedVeic.modelo : ""}` } : null}
                 onClear={() => setScannedVeic(null)} onStart={startVeicScan} onStop={veicScanner.stop}
                 scanning={veicScanner.scanning} scanError={veicScanErr || veicScanner.error} videoRef={veicScanner.videoRef}
+                manualOptions={veiculos.map((v) => ({ value: v.id, label: `${v.placa}${v.modelo ? " · " + v.modelo : ""} — ${v.departamento}` }))}
+                manualValue={scannedVeic?.id || ""} manualError={formErrors.placaId}
+                onManual={(e) => { const v = veiculos.find((x) => x.id === e.target.value); setScannedVeic(v || null); setFormErrors((err) => ({ ...err, placaId: undefined })); }}
               />
             </div>
             {/* Alertas de vencimento */}
@@ -2194,7 +2065,15 @@ export default function App() {
                       <div style={{ fontSize: 14, fontWeight: 500 }}>{fmtNum(r.quantidade)} L</div>
                       <div style={{ fontSize: 12, color: "#4ade80", marginTop: 2 }}>{fmtBRL(r.custo)}</div>
                     </div>
-                    <button onClick={() => setComprovante(r)} className="sbtn" style={{ background: "#1e2535", border: "1px solid #f97316", borderRadius: 6, color: "#f97316", cursor: "pointer", padding: "6px 8px", fontSize: 14 }}>🧾</button>
+                    <div style={{ display:"flex", gap:4 }}>
+                      <button onClick={() => setComprovante(r)} className="sbtn" style={{ background:"#1e2535", border:"1px solid #f97316", borderRadius:6, color:"#f97316", cursor:"pointer", padding:"6px 8px", fontSize:14 }}>🧾</button>
+                      {isAdmin && !r._offline && (
+                        <>
+                          <button onClick={() => setEditReg({ ...r, quantidade: r.quantidade, custo: r.custo })} className="sbtn" style={{ background:"#1e3a2a", border:"1px solid #4ade80", borderRadius:6, color:"#4ade80", cursor:"pointer", padding:"6px 8px", fontSize:12, fontFamily:"inherit" }}>✏️</button>
+                          <button onClick={() => handleDeleteReg(r.id)} className="sbtn" style={{ background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:6, color:"#ef4444", cursor:"pointer", padding:"6px 8px", fontSize:12, fontFamily:"inherit" }}>✕</button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
