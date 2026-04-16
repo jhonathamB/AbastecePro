@@ -1396,7 +1396,6 @@ export default function App() {
     if (veic) { setUltimoVeic(veic); cache.set("ultimo_veiculo", veic); }
     registrarLog(usuario, "ABASTECIMENTO_CRIADO", (veic?.placa||"") + " · " + (mot?.nome||"") + " · " + fmtBRL(parseFloat(form.custo)||0));
     setForm({ dataHora: now(), combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "", cupom_fiscal: "" });
-    setScannedMot(null); setScannedVeic(null);
   };
 
   const handleMotSubmit = async () => {
@@ -1828,7 +1827,7 @@ export default function App() {
         </div>
       )}
 
-      {comprovante && <Comprovante registro={comprovante} estabelecimento={estNome} onClose={() => setComprovante(null)} />}
+      {comprovante && <Comprovante registro={comprovante} estabelecimento={estNome} onClose={() => { setComprovante(null); setScannedMot(null); setScannedVeic(null); }} />}
 
       {qrModal && (
         <div className="qr-overlay" onClick={() => setQrModal(null)}>
