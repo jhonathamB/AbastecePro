@@ -235,8 +235,6 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
   return (
     <div className="fade-in" style={{ display:"flex", flexDirection:"column", gap:16 }}>
 
-      {/* Alertas */}
-      <PainelAlertas veiculos={veiculos} motoristas={motoristas} filtroEst={filtroEst} estabelecimentos={estabelecimentos} />
 
 
 
