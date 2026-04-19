@@ -238,21 +238,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
       {/* Alertas */}
       <PainelAlertas veiculos={veiculos} motoristas={motoristas} filtroEst={filtroEst} estabelecimentos={estabelecimentos} />
 
-      {/* Banner de alertas discreto */}
-      {totalAlertas > 0 && (
-        <div style={{ background:"#1a1200", borderLeft:"3px solid #f97316", borderRadius:"0 8px 8px 0", padding:"10px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer" }} onClick={() => {}}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <span style={{ fontSize:14 }}>⚠️</span>
-            <span style={{ fontSize:12, color:"#fbbf24" }}>
-              {alertasVeic > 0 && `${alertasVeic} veículo${alertasVeic>1?"s":""} com documento${alertasVeic>1?"s":""} `}
-              {alertasVeic > 0 && alertasMot > 0 && "· "}
-              {alertasMot > 0 && `${alertasMot} CNH${alertasMot>1?"s":""} `}
-              vencendo ou vencido{totalAlertas>1?"s":""}
-            </span>
-          </div>
-          <span style={{ fontSize:11, color:"#f97316" }}>Ver nas abas →</span>
-        </div>
-      )}
+
 
       {/* Seletor de período — pill style */}
       <div style={{ display:"flex", background:"#1a1c27", borderRadius:12, padding:4, border:"1px solid #2a2c3a" }}>
@@ -1328,6 +1314,7 @@ export default function App() {
   const toggleTema = () => { const novo = tema === "escuro" ? "claro" : "escuro"; setTema(novo); cache.set("tema", novo); };
   const online = useOnline();
   const [activeTab, setActiveTab] = useState(usuario?.perfil === "operador" ? "registrar" : "dashboard");
+  const [alertaModal, setAlertaModal] = useState(true); // mostra ao logar
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
 
@@ -2167,6 +2154,52 @@ export default function App() {
         {loading && <div style={{ textAlign: "center", padding: 40, color: "#5a5a6a" }}>Carregando...</div>}
 
         {/* DASHBOARD */}
+        {/* Modal de alertas ao logar */}
+        {alertaModal && totalAlertas > 0 && !loading && (
+          <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.7)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={() => setAlertaModal(false)}>
+            <div style={{ background:"#1a1c27", border:"1px solid #f97316", borderRadius:16, padding:24, maxWidth:480, width:"100%", maxHeight:"80vh", overflowY:"auto" }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                  <span style={{ fontSize:20 }}>⚠️</span>
+                  <span style={{ fontSize:14, fontWeight:600, color:"#fbbf24", fontFamily:"inherit" }}>ATENÇÃO — DOCUMENTOS</span>
+                </div>
+                <button onClick={() => setAlertaModal(false)} style={{ background:"none", border:"1px solid #2a2c3a", borderRadius:6, color:"#8a8a9a", cursor:"pointer", padding:"4px 10px", fontSize:12, fontFamily:"inherit" }}>✕ Fechar</button>
+              </div>
+              {alertasVeic > 0 && (
+                <div style={{ marginBottom:12 }}>
+                  <div style={{ fontSize:11, color:"#5a5a6a", letterSpacing:1, marginBottom:8 }}>🚗 VEÍCULOS</div>
+                  {veiculosVisiveis.filter((v) => { const ac = statusVenc(v.venc_crlv); const as = statusVenc(v.venc_seguro_obrigatorio); return (ac && ac.cor !== "#4ade80") || (as && as.cor !== "#4ade80"); }).map((v) => {
+                    const ac = statusVenc(v.venc_crlv);
+                    const as = statusVenc(v.venc_seguro_obrigatorio);
+                    return (
+                      <div key={v.id} style={{ background:"#0f1117", border:"1px solid #2a2c3a", borderRadius:8, padding:"8px 12px", marginBottom:6 }}>
+                        <div style={{ fontSize:13, fontWeight:500, color:"#fff" }}>{v.placa} — {v.modelo}</div>
+                        {ac && ac.cor !== "#4ade80" && <div style={{ fontSize:11, color:ac.cor, marginTop:2 }}>📋 CRLV: {ac.texto}</div>}
+                        {as && as.cor !== "#4ade80" && <div style={{ fontSize:11, color:as.cor, marginTop:2 }}>🛡️ Seguro: {as.texto}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {alertasMot > 0 && (
+                <div>
+                  <div style={{ fontSize:11, color:"#5a5a6a", letterSpacing:1, marginBottom:8 }}>👤 MOTORISTAS</div>
+                  {motoristasVisiveis.filter((m) => { const s = statusVenc(m.venc_cnh); return s && s.cor !== "#4ade80"; }).map((m) => {
+                    const s = statusVenc(m.venc_cnh);
+                    return (
+                      <div key={m.id} style={{ background:"#0f1117", border:"1px solid #2a2c3a", borderRadius:8, padding:"8px 12px", marginBottom:6 }}>
+                        <div style={{ fontSize:13, fontWeight:500, color:"#fff" }}>{m.nome}</div>
+                        <div style={{ fontSize:11, color:s.cor, marginTop:2 }}>🪪 CNH: {s.texto}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <button onClick={() => setAlertaModal(false)} style={{ width:"100%", marginTop:16, padding:"12px", background:"#f97316", border:"none", borderRadius:10, color:"#fff", fontFamily:"inherit", fontSize:13, fontWeight:500, cursor:"pointer", letterSpacing:1 }}>ENTENDIDO</button>
+            </div>
+          </div>
+        )}
+
         {!loading && activeTab === "dashboard" && (
           <div className="fade-in">
             {/* Resumo do dia */}
@@ -2401,7 +2434,7 @@ export default function App() {
             <div>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
                 <SectionTitle icon="📋">Cadastrados ({motoristasVisiveis.length})</SectionTitle>
-                {motoristasVisiveis.length > 0 && (
+                {motoristasVisiveis.length > 0 && !isOperador && (
                   <button onClick={imprimirTodosQRMotoristas} style={{ padding:"7px 14px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:8, color:"#a78bfa", fontFamily:"inherit", fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>🖨️ Imprimir QR Codes</button>
                 )}
               </div>
@@ -2497,7 +2530,7 @@ export default function App() {
             <div>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
                 <SectionTitle icon="🚗">Veículos ({veiculosVisiveis.length}{!isAdmin ? `/${limiteVeiculos}` : ""})</SectionTitle>
-                {veiculosVisiveis.length > 0 && (
+                {veiculosVisiveis.length > 0 && !isOperador && (
                   <button onClick={imprimirTodosQRVeiculos} style={{ padding:"7px 14px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:8, color:"#a78bfa", fontFamily:"inherit", fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>🖨️ Imprimir QR Codes</button>
                 )}
               </div>
