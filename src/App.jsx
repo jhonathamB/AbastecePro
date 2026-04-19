@@ -1636,6 +1636,104 @@ export default function App() {
     } catch (err) { alert("Erro: " + err.message); }
   };
 
+  const imprimirTodosQRMotoristas = () => {
+    const lista = motoristasVisiveis;
+    if (lista.length === 0) { alert("Nenhum motorista para imprimir."); return; }
+
+    const qrItems = lista.map((m) => {
+      const dados = JSON.stringify({ id: m.id, tipo: "motorista" });
+      return `
+        <div class="qr-item">
+          <div class="qr-label-top">${m.nome}</div>
+          <div class="qr-label-sub">${m.departamento || ""}</div>
+          <div class="qr-label-sub">${m.cnh ? "CNH: " + m.cnh : ""}</div>
+          <div id="qrm-${m.id}" class="qr-box"></div>
+          <div class="qr-label-bottom">⛽ AbastecePro</div>
+          <script>
+            (function(){
+              var d = document.getElementById('qrm-${m.id}');
+              new QRCode(d, { text: '${dados.replace(/'/g,"\'")}', width:160, height:160, correctLevel: QRCode.CorrectLevel.H });
+            })();
+          <\/script>
+        </div>`;
+    }).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>QR Codes — Motoristas</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: Arial, sans-serif; background: #fff; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 20px; }
+      .qr-item { border: 1px solid #ddd; border-radius: 10px; padding: 14px; text-align: center; break-inside: avoid; }
+      .qr-label-top { font-size: 14px; font-weight: bold; color: #111; margin-bottom: 4px; }
+      .qr-label-sub { font-size: 11px; color: #666; margin-bottom: 2px; }
+      .qr-box { display: flex; justify-content: center; margin: 10px 0; }
+      .qr-box img { width: 160px; height: 160px; }
+      .qr-label-bottom { font-size: 10px; color: #f97316; font-weight: bold; margin-top: 6px; letter-spacing: 1px; }
+      @media print {
+        @page { size: A4; margin: 10mm; }
+        .grid { gap: 10px; padding: 0; }
+      }
+    </style></head>
+    <body>
+      <div class="grid">${qrItems}</div>
+      <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 1500); };<\/script>
+    </body></html>`;
+
+    const w = window.open("", "_blank");
+    if (w) w.document.write(html);
+  };
+
+  const imprimirTodosQRVeiculos = () => {
+    const lista = veiculosVisiveis.filter((v) => v.status !== "inativo");
+    if (lista.length === 0) { alert("Nenhum veículo ativo para imprimir."); return; }
+
+    const qrItems = lista.map((v) => {
+      const dados = JSON.stringify({ id: v.id, tipo: "veiculo" });
+      return `
+        <div class="qr-item">
+          <div class="qr-label-top">${v.placa}</div>
+          <div class="qr-label-sub">${v.modelo || ""} ${v.ano ? "· " + v.ano : ""}</div>
+          <div class="qr-label-sub">${v.departamento || ""}</div>
+          <div id="qr-${v.id}" class="qr-box"></div>
+          <div class="qr-label-bottom">⛽ AbastecePro</div>
+          <script>
+            (function(){
+              var d = document.getElementById('qr-${v.id}');
+              var qr = new QRCode(d, { text: '${dados.replace(/'/g,"\'")}', width:160, height:160, correctLevel: QRCode.CorrectLevel.H });
+            })();
+          <\/script>
+        </div>`;
+    }).join("");
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>QR Codes — Veículos</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: Arial, sans-serif; background: #fff; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 20px; }
+      .qr-item { border: 1px solid #ddd; border-radius: 10px; padding: 14px; text-align: center; break-inside: avoid; }
+      .qr-label-top { font-size: 16px; font-weight: bold; color: #111; margin-bottom: 4px; }
+      .qr-label-sub { font-size: 11px; color: #666; margin-bottom: 2px; }
+      .qr-box { display: flex; justify-content: center; margin: 10px 0; }
+      .qr-box img { width: 160px; height: 160px; }
+      .qr-label-bottom { font-size: 10px; color: #f97316; font-weight: bold; margin-top: 6px; letter-spacing: 1px; }
+      @media print {
+        @page { size: A4; margin: 10mm; }
+        .grid { gap: 10px; padding: 0; }
+      }
+    </style></head>
+    <body>
+      <div class="grid">${qrItems}</div>
+      <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 1500); };<\/script>
+    </body></html>`;
+
+    const w = window.open("", "_blank");
+    if (w) w.document.write(html);
+  };
+
   const handleDeleteReg = async (reg) => {
     if (!window.confirm("Excluir este abastecimento? Esta ação não pode ser desfeita.")) return;
     try {
@@ -2301,7 +2399,12 @@ export default function App() {
               </div>
             </div>
             <div>
-              <SectionTitle icon="📋">Cadastrados ({motoristasVisiveis.length})</SectionTitle>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+                <SectionTitle icon="📋">Cadastrados ({motoristasVisiveis.length})</SectionTitle>
+                {motoristasVisiveis.length > 0 && (
+                  <button onClick={imprimirTodosQRMotoristas} style={{ padding:"7px 14px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:8, color:"#a78bfa", fontFamily:"inherit", fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>🖨️ Imprimir QR Codes</button>
+                )}
+              </div>
               {motoristas.length === 0 ? <EmptyState>Nenhum motorista.</EmptyState> : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {motoristasVisiveis.map((m) => {
@@ -2392,7 +2495,12 @@ export default function App() {
               </div>
             </div>
             <div>
-              <SectionTitle icon="🚗">Veículos ({veiculosVisiveis.length}{!isAdmin ? `/${limiteVeiculos}` : ""})</SectionTitle>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+                <SectionTitle icon="🚗">Veículos ({veiculosVisiveis.length}{!isAdmin ? `/${limiteVeiculos}` : ""})</SectionTitle>
+                {veiculosVisiveis.length > 0 && (
+                  <button onClick={imprimirTodosQRVeiculos} style={{ padding:"7px 14px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:8, color:"#a78bfa", fontFamily:"inherit", fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>🖨️ Imprimir QR Codes</button>
+                )}
+              </div>
               {!isAdmin && veiculos.length >= limiteVeiculos && (
                 <div style={{ background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:8, padding:"10px 14px", fontSize:12, color:"#ef4444", marginBottom:12 }}>
                   🔒 Limite de veículos atingido. Faça upgrade para o próximo plano.
