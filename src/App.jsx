@@ -777,9 +777,10 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
         ];
       });
 
+      const nomeEst = dadosExport.length > 0 ? (dadosExport[0].operador || "") : "";
       const wsData = [
         ["Listagem dos abastecimentos"],
-        [],
+        [nomeEst ? "Estabelecimento: " + nomeEst : ""],
         [],
         ["Placa","Marca/Modelo","Centro Custo","Data","Tipo","Litros","Odômetro","Preço Litro","Valor R$","Agente","Cupom Fiscal"],
         ...rows,
@@ -817,7 +818,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   };
 
   return (
-    <div className="fade-in">
+    <div className="fade-in" style={{ paddingBottom:80 }}>
       {/* Abas internas — scroll horizontal */}
       <div className="tabs-scroll" style={{ overflowX:"auto", marginBottom:16, paddingBottom:4 }}>
         <div style={{ display:"flex", gap:6, minWidth:"max-content" }}>
