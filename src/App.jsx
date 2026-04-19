@@ -818,7 +818,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   };
 
   return (
-    <div className="fade-in" style={{ paddingBottom:80 }}>
+    <div className="fade-in" style={{ paddingBottom:100 }}>
       {/* Abas internas — scroll horizontal */}
       <div className="tabs-scroll" style={{ overflowX:"auto", marginBottom:16, paddingBottom:4 }}>
         <div style={{ display:"flex", gap:6, minWidth:"max-content" }}>
@@ -884,7 +884,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
 
       {/* ABA: RESUMO */}
       {aba === "resumo" && (
-        <div>
+        <div style={{ paddingBottom:80 }}>
           <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap" }}>
             {[["departamento","🏢 Depto"],["veiculo","🚗 Veículo"],["motorista","👤 Motorista"],["combustivel","⛽ Combustível"],...(isAdmin?[["estabelecimento","🏪 Posto"]]:[])].map(([id,label]) => (
               <button key={id} onClick={() => setTipo(id)} style={{ padding:"8px 14px", background:tipo===id?"#f97316":"#1a1c27", border:`1px solid ${tipo===id?"#f97316":"#2a2c3a"}`, borderRadius:8, color:tipo===id?"#fff":"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>{label}</button>
@@ -917,7 +917,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
 
       {/* ABA: POR SECRETARIA */}
       {aba === "secretaria" && (
-        <div>
+        <div style={{ paddingBottom:80 }}>
           <div style={{ display:"flex", gap:10, marginBottom:16, alignItems:"center", flexWrap:"wrap" }}>
             <select value={filtroSecretaria} onChange={(e) => setFiltroSecretaria(e.target.value)} style={{ ...iS(), width:"auto", fontSize:13 }}>
               <option value="">— Selecione a secretaria —</option>
@@ -962,7 +962,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
 
       {/* ABA: HISTÓRICO */}
       {aba === "historico" && (
-        <div>
+        <div style={{ paddingBottom:80 }}>
           <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
             <div style={{ display:"flex", gap:6 }}>
               {[["veiculo","🚗 Por Veículo"],["motorista","👤 Por Motorista"]].map(([id,label]) => (
@@ -1056,7 +1056,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
 
       {/* ABA: FINANCEIRO */}
       {aba === "financeiro" && (
-        <div>
+        <div style={{ paddingBottom:80 }}>
           {/* Custo por km */}
           <div style={{ marginBottom:24 }}>
             <div style={{ fontSize:11, color:"#5a5a6a", letterSpacing:2, marginBottom:14 }}>💰 CUSTO POR KM RODADO (R$/KM)</div>
@@ -1182,7 +1182,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
       )}
 
       {aba === "comparativo" && (
-        <div>
+        <div style={{ paddingBottom:80 }}>
           <div style={{ marginBottom:16 }}>
             <div style={{ fontSize:11, color:"#5a5a6a", letterSpacing:1, marginBottom:8 }}>PERÍODO</div>
             <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
