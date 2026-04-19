@@ -820,8 +820,8 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   return (
     <div className="fade-in" style={{ paddingBottom:100 }}>
       {/* Abas internas — scroll horizontal */}
-      <div className="tabs-scroll" style={{ overflowX:"auto", marginBottom:16, paddingBottom:4 }}>
-        <div style={{ display:"flex", gap:6, minWidth:"max-content" }}>
+      <div className="tabs-scroll" style={{ overflowX:"auto", marginBottom:16, paddingBottom:8 }}>
+        <div style={{ display:"flex", gap:6, minWidth:"max-content", paddingRight:8 }}>
           {[["resumo","📊 Resumo"],["secretaria","🏢 Secretaria"],["historico","📋 Histórico"],["consumo","⛽ km/L"],["financeiro","💰 Financeiro"],["comparativo","📈 Comparativo"]].map(([id,label]) => {
             const bloqueado = (!podeRelatorios && id === "secretaria") || (!podeKmL && id === "consumo") || (!podeFinanceiro && id === "financeiro") || (!podeRelatorios && id === "comparativo");
             return (
