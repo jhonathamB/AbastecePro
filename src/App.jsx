@@ -1383,6 +1383,11 @@ export default function App() {
     enterprise:   { label: "Enterprise",   maxVeiculos: 999,maxUsuarios: 999,relatorios: true,  csv: true,  pdf: true,  kmL: true,  financeiro: true  },
   };
   const planoAtual = isAdmin ? PLANOS.enterprise : (PLANOS[plano] || PLANOS.basico);
+  const permissoes = usuario?.estabelecimentos?.permissoes || {};
+  const podeCadastrarVeiculos = isAdmin || (isGestor && permissoes.cadastrarVeiculos !== false);
+  const podeCadastrarMotoristas = isAdmin || (isGestor && permissoes.cadastrarMotoristas !== false);
+  const podeEditarVeiculos = isAdmin || (isGestor && permissoes.editarVeiculos !== false);
+  const podeEditarMotoristas = isAdmin || (isGestor && permissoes.editarMotoristas !== false);
   const podeRelatorios = isAdmin || planoAtual.relatorios;
   const podeCSV = isAdmin || planoAtual.csv;
   const podePDF = isAdmin || planoAtual.pdf;
@@ -1576,7 +1581,7 @@ export default function App() {
       await fetch(`${SUPABASE_URL}/rest/v1/estabelecimentos?id=eq.${editEst.id}`, {
         method: "PATCH",
         headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
-        body: JSON.stringify({ nome: editEst.nome, cnpj: editEst.cnpj, telefone: editEst.telefone, plano: editEst.plano || 'basico' }),
+        body: JSON.stringify({ nome: editEst.nome, cnpj: editEst.cnpj, telefone: editEst.telefone, plano: editEst.plano || 'basico', permissoes: editEst.permissoes || {} }),
       });
       setEstabelecimentos((ests) => ests.map((e) => e.id === editEst.id ? { ...e, ...editEst } : e));
       setEditEst(null);
@@ -1967,6 +1972,21 @@ export default function App() {
                   <option value="enterprise">Enterprise</option>
                 </select>
               </Field>
+              <div>
+                <div style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, marginBottom:10 }}>PERMISSÕES DO GESTOR</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                  {[["cadastrarVeiculos","🚗 Cadastrar Veículos"],["cadastrarMotoristas","👤 Cadastrar Motoristas"],["editarVeiculos","✏️ Editar Veículos"],["editarMotoristas","✏️ Editar Motoristas"]].map(([key, label]) => (
+                    <label key={key} style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer", fontSize:12, color:"#e8e4d9" }}>
+                      <input type="checkbox"
+                        checked={editEst.permissoes?.[key] !== false}
+                        onChange={(e) => setEditEst((x) => ({ ...x, permissoes: { ...(x.permissoes||{}), [key]: e.target.checked } }))}
+                        style={{ width:16, height:16, accentColor:"#f97316", cursor:"pointer" }}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
             <div style={{ display:"flex", gap:8, marginTop:20 }}>
               <button onClick={handleUpdateEst} style={{ flex:1, padding:"13px", background:"#f97316", border:"none", borderRadius:10, color:"#fff", fontFamily:"inherit", fontSize:13, fontWeight:700, cursor:"pointer" }}>✓ SALVAR</button>
@@ -2460,7 +2480,7 @@ export default function App() {
                 </Field>
                 <Field label="CNH (OPCIONAL)"><input type="text" placeholder="Número da CNH" value={motForm.cnh} onChange={(e) => setMotForm((f) => ({ ...f, cnh: e.target.value }))} style={iS()} /></Field>
                 <Field label="🪪 VENCIMENTO CNH (OPCIONAL)"><input type="date" value={motForm.venc_cnh} onChange={(e) => setMotForm((f) => ({ ...f, venc_cnh: e.target.value }))} style={iS()} /></Field>
-                <button className="sbtn" onClick={handleMotSubmit} disabled={!online} style={{ padding: "13px", background: online ? "#f97316" : "#2a2c3a", border: "none", borderRadius: 10, color: online ? "#fff" : "#5a5a6a", fontFamily: "inherit", fontSize: 13, fontWeight: 500, letterSpacing: 1.5, cursor: online ? "pointer" : "not-allowed" }}>CADASTRAR</button>
+                <button className="sbtn" onClick={handleMotSubmit} disabled={!online || !podeCadastrarMotoristas} style={{ padding: "13px", background: online && podeCadastrarMotoristas ? "#f97316" : "#2a2c3a", border: "none", borderRadius: 10, color: online && podeCadastrarMotoristas ? "#fff" : "#5a5a6a", fontFamily: "inherit", fontSize: 13, fontWeight: 500, letterSpacing: 1.5, cursor: online && podeCadastrarMotoristas ? "pointer" : "not-allowed" }}>{!podeCadastrarMotoristas ? "🔒 SEM PERMISSÃO" : "CADASTRAR"}</button>
               </div>
             </div>
             <div>
@@ -2500,7 +2520,7 @@ export default function App() {
                             <div style={{ fontSize:11, color:"#8a8a9a", marginTop:3 }}>{m.departamento}{m.cnh ? " · CNH " + m.cnh : ""}</div>
                           </div>
                           <div style={{ display:"flex", gap:6 }}>
-                            {podeGerenciar && (
+                            {podeEditarMotoristas && (
                               <button onClick={() => setEditMotorista({ ...m })} className="sbtn" style={{ background:"#1e3a2a", border:"1px solid #4ade80", borderRadius:6, color:"#4ade80", cursor:"pointer", padding:"5px 10px", fontSize:11, fontFamily:"inherit" }}>✏️</button>
                             )}
                             <button onClick={() => setQrModal({ tipo: "motorista", item: m })} className="sbtn" style={{ background:"#1e2535", border:"1px solid #f97316", borderRadius:6, color:"#f97316", cursor:"pointer", padding:"5px 10px", fontSize:11, fontFamily:"inherit" }}>QR</button>
@@ -2555,7 +2575,7 @@ export default function App() {
                   </Field>
                   <Field label="📋 VENCIMENTO CRLV (OPCIONAL)"><input type="date" value={veicForm.venc_crlv} onChange={(e) => setVeicForm((f) => ({ ...f, venc_crlv: e.target.value }))} style={iS()} /></Field>
                   <Field label="🛡️ VENCIMENTO SEGURO OBRIGATÓRIO (OPCIONAL)"><input type="date" value={veicForm.venc_seguro_obrigatorio} onChange={(e) => setVeicForm((f) => ({ ...f, venc_seguro_obrigatorio: e.target.value }))} style={iS()} /></Field>
-                  <button className="sbtn" onClick={handleVeicSubmit} disabled={!online} style={{ padding: "13px", background: online ? "#f97316" : "#2a2c3a", border: "none", borderRadius: 10, color: online ? "#fff" : "#5a5a6a", fontFamily: "inherit", fontSize: 13, fontWeight: 500, letterSpacing: 1.5, cursor: online ? "pointer" : "not-allowed" }}>CADASTRAR VEÍCULO</button>
+                  <button className="sbtn" onClick={handleVeicSubmit} disabled={!online || !podeCadastrarVeiculos} style={{ padding: "13px", background: online && podeCadastrarVeiculos ? "#f97316" : "#2a2c3a", border: "none", borderRadius: 10, color: online && podeCadastrarVeiculos ? "#fff" : "#5a5a6a", fontFamily: "inherit", fontSize: 13, fontWeight: 500, letterSpacing: 1.5, cursor: online && podeCadastrarVeiculos ? "pointer" : "not-allowed" }}>{!podeCadastrarVeiculos ? "🔒 SEM PERMISSÃO" : "CADASTRAR VEÍCULO"}</button>
                 </div>
               </div>
             </div>
@@ -2590,7 +2610,7 @@ export default function App() {
                             <div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{v.departamento}{v.modelo ? " · " + v.modelo : ""}{v.ano ? " (" + v.ano + ")" : ""}</div>
                           </div>
                           <div style={{ display:"flex", gap:6 }}>
-                            {podeGerenciar && (
+                            {podeEditarVeiculos && (
                               <button onClick={() => setEditVeiculo({ ...v })} className="sbtn" style={{ background:"#1e3a2a", border:"1px solid #4ade80", borderRadius:6, color:"#4ade80", cursor:"pointer", padding:"5px 10px", fontSize:11, fontFamily:"inherit" }}>✏️</button>
                             )}
                             <button onClick={() => setQrModal({ tipo: "veiculo", item: v })} className="sbtn" style={{ background: "#0e2030", border: "1px solid #38bdf8", borderRadius: 6, color: "#38bdf8", cursor: "pointer", padding: "5px 10px", fontSize: 11, fontFamily: "inherit" }}>QR</button>
