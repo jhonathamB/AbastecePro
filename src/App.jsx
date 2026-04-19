@@ -1630,15 +1630,16 @@ export default function App() {
       const dados = JSON.stringify({ id: m.id, tipo: "motorista" });
       return `
         <div class="qr-item">
+          <div class="qr-tipo">⛽ MOTORISTA</div>
           <div class="qr-label-top">${m.nome}</div>
           <div class="qr-label-sub">${m.departamento || ""}</div>
-          <div class="qr-label-sub">${m.cnh ? "CNH: " + m.cnh : ""}</div>
+          <div class="qr-label-sub">${m.cnh ? "CNH " + m.cnh : ""}</div>
           <div id="qrm-${m.id}" class="qr-box"></div>
-          <div class="qr-label-bottom">⛽ AbastecePro</div>
+          <div class="qr-label-bottom">CONTROLE DE ABASTECIMENTO</div>
           <script>
             (function(){
               var d = document.getElementById('qrm-${m.id}');
-              new QRCode(d, { text: '${dados.replace(/'/g,"\'")}', width:160, height:160, correctLevel: QRCode.CorrectLevel.H });
+              new QRCode(d, { text: '${dados.replace(/'/g,"\'")}', width:170, height:170, correctLevel: QRCode.CorrectLevel.H });
             })();
           <\/script>
         </div>`;
@@ -1648,18 +1649,22 @@ export default function App() {
     <title>QR Codes — Motoristas</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@800&display=swap');
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: Arial, sans-serif; background: #fff; }
-      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 20px; }
-      .qr-item { border: 1px solid #ddd; border-radius: 10px; padding: 14px; text-align: center; break-inside: avoid; }
-      .qr-label-top { font-size: 14px; font-weight: bold; color: #111; margin-bottom: 4px; }
-      .qr-label-sub { font-size: 11px; color: #666; margin-bottom: 2px; }
-      .qr-box { display: flex; justify-content: center; margin: 10px 0; }
-      .qr-box img { width: 160px; height: 160px; }
-      .qr-label-bottom { font-size: 10px; color: #f97316; font-weight: bold; margin-top: 6px; letter-spacing: 1px; }
+      body { font-family: 'DM Mono', monospace; background: #f5f5f5; padding: 20px; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .qr-item { border: 2px solid #ddd; border-radius: 12px; padding: 20px 24px; text-align: center; break-inside: avoid; background: #fff; }
+      .qr-tipo { font-size: 9px; color: #888; letter-spacing: 3px; margin-bottom: 8px; }
+      .qr-label-top { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; color: #111; margin-bottom: 4px; letter-spacing: 0; }
+      .qr-label-sub { font-size: 11px; color: #555; margin-bottom: 2px; }
+      .qr-box { display: flex; justify-content: center; margin: 14px 0; }
+      .qr-box img { width: 170px; height: 170px; display: block; }
+      .qr-label-bottom { font-size: 9px; color: #aaa; letter-spacing: 2px; margin-top: 10px; }
+      .qr-label-est { font-size: 11px; color: #333; font-weight: 600; margin-top: 4px; }
       @media print {
         @page { size: A4; margin: 10mm; }
-        .grid { gap: 10px; padding: 0; }
+        body { padding: 0; background: #fff; }
+        .grid { gap: 10px; }
       }
     </style></head>
     <body>
@@ -1679,15 +1684,16 @@ export default function App() {
       const dados = JSON.stringify({ id: v.id, tipo: "veiculo" });
       return `
         <div class="qr-item">
+          <div class="qr-tipo">⛽ VEÍCULO</div>
           <div class="qr-label-top">${v.placa}</div>
-          <div class="qr-label-sub">${v.modelo || ""} ${v.ano ? "· " + v.ano : ""}</div>
           <div class="qr-label-sub">${v.departamento || ""}</div>
+          <div class="qr-label-sub">${v.modelo || ""}${v.ano ? " (" + v.ano + ")" : ""}</div>
           <div id="qr-${v.id}" class="qr-box"></div>
-          <div class="qr-label-bottom">⛽ AbastecePro</div>
+          <div class="qr-label-bottom">CONTROLE DE ABASTECIMENTO</div>
           <script>
             (function(){
               var d = document.getElementById('qr-${v.id}');
-              var qr = new QRCode(d, { text: '${dados.replace(/'/g,"\'")}', width:160, height:160, correctLevel: QRCode.CorrectLevel.H });
+              var qr = new QRCode(d, { text: '${dados.replace(/'/g,"\'")}', width:170, height:170, correctLevel: QRCode.CorrectLevel.H });
             })();
           <\/script>
         </div>`;
@@ -1697,18 +1703,21 @@ export default function App() {
     <title>QR Codes — Veículos</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@800&display=swap');
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: Arial, sans-serif; background: #fff; }
-      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 20px; }
-      .qr-item { border: 1px solid #ddd; border-radius: 10px; padding: 14px; text-align: center; break-inside: avoid; }
-      .qr-label-top { font-size: 16px; font-weight: bold; color: #111; margin-bottom: 4px; }
-      .qr-label-sub { font-size: 11px; color: #666; margin-bottom: 2px; }
-      .qr-box { display: flex; justify-content: center; margin: 10px 0; }
-      .qr-box img { width: 160px; height: 160px; }
-      .qr-label-bottom { font-size: 10px; color: #f97316; font-weight: bold; margin-top: 6px; letter-spacing: 1px; }
+      body { font-family: 'DM Mono', monospace; background: #f5f5f5; padding: 20px; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .qr-item { border: 2px solid #ddd; border-radius: 12px; padding: 20px 24px; text-align: center; break-inside: avoid; background: #fff; }
+      .qr-tipo { font-size: 9px; color: #888; letter-spacing: 3px; margin-bottom: 8px; }
+      .qr-label-top { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: #111; margin-bottom: 4px; letter-spacing: 3px; }
+      .qr-label-sub { font-size: 11px; color: #555; margin-bottom: 2px; }
+      .qr-box { display: flex; justify-content: center; margin: 14px 0; }
+      .qr-box img { width: 170px; height: 170px; display: block; }
+      .qr-label-bottom { font-size: 9px; color: #aaa; letter-spacing: 2px; margin-top: 10px; }
       @media print {
         @page { size: A4; margin: 10mm; }
-        .grid { gap: 10px; padding: 0; }
+        body { padding: 0; background: #fff; }
+        .grid { gap: 10px; }
       }
     </style></head>
     <body>
