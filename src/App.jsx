@@ -1393,7 +1393,31 @@ export default function App() {
   const estId = usuario?.estabelecimento_id;
   const estNome = usuario?.estabelecimentos?.nome || "";
 
-  const handleLogin = (u) => { cache.set("usuario_sessao", u); setUsuario(u); };
+  const handleLogin = (u) => {
+    const agora = Date.now();
+    cache.set("usuario_sessao", { ...u, _loginAt: agora });
+    setUsuario({ ...u, _loginAt: agora });
+  };
+  // Verificar expiração de sessão
+  useEffect(() => {
+    if (!usuario) return;
+    const perfil = usuario?.perfil;
+    if (perfil === "operador") return; // operador sem limite
+    const limites = { gestor: 8 * 60 * 60 * 1000, admin: 24 * 60 * 60 * 1000 };
+    const limite = limites[perfil] || limites.gestor;
+    const loginAt = usuario?._loginAt || 0;
+    const verificar = () => {
+      if (Date.now() - loginAt > limite) {
+        cache.del("usuario_sessao");
+        setUsuario(null);
+        alert("Sessão expirada. Faça login novamente.");
+      }
+    };
+    verificar();
+    const interval = setInterval(verificar, 60000); // verifica a cada 1 minuto
+    return () => clearInterval(interval);
+  }, [usuario]);
+
   const handleAlterarMinhaSenha = async () => {
     setSenhaErro("");
     if (!novaSenha.trim()) { setSenhaErro("Informe a nova senha"); return; }
@@ -2117,7 +2141,7 @@ export default function App() {
                 </select>
               )}
               <button onClick={toggleTema} title="Alternar tema" style={{ background: "none", border: `1px solid ${isDark ? "#2a2c3a" : "#ccc"}`, borderRadius: 8, color: isDark ? "#f97316" : "#666", cursor: "pointer", padding: "6px 10px", fontSize: 14 }}>{isDark ? "☀️" : "🌙"}</button>
-              {!isOperador && <button onClick={() => setMinhaConta(true)} title="Minha conta" style={{ background: "none", border: `1px solid ${isDark ? "#2a2c3a" : "#ccc"}`, borderRadius: 8, color: isDark ? "#8a8a9a" : "#666", cursor: "pointer", padding: "6px 10px", fontSize: 14 }}>👤</button>}
+
               <button onClick={handleLogout} style={{ background: "none", border: `1px solid ${isDark ? "#2a2c3a" : "#ccc"}`, borderRadius: 8, color: isDark ? "#5a5a6a" : "#666", cursor: "pointer", padding: "6px 12px", fontSize: 11, fontFamily: "inherit" }}>Sair</button>
             </div>
           </div>
@@ -2675,16 +2699,7 @@ export default function App() {
                 <SectionTitle icon="👥">Usuários / Logins</SectionTitle>
                 {userOk && <Alert type="success">✓ Usuário criado!</Alert>}
                 {editUserOk && <Alert type="success">✓ Senha alterada!</Alert>}
-                {editUser && (
-                  <div style={{ background: "#1e2535", border: "1px solid #f97316", borderRadius: 10, padding: 16, marginBottom: 12 }}>
-                    <div style={{ fontSize: 11, color: "#f97316", letterSpacing: 1, marginBottom: 10 }}>ALTERAR SENHA — {editUser.nome}</div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <input type="text" placeholder="Nova senha" value={editUser.novaSenha || ""} onChange={(e) => setEditUser((u) => ({ ...u, novaSenha: e.target.value }))} style={{ ...iS(), flex: 1, fontSize: 13 }} />
-                      <button onClick={handleEditUser} style={{ padding: "10px 14px", background: "#f97316", border: "none", borderRadius: 8, color: "#fff", fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>✓</button>
-                      <button onClick={() => setEditUser(null)} style={{ padding: "10px 14px", background: "none", border: "1px solid #3a2020", borderRadius: 8, color: "#ef4444", fontFamily: "inherit", fontSize: 12, cursor: "pointer" }}>✕</button>
-                    </div>
-                  </div>
-                )}
+
                 <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
                   <Field label="NOME"><input type="text" placeholder="Nome do usuário" value={userForm.nome} onChange={(e) => setUserForm((f) => ({ ...f, nome: e.target.value }))} style={iS()} /></Field>
                   <Field label="E-MAIL"><input type="email" placeholder="email@exemplo.com" value={userForm.email} onChange={(e) => setUserForm((f) => ({ ...f, email: e.target.value }))} style={iS()} /></Field>
@@ -2731,9 +2746,7 @@ export default function App() {
                           <div style={{ fontSize: 11, color: "#8a8a9a", marginTop: 2 }}>{u.email} · {u.estabelecimentos?.nome}</div>
                         </div>
                         <div style={{ display: "flex", gap: 6 }}>
-                          {(isAdmin || (isGestor && u.estabelecimento_id === estId && u.perfil === "operador")) && (
-                            <button onClick={() => setEditUser({ ...u, novaSenha: "" })} style={{ background: "#1e2535", border: "1px solid #38bdf8", borderRadius: 6, color: "#38bdf8", cursor: "pointer", padding: "4px 10px", fontSize: 11, fontFamily: "inherit" }}>🔑</button>
-                          )}
+
                           {isAdmin && (
                             <button className="del-btn" onClick={() => handleDeleteUser(u.id)} style={{ background: "none", border: "1px solid #3a2020", borderRadius: 6, color: "#ef4444", cursor: "pointer", padding: "4px 8px", fontSize: 12, fontFamily: "inherit" }}>✕</button>
                           )}
