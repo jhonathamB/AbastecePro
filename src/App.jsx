@@ -605,7 +605,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
 
   // Consumo médio km/litro por veículo
   const consumoVeiculos = veiculos.map((v) => {
-    const regsV = registros.filter((r) => r.placa === v.placa && r.hodometro);
+    const regsV = regs.filter((r) => r.placa === v.placa && r.hodometro);
     if (regsV.length < 2) return { ...v, kmL: null, alerta: false };
     const sorted = [...regsV].sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
     const kmTotal = sorted[sorted.length - 1].hodometro - sorted[0].hodometro;
