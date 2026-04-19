@@ -1011,7 +1011,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
 
       {/* ABA: CONSUMO KM/L */}
       {aba === "consumo" && (
-        <div>
+        <div style={{ paddingBottom:40 }}>
           <div style={{ background:"#1e2535", border:"1px solid #38bdf8", borderRadius:10, padding:"12px 16px", marginBottom:16, fontSize:12, color:"#38bdf8" }}>
             ℹ️ O consumo km/L é calculado automaticamente a partir do hodômetro. Registre o hodômetro nos abastecimentos para ativar esta função.
           </div>
