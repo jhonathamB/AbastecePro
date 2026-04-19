@@ -573,6 +573,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   const filtroEst = filtroEstDashProp || "";
 
   const [filtroSecretaria, setFiltroSecretaria] = useState("");
+  const [comparativoMeses, setComparativoMeses] = useState(6);
   const [filtroHistorico, setFiltroHistorico] = useState("veiculo");
   const [filtroHistoricoValor, setFiltroHistoricoValor] = useState("");
   const hoje = new Date();
@@ -836,8 +837,8 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
       {/* Abas internas — scroll horizontal */}
       <div className="tabs-scroll" style={{ overflowX:"auto", marginBottom:16, paddingBottom:4 }}>
         <div style={{ display:"flex", gap:6, minWidth:"max-content" }}>
-          {[["resumo","📊 Resumo"],["secretaria","🏢 Secretaria"],["historico","📋 Histórico"],["consumo","⛽ km/L"],["financeiro","💰 Financeiro"]].map(([id,label]) => {
-            const bloqueado = (!podeRelatorios && id === "secretaria") || (!podeKmL && id === "consumo") || (!podeFinanceiro && id === "financeiro");
+          {[["resumo","📊 Resumo"],["secretaria","🏢 Secretaria"],["historico","📋 Histórico"],["consumo","⛽ km/L"],["financeiro","💰 Financeiro"],["comparativo","📈 Comparativo"]].map(([id,label]) => {
+            const bloqueado = (!podeRelatorios && id === "secretaria") || (!podeKmL && id === "consumo") || (!podeFinanceiro && id === "financeiro") || (!podeRelatorios && id === "comparativo");
             return (
               <button key={id} onClick={() => { if (bloqueado) { alert(label + " disponivel no Plano Profissional. Faca upgrade!"); } else { setAba(id); } }} style={{
                 padding:"9px 14px", background: bloqueado ? "#1a1c27" : aba===id?"#f97316":"#1a1c27",
@@ -1192,6 +1193,126 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
               );
             })()}
           </div>
+        </div>
+      )}
+
+      {aba === "comparativo" && (
+        <div>
+          <div style={{ marginBottom:16 }}>
+            <div style={{ fontSize:11, color:"#5a5a6a", letterSpacing:1, marginBottom:8 }}>PERÍODO</div>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+              {[["3","Últimos 3 meses"],["6","Últimos 6 meses"],["12","Últimos 12 meses"]].map(([v,l]) => (
+                <button key={v} onClick={() => setComparativoMeses(Number(v))} style={{ padding:"7px 14px", background: comparativoMeses===Number(v)?"#f97316":"#1a1c27", border:`1px solid ${comparativoMeses===Number(v)?"#f97316":"#2a2c3a"}`, borderRadius:8, color: comparativoMeses===Number(v)?"#fff":"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>{l}</button>
+              ))}
+            </div>
+          </div>
+
+          {(() => {
+            const meses = [];
+            const hoje2 = new Date();
+            for (let i = comparativoMeses - 1; i >= 0; i--) {
+              const d = new Date(hoje2.getFullYear(), hoje2.getMonth() - i, 1);
+              meses.push({ key: d.toISOString().slice(0,7), label: d.toLocaleString("pt-BR", { month:"short", year:"2-digit" }).toUpperCase() });
+            }
+            const secretarias = [...new Set(registros.map((r) => r.departamento).filter(Boolean))].sort();
+            const dados = secretarias.map((sec) => ({
+              nome: sec,
+              meses: meses.map((m) => ({
+                mes: m.label,
+                valor: registros.filter((r) => r.departamento === sec && (r.data_hora||"").startsWith(m.key)).reduce((a,b) => a + Number(b.custo||0), 0)
+              }))
+            }));
+            const cores = ["#f97316","#38bdf8","#4ade80","#a78bfa","#fbbf24","#f472b6","#34d399","#60a5fa"];
+            const maxValor = Math.max(...dados.flatMap((d) => d.meses.map((m) => m.valor)), 1);
+
+            return (
+              <div>
+                {/* Gráfico de barras */}
+                <div style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:12, padding:16, marginBottom:16, overflowX:"auto" }}>
+                  <div style={{ fontSize:10, color:"#5a5a6a", letterSpacing:1, marginBottom:12 }}>GASTO POR SECRETARIA (R$)</div>
+                  <div style={{ display:"flex", gap:4, alignItems:"flex-end", minWidth: meses.length * 80 + "px", height:180 }}>
+                    {meses.map((m, mi) => (
+                      <div key={m.key} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
+                        <div style={{ width:"100%", display:"flex", gap:2, alignItems:"flex-end", height:150 }}>
+                          {dados.map((sec, si) => {
+                            const val = sec.meses[mi].valor;
+                            const h = maxValor > 0 ? Math.max((val/maxValor)*140, val > 0 ? 4 : 0) : 0;
+                            return (
+                              <div key={sec.nome} title={`${sec.nome}: ${fmtBRL(val)}`} style={{ flex:1, height:h+"px", background:cores[si % cores.length], borderRadius:"3px 3px 0 0", transition:"height 0.3s", opacity:0.85, cursor:"pointer" }} />
+                            );
+                          })}
+                        </div>
+                        <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:0.5 }}>{m.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Legenda */}
+                  <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginTop:12 }}>
+                    {dados.map((sec, si) => (
+                      <div key={sec.nome} style={{ display:"flex", alignItems:"center", gap:5 }}>
+                        <div style={{ width:10, height:10, borderRadius:2, background:cores[si % cores.length] }} />
+                        <span style={{ fontSize:10, color:"#8a8a9a" }}>{sec.nome}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tabela comparativa */}
+                <div style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:12, padding:16, overflowX:"auto" }}>
+                  <div style={{ fontSize:10, color:"#5a5a6a", letterSpacing:1, marginBottom:12 }}>TABELA COMPARATIVA</div>
+                  <table style={{ width:"100%", borderCollapse:"collapse", fontSize:11, fontFamily:"'DM Mono',monospace" }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign:"left", padding:"6px 8px", color:"#5a5a6a", borderBottom:"1px solid #2a2c3a" }}>SECRETARIA</th>
+                        {meses.map((m) => <th key={m.key} style={{ textAlign:"right", padding:"6px 8px", color:"#5a5a6a", borderBottom:"1px solid #2a2c3a", whiteSpace:"nowrap" }}>{m.label}</th>)}
+                        <th style={{ textAlign:"right", padding:"6px 8px", color:"#f97316", borderBottom:"1px solid #2a2c3a" }}>TOTAL</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dados.sort((a,b) => b.meses.reduce((s,m)=>s+m.valor,0) - a.meses.reduce((s,m)=>s+m.valor,0)).map((sec, si) => {
+                        const total = sec.meses.reduce((s,m) => s+m.valor, 0);
+                        return (
+                          <tr key={sec.nome} style={{ borderBottom:"1px solid #1a1c27" }}>
+                            <td style={{ padding:"8px", color:"#e8e4d9" }}>
+                              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                                <div style={{ width:8, height:8, borderRadius:2, background:cores[si % cores.length], flexShrink:0 }} />
+                                {sec.nome}
+                              </div>
+                            </td>
+                            {sec.meses.map((m, mi) => {
+                              const prev = mi > 0 ? sec.meses[mi-1].valor : null;
+                              const diff = prev !== null && prev > 0 ? ((m.valor - prev) / prev * 100) : null;
+                              return (
+                                <td key={m.mes} style={{ padding:"8px", textAlign:"right", color: m.valor > 0 ? "#e8e4d9" : "#3a3a4a" }}>
+                                  {m.valor > 0 ? fmtBRL(m.valor) : "—"}
+                                  {diff !== null && m.valor > 0 && (
+                                    <div style={{ fontSize:9, color: diff > 0 ? "#ef4444" : "#4ade80" }}>{diff > 0 ? "▲" : "▼"}{Math.abs(diff).toFixed(0)}%</div>
+                                  )}
+                                </td>
+                              );
+                            })}
+                            <td style={{ padding:"8px", textAlign:"right", color:"#f97316", fontWeight:600 }}>{fmtBRL(total)}</td>
+                          </tr>
+                        );
+                      })}
+                      {/* Total geral */}
+                      <tr style={{ borderTop:"2px solid #2a2c3a" }}>
+                        <td style={{ padding:"8px", color:"#f97316", fontWeight:600 }}>TOTAL GERAL</td>
+                        {meses.map((m) => (
+                          <td key={m.key} style={{ padding:"8px", textAlign:"right", color:"#f97316", fontWeight:600 }}>
+                            {fmtBRL(dados.reduce((s,sec) => s + (sec.meses.find(x=>x.mes===m.label)?.valor||0), 0))}
+                          </td>
+                        ))}
+                        <td style={{ padding:"8px", textAlign:"right", color:"#f97316", fontWeight:600 }}>
+                          {fmtBRL(dados.reduce((s,sec) => s + sec.meses.reduce((ss,m2)=>ss+m2.valor,0), 0))}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 
