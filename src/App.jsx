@@ -1312,7 +1312,7 @@ export default function App() {
   const isDark = tema === "escuro";
   const toggleTema = () => { const novo = tema === "escuro" ? "claro" : "escuro"; setTema(novo); cache.set("tema", novo); };
   const online = useOnline();
-  const [activeTab, setActiveTab] = useState(usuario?.perfil === "operador" ? "registrar" : "dashboard");
+  const [activeTab, setActiveTab] = useState(() => { const u = cache.get("usuario_sessao"); return u?.perfil === "operador" ? "registrar" : "dashboard"; });
   const [alertaModal, setAlertaModal] = useState(true); // mostra ao logar
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState("");
@@ -2252,7 +2252,7 @@ export default function App() {
           </div>
         )}
 
-        {!loading && activeTab === "dashboard" && (
+        {!loading && activeTab === "dashboard" && !isOperador && (
           <div className="fade-in">
             {/* Resumo do dia */}
             {(() => {
