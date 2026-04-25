@@ -1,41 +1,4 @@
-/*
- * ═══════════════════════════════════════════════════════════════════
- * ABASTECEPRO - APP.JSX CORRIGIDO COM RLS (ROW LEVEL SECURITY)
- * ═══════════════════════════════════════════════════════════════════
- * 
- * CORREÇÕES APLICADAS (Abril 2026):
- * 
- * ✅ 1. Função `sb()` agora aceita parâmetro `userToken`
- *       - Usa token do usuário autenticado ao invés da chave pública
- *       - Compatível com políticas RLS do Supabase
- * 
- * ✅ 2. Objeto `api` atualizado:
- *       - api.get(table, query, userToken)
- *       - api.post(table, body, userToken)
- *       - api.patch(table, query, body, userToken)
- *       - api.delete(table, query, userToken)
- * 
- * ✅ 3. Função `loadData()` usa token do usuário
- *       - Carrega apenas dados do estabelecimento do usuário
- *       - Admin continua vendo todos os estabelecimentos
- * 
- * ✅ 4. Todas as funções async agora obtêm token:
- *       const token = usuario?.accessToken || SUPABASE_KEY;
- * 
- * 🛡️ SEGURANÇA:
- *    - Cada estabelecimento vê APENAS seus próprios dados
- *    - RLS no banco garante isolamento mesmo com chave pública exposta
- *    - Impossível acessar dados de outros estabelecimentos
- * 
- * 📝 PRÓXIMOS PASSOS:
- *    1. Substituir este arquivo pelo App.jsx original
- *    2. Testar login e carregamento de dados
- *    3. Verificar se cada estabelecimento vê apenas seus dados
- *    4. Configurar gateway de pagamento (Asaas/PagSeguro)
- *    5. Abrir CNPJ e emitir notas fiscais
- * 
- * ═══════════════════════════════════════════════════════════════════
- */
+
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import jsQR from "jsqr"; 
