@@ -483,10 +483,10 @@ function LoginScreen({ onLogin }) {
         const authData = await authLogin(email.trim(), senha.trim());
         const authId = authData.user?.id;
         // 2. Buscar perfil na tabela usuarios pelo auth_id
-        const users = await api.get("usuarios", `auth_id=eq.${authId}&select=*,estabelecimentos(*, token)`);
+        const users = await api.get("usuarios", `auth_id=eq.${authId}&select=*,estabelecimentos(*)`);
         if (users.length === 0) {
           // Fallback: buscar por email (para usuários antigos ainda não migrados)
-          const usersByEmail = await api.get("usuarios", `email=eq.${encodeURIComponent(email.trim())}&select=*,estabelecimentos(*, token)`);
+          const usersByEmail = await api.get("usuarios", `email=eq.${encodeURIComponent(email.trim())}&select=*,estabelecimentos(*)`);
           if (usersByEmail.length === 0) { setError("Usuário não encontrado."); setLoading(false); return; }
           const u = { ...usersByEmail[0], accessToken: authData.access_token };
           cache.set("usuario_sessao", u);
@@ -1489,7 +1489,7 @@ export default function App() {
   };
 
   useEffect(() => { if (!usuario || !online) return; loadData(); }, [usuario, online]);
-  useEffect(() => { if (activeTab === "logs" && isAdmin && online) { api.get("logs", "order=created_at.desc&limit=200", token).then(setLogs).catch(() => {}); } }, [activeTab]);
+  useEffect(() => { if (activeTab === "logs" && isAdmin && online) { const token = usuario?.accessToken || SUPABASE_KEY; api.get("logs", "order=created_at.desc&limit=200", token).then(setLogs).catch(() => {}); } }, [activeTab, usuario]);
   useEffect(() => { if (!online || !usuario) return; syncQueue(); }, [online]);
 
   const loadData = async () => {
@@ -1511,7 +1511,7 @@ export default function App() {
       setRegistros(merged); cache.set("registros", merged);
       setDepartamentos(d); cache.set("departamentos", d);
       if (isAdmin) {
-        const [ests, users] = await Promise.all([api.get("estabelecimentos", "", token), api.get("usuarios", "select=*,estabelecimentos(*, token)", token)]);
+        const [ests, users] = await Promise.all([api.get("estabelecimentos", "", token), api.get("usuarios", "select=*,estabelecimentos(*)", token)]);
         setEstabelecimentos(ests); setUsuarios(users);
       }
     } catch (e) { console.error(e); }
@@ -1546,6 +1546,7 @@ export default function App() {
   const startVeicScan = () => { motScanner.stop(); setVeicScanErr(""); veicScanner.start(); };
 
   const handleRegistrar = async () => {
+    const token = usuario?.accessToken || SUPABASE_KEY;
     const e = {};
     if (!scannedMot) e.motoristaId = "Identifique o motorista";
     if (!scannedVeic) e.placaId = "Identifique o veículo";
@@ -1577,6 +1578,7 @@ export default function App() {
   };
 
   const handleMotSubmit = async () => {
+    const token = usuario?.accessToken || SUPABASE_KEY;
     const e = {}; if (!motForm.nome.trim()) e.nome = "Obrigatório"; if (!motForm.departamento) e.departamento = "Selecione";
     if (Object.keys(e).length > 0) { setMotErrors(e); return; }
     if (!online) { alert("Precisa de conexão."); return; }
@@ -1592,18 +1594,19 @@ export default function App() {
     const e = {}; if (!veicForm.placa.trim()) e.placa = "Obrigatório"; else if (veiculos.some((v) => v.placa.toUpperCase() === veicForm.placa.toUpperCase())) e.placa = "Placa já cadastrada"; if (!veicForm.departamento) e.departamento = "Selecione";
     if (Object.keys(e).length > 0) { setVeicErrors(e); return; }
     if (!online) { alert("Precisa de conexão."); return; }
-    try { const novo = await api.post("veiculos", { ...veicForm, placa: veicForm.placa.toUpperCase(, token), estabelecimento_id: estId }); const atualizado = [...veiculos, novo[0]]; setVeiculos(atualizado); cache.set("veiculos", atualizado); setVeicForm({ placa: "", modelo: "", ano: "", departamento: "" }); setVeicOk(true); setTimeout(() => setVeicOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
+    try { const novo = await api.post("veiculos", { ...veicForm, placa: veicForm.placa.toUpperCase(), estabelecimento_id: estId }, token); const atualizado = [...veiculos, novo[0]]; setVeiculos(atualizado); cache.set("veiculos", atualizado); setVeicForm({ placa: "", modelo: "", ano: "", departamento: "" }); setVeicOk(true); setTimeout(() => setVeicOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
   };
 
   const handleAddDpto = async () => {
     const token = usuario?.accessToken || SUPABASE_KEY;
     if (!novoDpto.trim()) { setDptoError("Informe o nome"); return; } if (departamentos.includes(novoDpto.trim())) { setDptoError("Já cadastrado"); return; }
     if (!online) { alert("Precisa de conexão."); return; }
-    try { await api.post("departamentos", { nome: novoDpto.trim(, token), estabelecimento_id: estId }); const atualizado = [...departamentos, novoDpto.trim()]; setDepartamentos(atualizado); cache.set("departamentos", atualizado); setNovoDpto(""); setDptoError(""); setDptoOk(true); setTimeout(() => setDptoOk(false), 2000); } catch (err) { alert("Erro: " + err.message); }
+    try { await api.post("departamentos", { nome: novoDpto.trim(), estabelecimento_id: estId }, token); const atualizado = [...departamentos, novoDpto.trim()]; setDepartamentos(atualizado); cache.set("departamentos", atualizado); setNovoDpto(""); setDptoError(""); setDptoOk(true); setTimeout(() => setDptoOk(false), 2000); } catch (err) { alert("Erro: " + err.message); }
   };
 
   const handleEstSubmit = async () => {
     if (!estForm.nome.trim()) return;
+    const token = usuario?.accessToken || SUPABASE_KEY;
     try { const novo = await api.post("estabelecimentos", estForm, token); setEstabelecimentos((e) => [...e, novo[0]]); setEstForm({ nome: "", cnpj: "", telefone: "" }); setEstOk(true); setTimeout(() => setEstOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
   };
 
@@ -1633,6 +1636,7 @@ export default function App() {
   };
 
   const handleUserSubmit = async () => {
+    const token = usuario?.accessToken || SUPABASE_KEY;
     if (!userForm.nome.trim() || !userForm.email.trim()) return;
     if (!userForm.estabelecimento_id) { alert("Selecione um estabelecimento"); return; }
     try {
@@ -1651,7 +1655,7 @@ export default function App() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || data.hint || "Erro ao criar usuário");
       // Recarregar lista de usuários
-      const users = await api.get("usuarios", "select=*,estabelecimentos(*, token)");
+      const users = await api.get("usuarios", "select=*,estabelecimentos(*)", token);
       setUsuarios(users);
       setUserForm({ nome: "", email: "", perfil: "gestor", estabelecimento_id: "" });
       setUserOk(true); setTimeout(() => setUserOk(false), 2200);
@@ -2679,7 +2683,7 @@ export default function App() {
           <div className="fade-in">
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
               <SectionTitle icon="📋">Log de Atividades</SectionTitle>
-              <button onClick={() => api.get("logs","order=created_at.desc&limit=200", token).then(setLogs)} style={{ padding:"7px 14px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:8, color:"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>🔄 Atualizar</button>
+              <button onClick={() => { const token = usuario?.accessToken || SUPABASE_KEY; api.get("logs","order=created_at.desc&limit=200", token).then(setLogs); }} style={{ padding:"7px 14px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:8, color:"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>🔄 Atualizar</button>
             </div>
             {logs.length === 0 ? <EmptyState>Nenhuma atividade registrada.</EmptyState> : (
               <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
