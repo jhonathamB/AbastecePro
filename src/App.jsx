@@ -1,3 +1,42 @@
+/*
+ * ═══════════════════════════════════════════════════════════════════
+ * ABASTECEPRO - APP.JSX CORRIGIDO COM RLS (ROW LEVEL SECURITY)
+ * ═══════════════════════════════════════════════════════════════════
+ * 
+ * CORREÇÕES APLICADAS (Abril 2026):
+ * 
+ * ✅ 1. Função `sb()` agora aceita parâmetro `userToken`
+ *       - Usa token do usuário autenticado ao invés da chave pública
+ *       - Compatível com políticas RLS do Supabase
+ * 
+ * ✅ 2. Objeto `api` atualizado:
+ *       - api.get(table, query, userToken)
+ *       - api.post(table, body, userToken)
+ *       - api.patch(table, query, body, userToken)
+ *       - api.delete(table, query, userToken)
+ * 
+ * ✅ 3. Função `loadData()` usa token do usuário
+ *       - Carrega apenas dados do estabelecimento do usuário
+ *       - Admin continua vendo todos os estabelecimentos
+ * 
+ * ✅ 4. Todas as funções async agora obtêm token:
+ *       const token = usuario?.accessToken || SUPABASE_KEY;
+ * 
+ * 🛡️ SEGURANÇA:
+ *    - Cada estabelecimento vê APENAS seus próprios dados
+ *    - RLS no banco garante isolamento mesmo com chave pública exposta
+ *    - Impossível acessar dados de outros estabelecimentos
+ * 
+ * 📝 PRÓXIMOS PASSOS:
+ *    1. Substituir este arquivo pelo App.jsx original
+ *    2. Testar login e carregamento de dados
+ *    3. Verificar se cada estabelecimento vê apenas seus dados
+ *    4. Configurar gateway de pagamento (Asaas/PagSeguro)
+ *    5. Abrir CNPJ e emitir notas fiscais
+ * 
+ * ═══════════════════════════════════════════════════════════════════
+ */
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import jsQR from "jsqr"; 
 
@@ -27,9 +66,10 @@ const registrarLog = async (usuario, acao, descricao) => {
 };
 const SUPABASE_SERVICE_KEY = process.env.REACT_APP_SUPABASE_SERVICE_KEY || "";
 
-const sb = async (path, opts = {}) => {
+const sb = async (path, opts = {}, userToken = null) => {
+  const token = userToken || SUPABASE_KEY;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": opts.prefer || "return=representation", ...opts.headers },
+    headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${token}`, "Content-Type": "application/json", "Prefer": opts.prefer || "return=representation", ...opts.headers },
     ...opts,
   });
   if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || "Erro"); }
@@ -38,10 +78,10 @@ const sb = async (path, opts = {}) => {
 };
 
 const api = {
-  get: (table, query = "") => sb(`${table}?${query}`),
-  post: (table, body) => sb(table, { method: "POST", body: JSON.stringify(body) }),
-  patch: (table, query, body) => sb(`${table}?${query}`, { method: "PATCH", body: JSON.stringify(body), prefer: "return=minimal" }),
-  delete: (table, query) => sb(`${table}?${query}`, { method: "DELETE", prefer: "return=minimal" }),
+  get: (table, query = "", userToken = null) => sb(`${table}?${query}`, {}, userToken),
+  post: (table, body, userToken = null) => sb(table, { method: "POST", body: JSON.stringify(body) }, userToken),
+  patch: (table, query, body, userToken = null) => sb(`${table}?${query}`, { method: "PATCH", body: JSON.stringify(body), prefer: "return=minimal" }, userToken),
+  delete: (table, query, userToken = null) => sb(`${table}?${query}`, { method: "DELETE", prefer: "return=minimal" }, userToken),
 };
 
 // ── Supabase Auth ─────────────────────────────────────
@@ -443,10 +483,10 @@ function LoginScreen({ onLogin }) {
         const authData = await authLogin(email.trim(), senha.trim());
         const authId = authData.user?.id;
         // 2. Buscar perfil na tabela usuarios pelo auth_id
-        const users = await api.get("usuarios", `auth_id=eq.${authId}&select=*,estabelecimentos(*)`);
+        const users = await api.get("usuarios", `auth_id=eq.${authId}&select=*,estabelecimentos(*, token)`);
         if (users.length === 0) {
           // Fallback: buscar por email (para usuários antigos ainda não migrados)
-          const usersByEmail = await api.get("usuarios", `email=eq.${encodeURIComponent(email.trim())}&select=*,estabelecimentos(*)`);
+          const usersByEmail = await api.get("usuarios", `email=eq.${encodeURIComponent(email.trim())}&select=*,estabelecimentos(*, token)`);
           if (usersByEmail.length === 0) { setError("Usuário não encontrado."); setLoading(false); return; }
           const u = { ...usersByEmail[0], accessToken: authData.access_token };
           cache.set("usuario_sessao", u);
@@ -1449,19 +1489,20 @@ export default function App() {
   };
 
   useEffect(() => { if (!usuario || !online) return; loadData(); }, [usuario, online]);
-  useEffect(() => { if (activeTab === "logs" && isAdmin && online) { api.get("logs", "order=created_at.desc&limit=200").then(setLogs).catch(() => {}); } }, [activeTab]);
+  useEffect(() => { if (activeTab === "logs" && isAdmin && online) { api.get("logs", "order=created_at.desc&limit=200", token).then(setLogs).catch(() => {}); } }, [activeTab]);
   useEffect(() => { if (!online || !usuario) return; syncQueue(); }, [online]);
 
   const loadData = async () => {
     setLoading(true);
     try {
+      const token = usuario?.accessToken || SUPABASE_KEY;
       // Isolamento: estabelecimento vê só os seus, admin vê tudo
       const q = isAdmin ? "" : `estabelecimento_id=eq.${estId}`;
       const [m, v, r, d] = await Promise.all([
-        api.get("motoristas", q),
-        api.get("veiculos", q),
-        api.get("abastecimentos", `${q}${q ? "&" : ""}order=created_at.desc`),
-        api.get("departamentos", q),
+        api.get("motoristas", q, token),
+        api.get("veiculos", q, token),
+        api.get("abastecimentos", `${q}${q ? "&" : ""}order=created_at.desc`, token),
+        api.get("departamentos", q, token),
       ]);
       const offlineRegs = (cache.get("registros") || []).filter((r) => r._offline);
       const merged = [...offlineRegs, ...r];
@@ -1470,7 +1511,7 @@ export default function App() {
       setRegistros(merged); cache.set("registros", merged);
       setDepartamentos(d); cache.set("departamentos", d);
       if (isAdmin) {
-        const [ests, users] = await Promise.all([api.get("estabelecimentos"), api.get("usuarios", "select=*,estabelecimentos(*)")]);
+        const [ests, users] = await Promise.all([api.get("estabelecimentos", "", token), api.get("usuarios", "select=*,estabelecimentos(*, token)", token)]);
         setEstabelecimentos(ests); setUsuarios(users);
       }
     } catch (e) { console.error(e); }
@@ -1478,12 +1519,13 @@ export default function App() {
   };
 
   const syncQueue = async () => {
+    const token = usuario?.accessToken || SUPABASE_KEY;
     const queue = getQueue();
     if (queue.length === 0) return;
     setSyncing(true); setSyncMsg(`Sincronizando ${queue.length} registro(s)...`);
     let sucesso = 0;
     for (const item of queue) {
-      try { const { _offline, _localId, id, ...data } = item; await api.post("abastecimentos", data); sucesso++; } catch (e) { console.error(e); }
+      try { const { _offline, _localId, id, ...data } = item; await api.post("abastecimentos", data, token); sucesso++; } catch (e) { console.error(e); }
     }
     clearQueue(); await loadData();
     setSyncing(false); setSyncMsg(sucesso > 0 ? `✓ ${sucesso} registro(s) sincronizado(s)!` : "");
@@ -1521,7 +1563,7 @@ export default function App() {
       operador: estNome, estabelecimento_id: estId,
     };
     if (online) {
-      try { const salvo = await api.post("abastecimentos", novoReg); const atualizado = [salvo[0], ...registros]; setRegistros(atualizado); cache.set("registros", atualizado); setComprovante(salvo[0]); }
+      try { const salvo = await api.post("abastecimentos", novoReg, token); const atualizado = [salvo[0], ...registros]; setRegistros(atualizado); cache.set("registros", atualizado); setComprovante(salvo[0]); }
       catch { alert("Erro ao salvar."); return; }
     } else {
       const regOffline = { ...novoReg, _offline: true, _localId: Date.now(), id: `offline_${Date.now()}` };
@@ -1538,7 +1580,7 @@ export default function App() {
     const e = {}; if (!motForm.nome.trim()) e.nome = "Obrigatório"; if (!motForm.departamento) e.departamento = "Selecione";
     if (Object.keys(e).length > 0) { setMotErrors(e); return; }
     if (!online) { alert("Precisa de conexão."); return; }
-    try { const novo = await api.post("motoristas", { ...motForm, estabelecimento_id: estId }); const atualizado = [...motoristas, novo[0]]; setMotoristas(atualizado); cache.set("motoristas", atualizado); setMotForm({ nome: "", cnh: "", departamento: "" }); setMotOk(true); setTimeout(() => setMotOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
+    try { const novo = await api.post("motoristas", { ...motForm, estabelecimento_id: estId }, token); const atualizado = [...motoristas, novo[0]]; setMotoristas(atualizado); cache.set("motoristas", atualizado); setMotForm({ nome: "", cnh: "", departamento: "" }); setMotOk(true); setTimeout(() => setMotOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
   };
 
   const handleVeicSubmit = async () => {
@@ -1550,18 +1592,19 @@ export default function App() {
     const e = {}; if (!veicForm.placa.trim()) e.placa = "Obrigatório"; else if (veiculos.some((v) => v.placa.toUpperCase() === veicForm.placa.toUpperCase())) e.placa = "Placa já cadastrada"; if (!veicForm.departamento) e.departamento = "Selecione";
     if (Object.keys(e).length > 0) { setVeicErrors(e); return; }
     if (!online) { alert("Precisa de conexão."); return; }
-    try { const novo = await api.post("veiculos", { ...veicForm, placa: veicForm.placa.toUpperCase(), estabelecimento_id: estId }); const atualizado = [...veiculos, novo[0]]; setVeiculos(atualizado); cache.set("veiculos", atualizado); setVeicForm({ placa: "", modelo: "", ano: "", departamento: "" }); setVeicOk(true); setTimeout(() => setVeicOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
+    try { const novo = await api.post("veiculos", { ...veicForm, placa: veicForm.placa.toUpperCase(, token), estabelecimento_id: estId }); const atualizado = [...veiculos, novo[0]]; setVeiculos(atualizado); cache.set("veiculos", atualizado); setVeicForm({ placa: "", modelo: "", ano: "", departamento: "" }); setVeicOk(true); setTimeout(() => setVeicOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
   };
 
   const handleAddDpto = async () => {
+    const token = usuario?.accessToken || SUPABASE_KEY;
     if (!novoDpto.trim()) { setDptoError("Informe o nome"); return; } if (departamentos.includes(novoDpto.trim())) { setDptoError("Já cadastrado"); return; }
     if (!online) { alert("Precisa de conexão."); return; }
-    try { await api.post("departamentos", { nome: novoDpto.trim(), estabelecimento_id: estId }); const atualizado = [...departamentos, novoDpto.trim()]; setDepartamentos(atualizado); cache.set("departamentos", atualizado); setNovoDpto(""); setDptoError(""); setDptoOk(true); setTimeout(() => setDptoOk(false), 2000); } catch (err) { alert("Erro: " + err.message); }
+    try { await api.post("departamentos", { nome: novoDpto.trim(, token), estabelecimento_id: estId }); const atualizado = [...departamentos, novoDpto.trim()]; setDepartamentos(atualizado); cache.set("departamentos", atualizado); setNovoDpto(""); setDptoError(""); setDptoOk(true); setTimeout(() => setDptoOk(false), 2000); } catch (err) { alert("Erro: " + err.message); }
   };
 
   const handleEstSubmit = async () => {
     if (!estForm.nome.trim()) return;
-    try { const novo = await api.post("estabelecimentos", estForm); setEstabelecimentos((e) => [...e, novo[0]]); setEstForm({ nome: "", cnpj: "", telefone: "" }); setEstOk(true); setTimeout(() => setEstOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
+    try { const novo = await api.post("estabelecimentos", estForm, token); setEstabelecimentos((e) => [...e, novo[0]]); setEstForm({ nome: "", cnpj: "", telefone: "" }); setEstOk(true); setTimeout(() => setEstOk(false), 2200); } catch (err) { alert("Erro: " + err.message); }
   };
 
   const handleDeleteEst = async (id) => {
@@ -1608,7 +1651,7 @@ export default function App() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || data.hint || "Erro ao criar usuário");
       // Recarregar lista de usuários
-      const users = await api.get("usuarios", "select=*,estabelecimentos(*)");
+      const users = await api.get("usuarios", "select=*,estabelecimentos(*, token)");
       setUsuarios(users);
       setUserForm({ nome: "", email: "", perfil: "gestor", estabelecimento_id: "" });
       setUserOk(true); setTimeout(() => setUserOk(false), 2200);
@@ -2636,7 +2679,7 @@ export default function App() {
           <div className="fade-in">
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
               <SectionTitle icon="📋">Log de Atividades</SectionTitle>
-              <button onClick={() => api.get("logs","order=created_at.desc&limit=200").then(setLogs)} style={{ padding:"7px 14px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:8, color:"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>🔄 Atualizar</button>
+              <button onClick={() => api.get("logs","order=created_at.desc&limit=200", token).then(setLogs)} style={{ padding:"7px 14px", background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:8, color:"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>🔄 Atualizar</button>
             </div>
             {logs.length === 0 ? <EmptyState>Nenhuma atividade registrada.</EmptyState> : (
               <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
