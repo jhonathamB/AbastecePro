@@ -1342,6 +1342,11 @@ export default function App() {
   const [filtroEstDash, setFiltroEstDash] = useState("");
   const [pagina, setPagina] = useState(1);
   const POR_PAGINA = 20;
+  const [filtroData, setFiltroData] = useState("");
+  const [novoAbastModal, setNovoAbastModal] = useState(false);
+  const [novoAbastForm, setNovoAbastForm] = useState({ dataHora: now(), motoristaId: "", veiculoId: "", combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "", cupom_fiscal: "" });
+  const [novoAbastErrors, setNovoAbastErrors] = useState({});
+  const [novoAbastOk, setNovoAbastOk] = useState(false);
 
   const [form, setForm] = useState({ dataHora: now(), combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "", cupom_fiscal: "" });
   const [ultimoMot, setUltimoMot] = useState(() => cache.get("ultimo_motorista"));
@@ -1538,6 +1543,43 @@ export default function App() {
     if (veic) { setUltimoVeic(veic); cache.set("ultimo_veiculo", veic); }
     registrarLog(usuario, "ABASTECIMENTO_CRIADO", (veic?.placa||"") + " · " + (mot?.nome||"") + " · " + fmtBRL(parseFloat(form.custo)||0));
     setForm({ dataHora: now(), combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "", cupom_fiscal: "" });
+  };
+
+  const handleNovoAbast = async () => {
+    const token = usuario?.accessToken || SUPABASE_KEY;
+    const e = {};
+    if (!novoAbastForm.motoristaId) e.motoristaId = "Selecione o motorista";
+    if (!novoAbastForm.veiculoId) e.veiculoId = "Selecione o veículo";
+    if (!novoAbastForm.quantidade || +novoAbastForm.quantidade <= 0) e.quantidade = "Inválido";
+    if (!novoAbastForm.custo || +novoAbastForm.custo <= 0) e.custo = "Inválido";
+    if (Object.keys(e).length > 0) { setNovoAbastErrors(e); return; }
+    const mot = motoristasVisiveis.find((m) => m.id === novoAbastForm.motoristaId);
+    const veic = veiculosVisiveis.find((v) => v.id === novoAbastForm.veiculoId);
+    const estRef = isAdmin && filtroEstDash ? estabelecimentos.find((x) => x.nome === filtroEstDash) : null;
+    const novoReg = {
+      data_hora: new Date(novoAbastForm.dataHora).toISOString(),
+      motorista_id: mot.id, motorista_nome: mot.nome, motorista_cnh: mot.cnh || null,
+      veiculo_id: veic.id, placa: veic.placa, modelo: veic.modelo,
+      departamento: veic.departamento, combustivel: novoAbastForm.combustivel,
+      quantidade: parseFloat(novoAbastForm.quantidade), custo: parseFloat(novoAbastForm.custo),
+      hodometro: novoAbastForm.hodometro ? parseFloat(novoAbastForm.hodometro) : null,
+      cupom_fiscal: novoAbastForm.cupom_fiscal || null,
+      operador: estRef ? estRef.nome : estNome,
+      estabelecimento_id: estRef ? estRef.id : estId,
+    };
+    try {
+      const salvo = await api.post("abastecimentos", novoReg, token);
+      const atualizado = [salvo[0], ...registros];
+      setRegistros(atualizado); cache.set("registros", atualizado);
+      registrarLog(usuario, "ABASTECIMENTO_MANUAL", (veic?.placa||"") + " · " + (mot?.nome||"") + " · " + fmtBRL(parseFloat(novoAbastForm.custo)||0));
+      setNovoAbastOk(true);
+      setTimeout(() => {
+        setNovoAbastOk(false);
+        setNovoAbastModal(false);
+        setNovoAbastForm({ dataHora: now(), motoristaId: "", veiculoId: "", combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "", cupom_fiscal: "" });
+        setNovoAbastErrors({});
+      }, 1500);
+    } catch (err) { alert("Erro ao salvar: " + err.message); }
   };
 
   const handleMotSubmit = async () => {
@@ -1782,9 +1824,11 @@ export default function App() {
 
   const handleSaveEditReg = async () => {
     if (!editReg) return;
-    const criado = new Date(editReg.data_hora || 0);
-    const diffMin = (Date.now() - criado.getTime()) / 60000;
-    if (diffMin > 30) { alert("Prazo de 30 minutos expirado. Não é possível editar este registro."); setEditReg(null); return; }
+    if (!isAdmin) {
+      const criado = new Date(editReg.data_hora || 0);
+      const diffMin = (Date.now() - criado.getTime()) / 60000;
+      if (diffMin > 30) { alert("Prazo de 30 minutos expirado. Não é possível editar este registro."); setEditReg(null); return; }
+    }
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/abastecimentos?id=eq.${editReg.id}`, {
         method: "PATCH",
@@ -1844,12 +1888,15 @@ export default function App() {
 
   // Registros filtrados para a lista
   const regsVisiveis = isAdmin && filtroEstDash ? registros.filter((r) => r.operador === filtroEstDash) : registros;
-  const filtered = regsVisiveis.filter((r) =>
-    r.placa?.toUpperCase().includes(search.toUpperCase()) ||
-    r.motorista_nome?.toLowerCase().includes(search.toLowerCase()) ||
-    r.departamento?.toLowerCase().includes(search.toLowerCase()) ||
-    r.operador?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = regsVisiveis.filter((r) => {
+    if (filtroData && !(r.data_hora || "").startsWith(filtroData)) return false;
+    return (
+      r.placa?.toUpperCase().includes(search.toUpperCase()) ||
+      r.motorista_nome?.toLowerCase().includes(search.toLowerCase()) ||
+      r.departamento?.toLowerCase().includes(search.toLowerCase()) ||
+      r.operador?.toLowerCase().includes(search.toLowerCase())
+    );
+  });
 
   if (!usuario) return <LoginScreen onLogin={handleLogin} />;
 
@@ -2069,7 +2116,9 @@ export default function App() {
           <div onClick={(e) => e.stopPropagation()} style={{ background:"#1a1c27", border:"1px solid #38bdf8", borderRadius:16, padding:28, maxWidth:420, width:"90%" }}>
             <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:16, color:"#fff", marginBottom:4 }}>✏️ Corrigir Abastecimento</div>
             <div style={{ fontSize:11, color:"#38bdf8", marginBottom:20 }}>
-              {(() => {
+              {isAdmin ? (
+                <span>✏️ Edição pelo admin — sem limite de tempo</span>
+              ) : (() => {
                 const criado = new Date(editReg.data_hora || 0);
                 const diffMin = (Date.now() - criado.getTime()) / 60000;
                 const restante = Math.max(0, Math.ceil(30 - diffMin));
@@ -2110,6 +2159,72 @@ export default function App() {
       )}
 
       {comprovante && <Comprovante registro={comprovante} estabelecimento={estNome} onClose={() => { setComprovante(null); setScannedMot(null); setScannedVeic(null); setForm({ dataHora: now(), combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "", cupom_fiscal: "" }); setFormErrors({}); }} />}
+
+      {/* Modal Novo Abastecimento Manual */}
+      {novoAbastModal && (
+        <div className="qr-overlay" onClick={() => { setNovoAbastModal(false); setNovoAbastErrors({}); }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background:"#1a1c27", border:"1px solid #f97316", borderRadius:16, padding:28, maxWidth:480, width:"90%", maxHeight:"90vh", overflowY:"auto" }}>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:16, color:"#fff", marginBottom:4 }}>⛽ Novo Abastecimento</div>
+            <div style={{ fontSize:11, color:"#f97316", marginBottom:20, letterSpacing:1 }}>LANÇAMENTO MANUAL — ADMIN</div>
+            {novoAbastOk && <div style={{ background:"#14532d", border:"1px solid #16a34a", borderRadius:8, padding:"10px 14px", marginBottom:16, fontSize:13, color:"#4ade80" }}>✓ Abastecimento registrado com sucesso!</div>}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+              <div style={{ gridColumn:"1/-1" }}>
+                <label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>DATA E HORA</label>
+                <input type="datetime-local" value={novoAbastForm.dataHora} onChange={(e) => setNovoAbastForm((f) => ({ ...f, dataHora: e.target.value }))} style={iS()} />
+              </div>
+              <div style={{ gridColumn:"1/-1" }}>
+                <label style={{ fontSize:10, color: novoAbastErrors.motoristaId?"#ef4444":"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>MOTORISTA</label>
+                <select value={novoAbastForm.motoristaId} onChange={(e) => { setNovoAbastForm((f) => ({ ...f, motoristaId: e.target.value })); setNovoAbastErrors((er) => ({ ...er, motoristaId: undefined })); }} style={iS(novoAbastErrors.motoristaId)}>
+                  <option value="">— Selecione —</option>
+                  {motoristasVisiveis.map((m) => <option key={m.id} value={m.id}>{m.nome} · {m.departamento}</option>)}
+                </select>
+                {novoAbastErrors.motoristaId && <span style={{ fontSize:11, color:"#ef4444" }}>{novoAbastErrors.motoristaId}</span>}
+              </div>
+              <div style={{ gridColumn:"1/-1" }}>
+                <label style={{ fontSize:10, color: novoAbastErrors.veiculoId?"#ef4444":"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>VEÍCULO</label>
+                <select value={novoAbastForm.veiculoId} onChange={(e) => { setNovoAbastForm((f) => ({ ...f, veiculoId: e.target.value })); setNovoAbastErrors((er) => ({ ...er, veiculoId: undefined })); }} style={iS(novoAbastErrors.veiculoId)}>
+                  <option value="">— Selecione —</option>
+                  {veiculosVisiveis.filter((v) => v.status !== "inativo").map((v) => <option key={v.id} value={v.id}>{v.placa}{v.modelo ? " · " + v.modelo : ""} — {v.departamento}</option>)}
+                </select>
+                {novoAbastErrors.veiculoId && <span style={{ fontSize:11, color:"#ef4444" }}>{novoAbastErrors.veiculoId}</span>}
+              </div>
+              <div style={{ gridColumn:"1/-1" }}>
+                <label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>TIPO DE COMBUSTÍVEL</label>
+                <select value={novoAbastForm.combustivel} onChange={(e) => setNovoAbastForm((f) => ({ ...f, combustivel: e.target.value }))} style={iS()}>
+                  {COMBUSTIVEIS.map((c) => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize:10, color: novoAbastErrors.quantidade?"#ef4444":"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>QUANTIDADE (L)</label>
+                <input type="number" min="0" step="0.01" placeholder="0.00" value={novoAbastForm.quantidade} onChange={(e) => { setNovoAbastForm((f) => ({ ...f, quantidade: e.target.value })); setNovoAbastErrors((er) => ({ ...er, quantidade: undefined })); }} style={iS(novoAbastErrors.quantidade)} />
+                {novoAbastErrors.quantidade && <span style={{ fontSize:11, color:"#ef4444" }}>{novoAbastErrors.quantidade}</span>}
+              </div>
+              <div>
+                <label style={{ fontSize:10, color: novoAbastErrors.custo?"#ef4444":"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>CUSTO TOTAL (R$)</label>
+                <input type="number" min="0" step="0.01" placeholder="0.00" value={novoAbastForm.custo} onChange={(e) => { setNovoAbastForm((f) => ({ ...f, custo: e.target.value })); setNovoAbastErrors((er) => ({ ...er, custo: undefined })); }} style={iS(novoAbastErrors.custo)} />
+                {novoAbastErrors.custo && <span style={{ fontSize:11, color:"#ef4444" }}>{novoAbastErrors.custo}</span>}
+              </div>
+              <div>
+                <label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>HODÔMETRO (KM) — OPCIONAL</label>
+                <input type="number" min="0" placeholder="Ex: 45230" value={novoAbastForm.hodometro} onChange={(e) => setNovoAbastForm((f) => ({ ...f, hodometro: e.target.value }))} style={iS()} />
+              </div>
+              <div>
+                <label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>CUPOM FISCAL — OPCIONAL</label>
+                <input type="text" placeholder="Ex: 257302" value={novoAbastForm.cupom_fiscal} onChange={(e) => setNovoAbastForm((f) => ({ ...f, cupom_fiscal: e.target.value }))} style={iS()} />
+              </div>
+            </div>
+            {+novoAbastForm.quantidade > 0 && +novoAbastForm.custo > 0 && (
+              <div style={{ marginTop:12, padding:"10px 16px", background:"#0f1117", borderRadius:8, fontSize:12, color:"#8a8a9a" }}>
+                Preço/litro: <strong style={{ color:"#f97316" }}>{fmtBRL(parseFloat(novoAbastForm.custo) / parseFloat(novoAbastForm.quantidade))}</strong>
+              </div>
+            )}
+            <div style={{ display:"flex", gap:8, marginTop:20 }}>
+              <button onClick={handleNovoAbast} disabled={novoAbastOk} className="sbtn" style={{ flex:1, padding:"13px", background:"#f97316", border:"none", borderRadius:10, color:"#fff", fontFamily:"inherit", fontSize:13, fontWeight:700, letterSpacing:1, cursor:"pointer", opacity: novoAbastOk ? 0.7 : 1 }}>⛽ REGISTRAR</button>
+              <button onClick={() => { setNovoAbastModal(false); setNovoAbastErrors({}); }} style={{ padding:"13px 16px", background:"none", border:"1px solid #3a2020", borderRadius:10, color:"#ef4444", fontFamily:"inherit", fontSize:13, cursor:"pointer" }}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {qrModal && (
         <div className="qr-overlay" onClick={() => setQrModal(null)}>
@@ -2369,9 +2484,18 @@ export default function App() {
               ))}
             </div>
             <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-              <input type="text" placeholder="🔍  Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ ...iS(), flex: 1, fontSize: 13, minWidth: 200 }} />
-
-
+              <input type="text" placeholder="🔍  Buscar..." value={search} onChange={(e) => { setSearch(e.target.value); setPagina(1); }} style={{ ...iS(), flex: 1, fontSize: 13, minWidth: 160 }} />
+              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <input type="date" value={filtroData} onChange={(e) => { setFiltroData(e.target.value); setPagina(1); }} title="Filtrar por data" style={{ ...iS(), fontSize:13, width:"auto", cursor:"pointer" }} />
+                {filtroData && (
+                  <button onClick={() => { setFiltroData(""); setPagina(1); }} title="Limpar filtro de data" style={{ background:"none", border:"1px solid #3a3a4a", borderRadius:6, color:"#8a8a9a", cursor:"pointer", padding:"8px 10px", fontSize:12, fontFamily:"inherit" }}>✕</button>
+                )}
+              </div>
+              {isAdmin && (
+                <button onClick={() => { setNovoAbastForm({ dataHora: now(), motoristaId: "", veiculoId: "", combustivel: COMBUSTIVEIS[0], quantidade: "", custo: "", hodometro: "", cupom_fiscal: "" }); setNovoAbastErrors({}); setNovoAbastOk(false); setNovoAbastModal(true); }} className="sbtn" style={{ background:"#f97316", border:"none", borderRadius:8, color:"#fff", fontFamily:"inherit", fontSize:12, fontWeight:600, cursor:"pointer", padding:"10px 16px", whiteSpace:"nowrap", letterSpacing:0.5 }}>
+                  + Novo Abastecimento
+                </button>
+              )}
             </div>
             {filtered.length === 0 ? <EmptyState>Nenhum registro.</EmptyState> : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
