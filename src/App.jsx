@@ -2255,7 +2255,7 @@ export default function App() {
 
       {/* Header */}
       <div className="header-inner" style={{ background: "linear-gradient(135deg,#1a1c27 0%,#0f1117 100%)", borderBottom: "1px solid #1e2030", padding: "20px 28px 0" }}>
-        <div style={{ maxWidth: 960, margin: "0 auto", width:"100%" }}>
+        <div style={{ maxWidth: "100%", margin: "0 auto", width:"100%" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div style={{ width: 38, height: 38, borderRadius: 10, background: "#f97316", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⛽</div>
@@ -2328,7 +2328,7 @@ export default function App() {
         </div>
       )}
 
-      <div className="pad-main" style={{ maxWidth: 960, margin: "0 auto", padding: "24px 28px" }}>
+      <div className="pad-main" style={{ maxWidth: "100%", margin: "0 auto", padding: "24px 28px" }}>
         {loading && <div style={{ textAlign: "center", padding: 40, color: "#5a5a6a" }}>Carregando...</div>}
 
         {/* DASHBOARD */}
