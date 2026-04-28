@@ -579,10 +579,11 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   };
 
   const regs = filtrarPeriodo(registros);
+  const registrosFiltradosEst = filtroEst ? registros.filter((r) => r.operador === filtroEst) : registros;
   const estabelecimentosUnicos = [...new Set(registros.map((r) => r.operador).filter(Boolean))];
-  const secretariasUnicas = [...new Set(registros.map((r) => r.departamento).filter(Boolean))];
-  const placasUnicas = [...new Set(registros.map((r) => r.placa).filter(Boolean))];
-  const motoristasUnicos = [...new Set(registros.map((r) => r.motorista_nome).filter(Boolean))];
+  const secretariasUnicas = [...new Set(registrosFiltradosEst.map((r) => r.departamento).filter(Boolean))];
+  const placasUnicas = [...new Set(registrosFiltradosEst.map((r) => r.placa).filter(Boolean))];
+  const motoristasUnicos = [...new Set(registrosFiltradosEst.map((r) => r.motorista_nome).filter(Boolean))];
 
   // Resumo agrupado
   const campos = { departamento: "departamento", veiculo: "placa", motorista: "motorista_nome", combustivel: "combustivel", estabelecimento: "operador" };
