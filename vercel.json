@@ -1,11 +1,11 @@
 {
-  "rewrites": [
-    { "source": "/landing", "destination": "/landing.html" }
-  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "build",
   "routes": [
     { "src": "/", "dest": "/landing.html" },
-    { "src": "/login", "dest": "/index.html" },
-    { "src": "/dashboard(.*)", "dest": "/index.html" },
+    { "src": "/landing", "dest": "/landing.html" },
+    { "src": "/static/(.*)", "dest": "/static/$1" },
+    { "src": "/(.*\\.(js|css|png|jpg|ico|json|svg|woff|woff2))", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
