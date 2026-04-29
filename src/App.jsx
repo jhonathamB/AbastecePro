@@ -551,7 +551,7 @@ function Divider() { return <div style={{ borderTop: "1px dashed #ccc", margin: 
 function Row({ label, value }) { return <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}><span style={{ color: "#666" }}>{label}:</span><span style={{ fontWeight: 500, textAlign: "right", maxWidth: "60%" }}>{value}</span></div>; }
 
 // ── Relatórios ────────────────────────────────────────
-function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, podePDF, podeKmL, podeFinanceiro, filtroEstDashProp }) {
+function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, podePDF, podeKmL, podeFinanceiro, podeComparativo, filtroEstDashProp }) {
   const [aba, setAba] = useState("resumo"); // resumo | secretaria | historico | consumo | financeiro
   const [tipo, setTipo] = useState("departamento");
   const [periodo, setPeriodo] = useState("todos");
@@ -827,7 +827,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
       <div className="tabs-scroll" style={{ overflowX:"auto", marginBottom:16, paddingBottom:8 }}>
         <div style={{ display:"flex", gap:6, minWidth:"max-content", paddingRight:8 }}>
           {[["resumo","📊 Resumo"],["secretaria","🏢 Secretaria"],["historico","📋 Histórico"],["consumo","⛽ km/L"],["financeiro","💰 Financeiro"],["comparativo","📈 Comparativo"]].map(([id,label]) => {
-            const bloqueado = (!podeRelatorios && id === "secretaria") || (!podeKmL && id === "consumo") || (!podeFinanceiro && id === "financeiro") || (!podeRelatorios && id === "comparativo");
+            const bloqueado = (!podeRelatorios && id === "secretaria") || (!podeKmL && id === "consumo") || (!podeFinanceiro && id === "financeiro") || (!podeComparativo && id === "comparativo");
             return (
               <button key={id} onClick={() => { if (bloqueado) { alert(label + " disponivel no Plano Profissional. Faca upgrade!"); } else { setAba(id); } }} style={{
                 padding:"9px 14px", background: bloqueado ? "#1a1c27" : aba===id?"#f97316":"#1a1c27",
@@ -1387,9 +1387,9 @@ export default function App() {
   // ── Controle de Planos ─────────────────────────────
   const plano = usuario?.estabelecimentos?.plano || "basico";
   const PLANOS = {
-    basico:       { label: "Básico",       maxVeiculos: 15, maxUsuarios: 2,  relatorios: true,  csv: true,  pdf: false, kmL: false, financeiro: true  },
-    profissional: { label: "Profissional", maxVeiculos: 50, maxUsuarios: 5,  relatorios: true,  csv: true,  pdf: true,  kmL: true,  financeiro: true  },
-    enterprise:   { label: "Enterprise",   maxVeiculos: 999,maxUsuarios: 999,relatorios: true,  csv: true,  pdf: true,  kmL: true,  financeiro: true  },
+    basico:       { label: "Básico",       maxVeiculos: 20, maxUsuarios: 2,  relatorios: true,  csv: true,  pdf: false, kmL: false, financeiro: true,  comparativo: false },
+    profissional: { label: "Profissional", maxVeiculos: 50, maxUsuarios: 5,  relatorios: true,  csv: true,  pdf: true,  kmL: true,  financeiro: true,  comparativo: true  },
+    enterprise:   { label: "Enterprise",   maxVeiculos: 999,maxUsuarios: 999,relatorios: true,  csv: true,  pdf: true,  kmL: true,  financeiro: true,  comparativo: true  },
   };
   const planoAtual = isAdmin ? PLANOS.enterprise : (PLANOS[plano] || PLANOS.basico);
   const permissoes = usuario?.estabelecimentos?.permissoes || {};
@@ -1402,6 +1402,7 @@ export default function App() {
   const podePDF = isAdmin || planoAtual.pdf;
   const podeKmL = isAdmin || planoAtual.kmL;
   const podeFinanceiro = isAdmin || planoAtual.financeiro;
+  const podeComparativo = isAdmin || planoAtual.comparativo;
   const limiteVeiculos = planoAtual.maxVeiculos;
   const limiteUsuarios = planoAtual.maxUsuarios;
   const estId = usuario?.estabelecimento_id;
@@ -2596,7 +2597,7 @@ export default function App() {
         )}
 
         {/* RELATÓRIOS */}
-        {!loading && activeTab === "relatorios" && <Relatorios registros={registros} isAdmin={isAdmin} veiculos={veiculos} podeRelatorios={podeRelatorios} podeCSV={podeCSV} podePDF={podePDF} podeKmL={podeKmL} podeFinanceiro={podeFinanceiro} filtroEstDashProp={filtroEstDash} />}
+        {!loading && activeTab === "relatorios" && <Relatorios registros={registros} isAdmin={isAdmin} veiculos={veiculos} podeRelatorios={podeRelatorios} podeCSV={podeCSV} podePDF={podePDF} podeKmL={podeKmL} podeFinanceiro={podeFinanceiro} podeComparativo={podeComparativo} filtroEstDashProp={filtroEstDash} />}
 
         {/* MOTORISTAS */}
         {!loading && activeTab === "motoristas" && (
