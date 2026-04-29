@@ -1387,7 +1387,7 @@ export default function App() {
   // ── Controle de Planos ─────────────────────────────
   const plano = usuario?.estabelecimentos?.plano || "basico";
   const PLANOS = {
-    basico:       { label: "Básico",       maxVeiculos: 15, maxUsuarios: 2,  relatorios: false, csv: false, pdf: false, kmL: false, financeiro: false },
+    basico:       { label: "Básico",       maxVeiculos: 15, maxUsuarios: 2,  relatorios: true,  csv: true,  pdf: false, kmL: false, financeiro: true  },
     profissional: { label: "Profissional", maxVeiculos: 50, maxUsuarios: 5,  relatorios: true,  csv: true,  pdf: true,  kmL: true,  financeiro: true  },
     enterprise:   { label: "Enterprise",   maxVeiculos: 999,maxUsuarios: 999,relatorios: true,  csv: true,  pdf: true,  kmL: true,  financeiro: true  },
   };
