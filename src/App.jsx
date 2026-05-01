@@ -1934,7 +1934,7 @@ export default function App() {
   };
 
   const handleImportarVeiculos = async () => {
-    const token = usuario?.accessToken || SUPABASE_KEY;
+    const token = SUPABASE_SERVICE_KEY || usuario?.accessToken || SUPABASE_KEY;
     const validos = importRows.filter((r) => !r._erro);
     if (validos.length === 0) { setImportErro("Nenhum veículo válido para importar."); return; }
     if (!importEstId) { setImportErro("Selecione o estabelecimento."); return; }
@@ -1962,7 +1962,7 @@ export default function App() {
   };
 
   const baixarModeloCSVMotoristas = () => {
-    const csv = "nome;cnh;departamento;venc_cnh\nJoão Silva;12345678900;Secretaria de Saúde;2026-12-31\nMaria Souza;;Secretaria de Educação;\n";
+    const csv = "nome;cnh;departamento;venc_cnh\nJoão Silva;'12345678900;Secretaria de Saúde;31/12/2026\nMaria Souza;;Secretaria de Educação;\n";
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob); const a = document.createElement("a");
     a.href = url; a.download = "modelo_motoristas.csv"; a.click(); URL.revokeObjectURL(url);
@@ -1981,15 +1981,20 @@ export default function App() {
         const sep = lines[0].includes(";") ? ";" : ",";
         const headers = lines[0].split(sep).map((h) => h.trim().toLowerCase().replace(/[^a-z_]/g, ""));
         const rows = lines.slice(1).map((line, idx) => {
-          const cols = line.split(sep).map((c) => c.trim().replace(/^"|"$/g, ""));
+          const cols = line.split(sep).map((c) => c.trim().replace(/^"|"$/g, "").replace(/^'/, ""));
           const obj = {};
           headers.forEach((h, i) => { obj[h] = cols[i] || ""; });
+          const parseDateBR = (d) => {
+            if (!d) return "";
+            const m = d.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            return m ? `${m[3]}-${m[2]}-${m[1]}` : d;
+          };
           return {
             _idx: idx + 2,
             nome: obj.nome || "",
             cnh: obj.cnh || "",
             departamento: obj.departamento || obj.secretaria || obj.setor || "",
-            venc_cnh: obj.venccnh || obj.venc_cnh || obj.vencimento || "",
+            venc_cnh: parseDateBR(obj.venccnh || obj.venc_cnh || obj.vencimento || ""),
             _erro: "",
           };
         }).filter((r) => r.nome);
@@ -2007,7 +2012,7 @@ export default function App() {
   };
 
   const handleImportarMotoristas = async () => {
-    const token = usuario?.accessToken || SUPABASE_KEY;
+    const token = SUPABASE_SERVICE_KEY || usuario?.accessToken || SUPABASE_KEY;
     const validos = importMotRows.filter((r) => !r._erro);
     if (validos.length === 0) { setImportMotErro("Nenhum motorista válido para importar."); return; }
     if (!importMotEstId) { setImportMotErro("Selecione o estabelecimento."); return; }
