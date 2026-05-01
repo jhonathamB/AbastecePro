@@ -2600,8 +2600,8 @@ export default function App() {
           {/* Seletor de estabelecimento — linha separada para caber no mobile */}
           {isAdmin && estabelecimentos.length > 0 && (
             <div style={{ marginTop: 10, marginBottom: -8 }}>
-              <select value={filtroEstDash} onChange={(e) => setFiltroEstDash(e.target.value)} style={{ width:"100%", background:"#1a1c27", border:`1px solid ${filtroEstDash?"#f97316":"#2a2c3a"}`, borderRadius:8, color:filtroEstDash?"#f97316":"#8a8a9a", fontFamily:"inherit", fontSize:12, padding:"8px 12px", outline:"none", cursor:"pointer" }}>
-                <option value="">🏪 Todos os estabelecimentos</option>
+              <select value={filtroEstDash} onChange={(e) => setFiltroEstDash(e.target.value)} style={{ background:"#1a1c27", border:`1px solid ${filtroEstDash?"#f97316":"#2a2c3a"}`, borderRadius:8, color:filtroEstDash?"#f97316":"#8a8a9a", fontFamily:"inherit", fontSize:11, padding:"6px 10px", outline:"none", maxWidth:160, cursor:"pointer" }}>
+                <option value="">🏪 Todos</option>
                 {estabelecimentos.filter((e) => e.nome !== "Administrador").map((e) => (
                   <option key={e.id} value={e.nome}>{e.nome}</option>
                 ))}
