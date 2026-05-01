@@ -78,7 +78,7 @@ const addToQueue = (item) => { const q = getQueue(); q.push(item); cache.set("qu
 const clearQueue = () => cache.del("queue");
 
 const COMBUSTIVEIS = ["Gasolina Comum", "Gasolina Aditivada", "Etanol", "Diesel S10", "Diesel S500", "GNV", "Elétrico"];
-const now = () => { const d = new Date(); const off = d.getTimezoneOffset(); return new Date(d.getTime() - off * 60000).toISOString().slice(0, 16); };
+const now = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}T${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; };
 const fmtBRL = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtNum = (v, d = 2) => Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: d });
 const qrUrl = (data) => `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data)}`;
@@ -2897,7 +2897,7 @@ export default function App() {
                           <div style={{ fontSize:13, fontWeight:500, color:"#fff" }}>{r.motorista_nome}</div>
                           {r._offline && <span style={{ fontSize:9, background:"#92400e", color:"#fbbf24", borderRadius:4, padding:"2px 5px" }}>OFFLINE</span>}
                         </div>
-                        <div style={{ fontSize:11, color:"#5a5a6a", marginTop:2 }}>{new Date(r.data_hora).toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"})}</div>
+                        <div style={{ fontSize:11, color:"#5a5a6a", marginTop:2 }}>{(r.data_hora||"").slice(11,16)}</div>
                       </div>
                       <div>
                         <div style={{ fontSize:13, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#fff" }}>{r.placa}</div>
