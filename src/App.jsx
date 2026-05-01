@@ -1432,6 +1432,7 @@ export default function App() {
     const agora = Date.now();
     cache.set("usuario_sessao", { ...u, _loginAt: agora });
     setUsuario({ ...u, _loginAt: agora });
+    registrarLog(u, "LOGIN", `${u.nome} (${u.perfil}) fez login`);
   };
   // Verificar expiração de sessão
   useEffect(() => {
@@ -1473,6 +1474,7 @@ export default function App() {
 
   const handleLogout = async () => {
     const token = usuario?.accessToken;
+    registrarLog(usuario, "LOGOUT", `${usuario?.nome} (${usuario?.perfil}) saiu`);
     cache.del("usuario_sessao");
     setUsuario(null);
     if (token) { try { await authLogout(token); } catch (_) {} }
@@ -1686,6 +1688,7 @@ export default function App() {
       setUsuarios(users);
       setUserForm({ nome: "", email: "", perfil: "gestor", estabelecimento_id: "" });
       setUserOk(true); setTimeout(() => setUserOk(false), 2200);
+      registrarLog(usuario, "USUARIO_CRIADO", `${userForm.nome} (${userForm.perfil}) criado`);
     } catch (err) { alert("Erro: " + err.message); }
   };
 
@@ -1722,6 +1725,7 @@ export default function App() {
         if (!res.ok) { const e = await res.json(); throw new Error(e.message || "Erro ao alterar senha"); }
       }
       setEditUser(null); setEditUserOk(true); setTimeout(() => setEditUserOk(false), 2200);
+      registrarLog(usuario, "USUARIO_EDITADO", `Senha de ${editUser?.nome} alterada`);
     } catch (err) { alert("Erro: " + err.message); }
   };
 
