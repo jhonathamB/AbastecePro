@@ -551,7 +551,7 @@ function Divider() { return <div style={{ borderTop: "1px dashed #ccc", margin: 
 function Row({ label, value }) { return <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}><span style={{ color: "#666" }}>{label}:</span><span style={{ fontWeight: 500, textAlign: "right", maxWidth: "60%" }}>{value}</span></div>; }
 
 // ── Relatórios ────────────────────────────────────────
-function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, podePDF, podeKmL, podeFinanceiro, podeComparativo, filtroEstDashProp, filtroEstIdProp }) {
+function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, podePDF, podeKmL, podeFinanceiro, podeComparativo, filtroEstDashProp, filtroEstIdProp, estabelecimentos }) {
   const [aba, setAba] = useState("resumo");
   const [tipo, setTipo] = useState("departamento");
   const [periodo, setPeriodo] = useState("todos");
@@ -589,7 +589,12 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   const campos = { departamento: "departamento", veiculo: "placa", motorista: "motorista_nome", combustivel: "combustivel", estabelecimento: "operador" };
   const grupos = {};
   regs.forEach((r) => {
-    const chave = r[campos[tipo]] || "—";
+    let chave;
+    if (tipo === "estabelecimento") {
+      chave = r.operador || (estabelecimentos && estabelecimentos.find((e) => e.id === r.estabelecimento_id)?.nome) || "—";
+    } else {
+      chave = r[campos[tipo]] || "—";
+    }
     if (!grupos[chave]) grupos[chave] = { litros: 0, custo: 0, count: 0 };
     grupos[chave].litros += Number(r.quantidade || 0);
     grupos[chave].custo += Number(r.custo || 0);
@@ -1493,7 +1498,7 @@ export default function App() {
       const [m, v, r, d] = await Promise.all([
         api.get("motoristas", q, token),
         api.get("veiculos", q, token),
-        api.get("abastecimentos", `${q}${q ? "&" : ""}order=created_at.desc`, token),
+        api.get("abastecimentos", `${q}${q ? "&" : ""}order=created_at.desc&select=*,created_at`, token),
         api.get("departamentos", q, token),
       ]);
       const offlineRegs = (cache.get("registros") || []).filter((r) => r._offline);
@@ -1851,7 +1856,8 @@ export default function App() {
   const handleSaveEditReg = async () => {
     if (!editReg) return;
     if (!isAdmin) {
-      const criado = new Date(editReg.created_at || editReg.data_hora || 0);
+      const rawCriado = editReg.created_at || editReg.data_hora || 0;
+      const criado = new Date(typeof rawCriado === "string" ? rawCriado.replace(" ", "T") + (rawCriado.includes("Z") || rawCriado.includes("+") ? "" : "Z") : rawCriado);
       const diffMin = (Date.now() - criado.getTime()) / 60000;
       if (diffMin > 30) { alert("Prazo de 30 minutos expirado. Não é possível editar este registro."); setEditReg(null); return; }
     }
@@ -2903,7 +2909,8 @@ export default function App() {
                       <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
                         <button onClick={() => setComprovante(r)} className="sbtn" style={{ background:"#1e2535", border:"1px solid #f97316", borderRadius:6, color:"#f97316", cursor:"pointer", padding:"4px 8px", fontSize:14 }}>🧾</button>
                         {(() => {
-                          const criado = new Date(r.created_at || r.data_hora || 0);
+                          const raw = r.created_at || r.data_hora || 0;
+                          const criado = new Date(typeof raw === "string" ? raw.replace(" ", "T") + (raw.includes("Z") || raw.includes("+") ? "" : "Z") : raw);
                           const diffMin = (Date.now() - criado.getTime()) / 60000;
                           const restante = Math.ceil(30 - diffMin);
                           return diffMin <= 30 && !r._offline ? (
@@ -2920,7 +2927,7 @@ export default function App() {
         )}
 
         {/* RELATÓRIOS */}
-        {!loading && activeTab === "relatorios" && <Relatorios registros={registros} isAdmin={isAdmin} veiculos={veiculos} podeRelatorios={podeRelatorios} podeCSV={podeCSV} podePDF={podePDF} podeKmL={podeKmL} podeFinanceiro={podeFinanceiro} podeComparativo={podeComparativo} filtroEstDashProp={filtroEstDash} filtroEstIdProp={filtroEstId} />}
+        {!loading && activeTab === "relatorios" && <Relatorios registros={registros} isAdmin={isAdmin} veiculos={veiculos} podeRelatorios={podeRelatorios} podeCSV={podeCSV} podePDF={podePDF} podeKmL={podeKmL} podeFinanceiro={podeFinanceiro} podeComparativo={podeComparativo} filtroEstDashProp={filtroEstDash} filtroEstIdProp={filtroEstId} estabelecimentos={estabelecimentos} />}
 
         {/* MOTORISTAS */}
         {!loading && activeTab === "motoristas" && (
