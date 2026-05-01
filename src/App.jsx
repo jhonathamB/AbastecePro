@@ -1934,7 +1934,7 @@ export default function App() {
   };
 
   const handleImportarVeiculos = async () => {
-    const token = SUPABASE_SERVICE_KEY || usuario?.accessToken || SUPABASE_KEY;
+    const token = usuario?.accessToken || SUPABASE_KEY;
     const validos = importRows.filter((r) => !r._erro);
     if (validos.length === 0) { setImportErro("Nenhum veículo válido para importar."); return; }
     if (!importEstId) { setImportErro("Selecione o estabelecimento."); return; }
@@ -2012,7 +2012,7 @@ export default function App() {
   };
 
   const handleImportarMotoristas = async () => {
-    const token = SUPABASE_SERVICE_KEY || usuario?.accessToken || SUPABASE_KEY;
+    const token = usuario?.accessToken || SUPABASE_KEY;
     const validos = importMotRows.filter((r) => !r._erro);
     if (validos.length === 0) { setImportMotErro("Nenhum motorista válido para importar."); return; }
     if (!importMotEstId) { setImportMotErro("Selecione o estabelecimento."); return; }
