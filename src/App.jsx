@@ -216,7 +216,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
 
   const porEst = {};
   if (isAdmin) regs.forEach((r) => {
-    const k = r.operador||"—";
+    const k = r.operador || (estabelecimentos && estabelecimentos.find((e) => e.id === r.estabelecimento_id)?.nome) || "—";
     if (!porEst[k]) porEst[k] = { litros:0, custo:0, count:0 };
     porEst[k].litros += Number(r.quantidade||0);
     porEst[k].custo += Number(r.custo||0);
