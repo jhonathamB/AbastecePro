@@ -3017,7 +3017,23 @@ export default function App() {
               </div>
               {departamentos.length === 0 ? <EmptyState>Nenhum departamento.</EmptyState> : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {departamentosVisiveis.map((d) => <div key={d} style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>🏢 {d}</div>)}
+                  <div
+                    onClick={() => setFiltroDptoVeic("")}
+                    style={{ background: !filtroDptoVeic ? "#f97316" : "#1a1c27", border: `1px solid ${!filtroDptoVeic ? "#f97316" : "#2a2c3a"}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, cursor: "pointer", color: !filtroDptoVeic ? "#fff" : "#e8e4d9", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <span>🏢 Todos os departamentos</span>
+                    <span style={{ fontSize:11, color: !filtroDptoVeic ? "#fff" : "#8a8a9a" }}>{veiculosVisiveis.length}</span>
+                  </div>
+                  {departamentosVisiveis.map((d) => {
+                    const count = veiculosVisiveis.filter((v) => v.departamento === d).length;
+                    const ativo = filtroDptoVeic === d;
+                    return (
+                      <div key={d} onClick={() => setFiltroDptoVeic(ativo ? "" : d)}
+                        style={{ background: ativo ? "#7c2d12" : "#1a1c27", border: `1px solid ${ativo ? "#f97316" : "#2a2c3a"}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, cursor: "pointer", color: ativo ? "#fff" : "#e8e4d9", display:"flex", justifyContent:"space-between", alignItems:"center", transition:"all 0.15s" }}>
+                        <span>🏢 {d}</span>
+                        <span style={{ fontSize:11, color: ativo ? "#fbbf24" : "#8a8a9a", fontFamily:"'DM Mono',monospace" }}>{count}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
               <div style={{ marginTop: 24 }}>
@@ -3058,19 +3074,7 @@ export default function App() {
                   <button onClick={imprimirTodosQRVeiculos} style={{ padding:"7px 14px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:8, color:"#a78bfa", fontFamily:"inherit", fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>🖨️ Imprimir QR Codes</button>
                 )}
               </div>
-              {/* Filtro por secretaria */}
-              {departamentosVisiveis.length > 0 && (
-                <div style={{ display:"flex", gap:6, marginBottom:10, flexWrap:"wrap" }}>
-                  <button onClick={() => setFiltroDptoVeic("")} style={{ padding:"4px 12px", borderRadius:20, border:`1px solid ${!filtroDptoVeic ? "#f97316" : "#2a2c3a"}`, background: !filtroDptoVeic ? "#f97316" : "transparent", color: !filtroDptoVeic ? "#fff" : "#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>
-                    Todos
-                  </button>
-                  {departamentosVisiveis.filter((d) => veiculosVisiveis.some((v) => v.departamento === d)).map((d) => (
-                    <button key={d} onClick={() => setFiltroDptoVeic(filtroDptoVeic === d ? "" : d)} style={{ padding:"4px 12px", borderRadius:20, border:`1px solid ${filtroDptoVeic === d ? "#f97316" : "#2a2c3a"}`, background: filtroDptoVeic === d ? "#f97316" : "transparent", color: filtroDptoVeic === d ? "#fff" : "#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* Filtro aplicado via departamentos da esquerda */}
               {!isAdmin && veiculos.length >= limiteVeiculos && (
                 <div style={{ background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:8, padding:"10px 14px", fontSize:12, color:"#ef4444", marginBottom:12 }}>
                   🔒 Limite de veículos atingido. Faça upgrade para o próximo plano.
