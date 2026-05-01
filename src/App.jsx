@@ -2916,6 +2916,30 @@ export default function App() {
         {!loading && activeTab === "motoristas" && (
           <div className="fade-in mot-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, alignItems: "start" }}>
             <div>
+              {/* Departamentos clicáveis */}
+              {departamentosVisiveis.length > 0 && (
+                <div style={{ marginBottom: 24 }}>
+                  <SectionTitle icon="🏢">Departamentos</SectionTitle>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div onClick={() => setFiltroDptoMot("")}
+                      style={{ background: !filtroDptoMot ? "#f97316" : "#1a1c27", border: `1px solid ${!filtroDptoMot ? "#f97316" : "#2a2c3a"}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, cursor: "pointer", color: !filtroDptoMot ? "#fff" : "#e8e4d9", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <span>🏢 Todos os departamentos</span>
+                      <span style={{ fontSize:11, color: !filtroDptoMot ? "#fff" : "#8a8a9a" }}>{motoristasVisiveis.length}</span>
+                    </div>
+                    {departamentosVisiveis.map((d) => {
+                      const count = motoristasVisiveis.filter((m) => m.departamento === d).length;
+                      const ativo = filtroDptoMot === d;
+                      return (
+                        <div key={d} onClick={() => setFiltroDptoMot(ativo ? "" : d)}
+                          style={{ background: ativo ? "#7c2d12" : "#1a1c27", border: `1px solid ${ativo ? "#f97316" : "#2a2c3a"}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, cursor: "pointer", color: ativo ? "#fff" : "#e8e4d9", display:"flex", justifyContent:"space-between", alignItems:"center", transition:"all 0.15s" }}>
+                          <span>🏢 {d}</span>
+                          <span style={{ fontSize:11, color: ativo ? "#fbbf24" : "#8a8a9a", fontFamily:"'DM Mono',monospace" }}>{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <SectionTitle icon="👤">Cadastrar Motorista</SectionTitle>
               {!online && <Alert type="warn">⚠ Sem conexão. Cadastro indisponível offline.</Alert>}
               {motOk && <Alert type="success">✓ Motorista cadastrado!</Alert>}
@@ -2944,19 +2968,6 @@ export default function App() {
                   <button onClick={imprimirTodosQRMotoristas} style={{ padding:"7px 14px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:8, color:"#a78bfa", fontFamily:"inherit", fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>🖨️ Imprimir QR Codes</button>
                 )}
               </div>
-              {/* Filtro por secretaria */}
-              {departamentosVisiveis.length > 0 && (
-                <div style={{ display:"flex", gap:6, marginBottom:10, flexWrap:"wrap" }}>
-                  <button onClick={() => setFiltroDptoMot("")} style={{ padding:"4px 12px", borderRadius:20, border:`1px solid ${!filtroDptoMot ? "#f97316" : "#2a2c3a"}`, background: !filtroDptoMot ? "#f97316" : "transparent", color: !filtroDptoMot ? "#fff" : "#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>
-                    Todos
-                  </button>
-                  {departamentosVisiveis.filter((d) => motoristasVisiveis.some((m) => m.departamento === d)).map((d) => (
-                    <button key={d} onClick={() => setFiltroDptoMot(filtroDptoMot === d ? "" : d)} style={{ padding:"4px 12px", borderRadius:20, border:`1px solid ${filtroDptoMot === d ? "#f97316" : "#2a2c3a"}`, background: filtroDptoMot === d ? "#f97316" : "transparent", color: filtroDptoMot === d ? "#fff" : "#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              )}
               {motoristas.length === 0 ? <EmptyState>Nenhum motorista.</EmptyState> : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {motoristasVisiveis.filter((m) => !filtroDptoMot || m.departamento === filtroDptoMot).map((m) => {
