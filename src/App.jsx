@@ -1378,6 +1378,22 @@ export default function App() {
   const [editUser, setEditUser] = useState(null);
   const [editUserOk, setEditUserOk] = useState(false);
 
+  // ── Importação em massa de veículos (admin only) ───
+  const [importModal, setImportModal] = useState(false);
+  const [importRows, setImportRows] = useState([]);
+  const [importEstId, setImportEstId] = useState("");
+  const [importLoading, setImportLoading] = useState(false);
+  const [importOk, setImportOk] = useState(false);
+  const [importErro, setImportErro] = useState("");
+
+  // ── Importação em massa de motoristas (admin only) ─
+  const [importMotModal, setImportMotModal] = useState(false);
+  const [importMotRows, setImportMotRows] = useState([]);
+  const [importMotEstId, setImportMotEstId] = useState("");
+  const [importMotLoading, setImportMotLoading] = useState(false);
+  const [importMotOk, setImportMotOk] = useState(false);
+  const [importMotErro, setImportMotErro] = useState("");
+
   const isAdmin = usuario?.perfil === "admin";
   const isGestor = usuario?.perfil === "gestor";
   const isOperador = usuario?.perfil === "operador";
@@ -1876,6 +1892,143 @@ export default function App() {
     } catch (err) { alert("Erro: " + err.message); }
   };
 
+  const handleImportCSV = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImportErro(""); setImportOk(false);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = ev.target.result;
+        const lines = text.split(/\r?\n/).filter((l) => l.trim());
+        if (lines.length < 2) { setImportErro("Planilha vazia ou sem dados."); return; }
+        // Detectar separador (vírgula ou ponto-e-vírgula)
+        const sep = lines[0].includes(";") ? ";" : ",";
+        const headers = lines[0].split(sep).map((h) => h.trim().toLowerCase().replace(/[^a-z]/g, ""));
+        const rows = lines.slice(1).map((line, idx) => {
+          const cols = line.split(sep).map((c) => c.trim().replace(/^"|"$/g, ""));
+          const obj = {};
+          headers.forEach((h, i) => { obj[h] = cols[i] || ""; });
+          return {
+            _idx: idx + 2,
+            placa: (obj.placa || "").toUpperCase().replace(/[^A-Z0-9]/g, "").replace(/^([A-Z]{3})([0-9A-Z]{4})$/, "$1-$2"),
+            modelo: obj.modelo || obj.veiculo || "",
+            ano: obj.ano || "",
+            departamento: obj.departamento || obj.secretaria || obj.setor || "",
+            status: "ativo",
+            _erro: "",
+          };
+        }).filter((r) => r.placa);
+        // Validar
+        const placasExistentes = veiculos.map((v) => v.placa.toUpperCase());
+        rows.forEach((r) => {
+          if (!r.placa) r._erro = "Placa em falta";
+          else if (placasExistentes.includes(r.placa)) r._erro = "Placa já cadastrada";
+          else if (!r.departamento) r._erro = "Secretaria/Departamento em falta";
+        });
+        setImportRows(rows);
+      } catch { setImportErro("Erro ao ler arquivo. Use CSV com colunas: placa, modelo, ano, departamento."); }
+    };
+    reader.readAsText(file, "UTF-8");
+    e.target.value = "";
+  };
+
+  const handleImportarVeiculos = async () => {
+    const token = usuario?.accessToken || SUPABASE_KEY;
+    const validos = importRows.filter((r) => !r._erro);
+    if (validos.length === 0) { setImportErro("Nenhum veículo válido para importar."); return; }
+    if (!importEstId) { setImportErro("Selecione o estabelecimento."); return; }
+    setImportLoading(true); setImportErro("");
+    try {
+      const payload = validos.map((r) => ({
+        placa: r.placa, modelo: r.modelo, ano: r.ano, departamento: r.departamento,
+        status: "ativo", estabelecimento_id: importEstId,
+      }));
+      const novos = await api.post("veiculos", payload, token);
+      const atualizado = [...veiculos, ...(Array.isArray(novos) ? novos : [])];
+      setVeiculos(atualizado); cache.set("veiculos", atualizado);
+      registrarLog(usuario, "IMPORTACAO_VEICULOS", `${validos.length} veículos importados`);
+      setImportOk(true); setImportRows([]);
+      setTimeout(() => { setImportModal(false); setImportOk(false); }, 2500);
+    } catch (err) { setImportErro("Erro ao importar: " + err.message); }
+    setImportLoading(false);
+  };
+
+  const baixarModeloCSV = () => {
+    const csv = "placa;modelo;ano;departamento\nABC-1234;Fiat Strada;2022;Secretaria de Saúde\nDEF-5678;VW Gol;2020;Secretaria de Educação\n";
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob); const a = document.createElement("a");
+    a.href = url; a.download = "modelo_veiculos.csv"; a.click(); URL.revokeObjectURL(url);
+  };
+
+  const baixarModeloCSVMotoristas = () => {
+    const csv = "nome;cnh;departamento;venc_cnh\nJoão Silva;12345678900;Secretaria de Saúde;2026-12-31\nMaria Souza;;Secretaria de Educação;\n";
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob); const a = document.createElement("a");
+    a.href = url; a.download = "modelo_motoristas.csv"; a.click(); URL.revokeObjectURL(url);
+  };
+
+  const handleImportMotCSV = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImportMotErro(""); setImportMotOk(false);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = ev.target.result;
+        const lines = text.split(/\r?\n/).filter((l) => l.trim());
+        if (lines.length < 2) { setImportMotErro("Planilha vazia ou sem dados."); return; }
+        const sep = lines[0].includes(";") ? ";" : ",";
+        const headers = lines[0].split(sep).map((h) => h.trim().toLowerCase().replace(/[^a-z_]/g, ""));
+        const rows = lines.slice(1).map((line, idx) => {
+          const cols = line.split(sep).map((c) => c.trim().replace(/^"|"$/g, ""));
+          const obj = {};
+          headers.forEach((h, i) => { obj[h] = cols[i] || ""; });
+          return {
+            _idx: idx + 2,
+            nome: obj.nome || "",
+            cnh: obj.cnh || "",
+            departamento: obj.departamento || obj.secretaria || obj.setor || "",
+            venc_cnh: obj.venccnh || obj.venc_cnh || obj.vencimento || "",
+            _erro: "",
+          };
+        }).filter((r) => r.nome);
+        const nomesExistentes = motoristas.map((m) => m.nome.toLowerCase());
+        rows.forEach((r) => {
+          if (!r.nome) r._erro = "Nome em falta";
+          else if (nomesExistentes.includes(r.nome.toLowerCase())) r._erro = "Nome já cadastrado";
+          else if (!r.departamento) r._erro = "Departamento em falta";
+        });
+        setImportMotRows(rows);
+      } catch { setImportMotErro("Erro ao ler arquivo. Use CSV com colunas: nome, cnh, departamento, venc_cnh."); }
+    };
+    reader.readAsText(file, "UTF-8");
+    e.target.value = "";
+  };
+
+  const handleImportarMotoristas = async () => {
+    const token = usuario?.accessToken || SUPABASE_KEY;
+    const validos = importMotRows.filter((r) => !r._erro);
+    if (validos.length === 0) { setImportMotErro("Nenhum motorista válido para importar."); return; }
+    if (!importMotEstId) { setImportMotErro("Selecione o estabelecimento."); return; }
+    setImportMotLoading(true); setImportMotErro("");
+    try {
+      const payload = validos.map((r) => ({
+        nome: r.nome, cnh: r.cnh || null,
+        departamento: r.departamento,
+        venc_cnh: r.venc_cnh || null,
+        estabelecimento_id: importMotEstId,
+      }));
+      const novos = await api.post("motoristas", payload, token);
+      const atualizado = [...motoristas, ...(Array.isArray(novos) ? novos : [])];
+      setMotoristas(atualizado); cache.set("motoristas", atualizado);
+      registrarLog(usuario, "IMPORTACAO_MOTORISTAS", `${validos.length} motoristas importados`);
+      setImportMotOk(true); setImportMotRows([]);
+      setTimeout(() => { setImportMotModal(false); setImportMotOk(false); }, 2500);
+    } catch (err) { setImportMotErro("Erro ao importar: " + err.message); }
+    setImportMotLoading(false);
+  };
+
   const exportCSV = () => {
     const regsExport = isAdmin && filtroEstDash ? registros.filter((r) => r.operador === filtroEstDash) : registros;
     const h = ["Data/Hora", "Estabelecimento", "Motorista", "CNH", "Placa", "Departamento", "Combustível", "Qtd (L)", "Hodômetro", "Custo (R$)", "Status"];
@@ -2074,6 +2227,157 @@ export default function App() {
             <div style={{ display:"flex", gap:8, marginTop:20 }}>
               <button onClick={handleUpdateMotorista} style={{ flex:1, padding:"13px", background:"#4ade80", border:"none", borderRadius:10, color:"#0f1117", fontFamily:"inherit", fontSize:13, fontWeight:700, cursor:"pointer" }}>✓ SALVAR</button>
               <button onClick={() => setEditMotorista(null)} style={{ padding:"13px 16px", background:"none", border:"1px solid #3a2020", borderRadius:10, color:"#ef4444", fontFamily:"inherit", fontSize:13, cursor:"pointer" }}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Importação em Massa de Motoristas — admin only */}
+      {importMotModal && isAdmin && (
+        <div className="qr-overlay" onClick={() => { setImportMotModal(false); setImportMotRows([]); setImportMotErro(""); setImportMotOk(false); }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background:"#1a1c27", border:"1px solid #4ade80", borderRadius:16, padding:28, maxWidth:560, width:"95%", maxHeight:"90vh", overflowY:"auto" }}>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:16, color:"#fff", marginBottom:4 }}>📥 Importar Motoristas em Massa</div>
+            <div style={{ fontSize:11, color:"#4ade80", letterSpacing:1, marginBottom:20 }}>SOMENTE ADMIN</div>
+
+            {importMotOk && <div style={{ background:"#14532d", border:"1px solid #16a34a", borderRadius:8, padding:"12px 16px", marginBottom:16, fontSize:13, color:"#4ade80" }}>✓ Motoristas importados com sucesso!</div>}
+            {importMotErro && <div style={{ background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:8, padding:"12px 16px", marginBottom:16, fontSize:12, color:"#ef4444" }}>{importMotErro}</div>}
+
+            <div style={{ marginBottom:16 }}>
+              <label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>ESTABELECIMENTO</label>
+              <select value={importMotEstId} onChange={(e) => setImportMotEstId(e.target.value)} style={iS()}>
+                <option value="">— Selecione o cliente —</option>
+                {estabelecimentos.filter((e) => e.nome !== "Administrador").map((e) => (
+                  <option key={e.id} value={e.id}>{e.nome}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display:"flex", gap:10, marginBottom:16 }}>
+              <button onClick={baixarModeloCSVMotoristas} style={{ flex:1, padding:"11px", background:"#0f1117", border:"1px solid #4ade80", borderRadius:8, color:"#4ade80", fontFamily:"inherit", fontSize:12, cursor:"pointer" }}>
+                ⬇️ Baixar modelo CSV
+              </button>
+              <label style={{ flex:1 }}>
+                <div style={{ padding:"11px", background:"#0f1117", border:"1px solid #4ade80", borderRadius:8, color:"#4ade80", fontFamily:"inherit", fontSize:12, cursor:"pointer", textAlign:"center" }}>
+                  📄 Selecionar CSV
+                </div>
+                <input type="file" accept=".csv,.txt" onChange={handleImportMotCSV} style={{ display:"none" }} />
+              </label>
+            </div>
+
+            <div style={{ fontSize:11, color:"#5a5a6a", marginBottom:16, lineHeight:1.6 }}>
+              Colunas: <span style={{ color:"#4ade80" }}>nome; cnh; departamento; venc_cnh</span><br/>
+              CNH e venc_cnh são opcionais. Data no formato AAAA-MM-DD.
+            </div>
+
+            {importMotRows.length > 0 && (
+              <div style={{ marginBottom:16 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                  <div style={{ fontSize:12, color:"#e8e4d9", fontWeight:500 }}>{importMotRows.length} motoristas encontrados</div>
+                  <div style={{ display:"flex", gap:10, fontSize:11 }}>
+                    <span style={{ color:"#4ade80" }}>✓ {importMotRows.filter((r) => !r._erro).length} válidos</span>
+                    {importMotRows.filter((r) => r._erro).length > 0 && (
+                      <span style={{ color:"#ef4444" }}>✕ {importMotRows.filter((r) => r._erro).length} com erro</span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ maxHeight:240, overflowY:"auto", display:"flex", flexDirection:"column", gap:4 }}>
+                  {importMotRows.map((r, i) => (
+                    <div key={i} style={{ display:"grid", gridTemplateColumns:"1.5fr 1fr 1fr auto", gap:6, padding:"8px 10px", borderRadius:6, background: r._erro ? "#2d0f0f" : "#0f1117", border:`1px solid ${r._erro ? "#ef4444" : "#2a2c3a"}`, fontSize:12 }}>
+                      <span style={{ color:"#fff", fontWeight:500, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.nome}</span>
+                      <span style={{ color:"#8a8a9a", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.cnh || "—"}</span>
+                      <span style={{ color:"#8a8a9a", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.departamento || "—"}</span>
+                      {r._erro
+                        ? <span style={{ color:"#ef4444", fontSize:10, whiteSpace:"nowrap" }}>✕ {r._erro}</span>
+                        : <span style={{ color:"#4ade80", fontSize:10 }}>✓ OK</span>
+                      }
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display:"flex", gap:8, marginTop:8 }}>
+              <button onClick={handleImportarMotoristas} disabled={importMotLoading || importMotRows.filter((r)=>!r._erro).length===0 || !importMotEstId} style={{ flex:1, padding:"13px", background: importMotLoading || importMotRows.filter((r)=>!r._erro).length===0 || !importMotEstId ? "#2a2c3a":"#4ade80", border:"none", borderRadius:10, color: importMotLoading || importMotRows.filter((r)=>!r._erro).length===0 || !importMotEstId ? "#5a5a6a":"#0f1117", fontFamily:"inherit", fontSize:13, fontWeight:700, cursor: importMotLoading || importMotRows.filter((r)=>!r._erro).length===0 || !importMotEstId ? "not-allowed":"pointer" }}>
+                {importMotLoading ? "IMPORTANDO..." : `IMPORTAR ${importMotRows.filter((r)=>!r._erro).length} MOTORISTAS`}
+              </button>
+              <button onClick={() => { setImportMotModal(false); setImportMotRows([]); setImportMotErro(""); }} style={{ padding:"13px 16px", background:"none", border:"1px solid #3a2020", borderRadius:10, color:"#ef4444", fontFamily:"inherit", fontSize:13, cursor:"pointer" }}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Importação em Massa de Veículos — admin only */}
+      {importModal && isAdmin && (
+        <div className="qr-overlay" onClick={() => { setImportModal(false); setImportRows([]); setImportErro(""); setImportOk(false); }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background:"#1a1c27", border:"1px solid #f97316", borderRadius:16, padding:28, maxWidth:560, width:"95%", maxHeight:"90vh", overflowY:"auto" }}>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:16, color:"#fff", marginBottom:4 }}>📥 Importar Veículos em Massa</div>
+            <div style={{ fontSize:11, color:"#f97316", letterSpacing:1, marginBottom:20 }}>SOMENTE ADMIN</div>
+
+            {importOk && <div style={{ background:"#14532d", border:"1px solid #16a34a", borderRadius:8, padding:"12px 16px", marginBottom:16, fontSize:13, color:"#4ade80" }}>✓ Veículos importados com sucesso!</div>}
+            {importErro && <div style={{ background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:8, padding:"12px 16px", marginBottom:16, fontSize:12, color:"#ef4444" }}>{importErro}</div>}
+
+            {/* Selecionar estabelecimento */}
+            <div style={{ marginBottom:16 }}>
+              <label style={{ fontSize:10, color:"#5a5a6a", letterSpacing:2, display:"block", marginBottom:6 }}>ESTABELECIMENTO</label>
+              <select value={importEstId} onChange={(e) => setImportEstId(e.target.value)} style={iS()}>
+                <option value="">— Selecione o cliente —</option>
+                {estabelecimentos.filter((e) => e.nome !== "Administrador").map((e) => (
+                  <option key={e.id} value={e.id}>{e.nome}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Download modelo + upload */}
+            <div style={{ display:"flex", gap:10, marginBottom:16 }}>
+              <button onClick={baixarModeloCSV} style={{ flex:1, padding:"11px", background:"#0f1117", border:"1px solid #4ade80", borderRadius:8, color:"#4ade80", fontFamily:"inherit", fontSize:12, cursor:"pointer" }}>
+                ⬇️ Baixar modelo CSV
+              </button>
+              <label style={{ flex:1 }}>
+                <div style={{ padding:"11px", background:"#0f1117", border:"1px solid #f97316", borderRadius:8, color:"#f97316", fontFamily:"inherit", fontSize:12, cursor:"pointer", textAlign:"center" }}>
+                  📄 Selecionar CSV
+                </div>
+                <input type="file" accept=".csv,.txt" onChange={handleImportCSV} style={{ display:"none" }} />
+              </label>
+            </div>
+
+            <div style={{ fontSize:11, color:"#5a5a6a", marginBottom:16, lineHeight:1.6 }}>
+              O arquivo deve ter as colunas: <span style={{ color:"#f97316" }}>placa; modelo; ano; departamento</span><br/>
+              Separador: ponto-e-vírgula (;) ou vírgula (,)
+            </div>
+
+            {/* Preview */}
+            {importRows.length > 0 && (
+              <div style={{ marginBottom:16 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                  <div style={{ fontSize:12, color:"#e8e4d9", fontWeight:500 }}>{importRows.length} veículos encontrados</div>
+                  <div style={{ display:"flex", gap:10, fontSize:11 }}>
+                    <span style={{ color:"#4ade80" }}>✓ {importRows.filter((r) => !r._erro).length} válidos</span>
+                    {importRows.filter((r) => r._erro).length > 0 && (
+                      <span style={{ color:"#ef4444" }}>✕ {importRows.filter((r) => r._erro).length} com erro</span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ maxHeight:240, overflowY:"auto", display:"flex", flexDirection:"column", gap:4 }}>
+                  {importRows.map((r, i) => (
+                    <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr auto", gap:6, padding:"8px 10px", borderRadius:6, background: r._erro ? "#2d0f0f" : "#0f1117", border:`1px solid ${r._erro ? "#ef4444" : "#2a2c3a"}`, fontSize:12 }}>
+                      <span style={{ fontFamily:"'DM Mono',monospace", color:"#fff", fontWeight:500 }}>{r.placa}</span>
+                      <span style={{ color:"#8a8a9a", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.modelo || "—"}</span>
+                      <span style={{ color:"#8a8a9a", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{r.departamento || "—"}</span>
+                      {r._erro
+                        ? <span style={{ color:"#ef4444", fontSize:10, whiteSpace:"nowrap" }}>✕ {r._erro}</span>
+                        : <span style={{ color:"#4ade80", fontSize:10 }}>✓ OK</span>
+                      }
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display:"flex", gap:8, marginTop:8 }}>
+              <button onClick={handleImportarVeiculos} disabled={importLoading || importRows.filter((r)=>!r._erro).length === 0 || !importEstId} style={{ flex:1, padding:"13px", background: importLoading || importRows.filter((r)=>!r._erro).length===0 || !importEstId ? "#2a2c3a":"#f97316", border:"none", borderRadius:10, color: importLoading || importRows.filter((r)=>!r._erro).length===0 || !importEstId ? "#5a5a6a":"#fff", fontFamily:"inherit", fontSize:13, fontWeight:700, cursor: importLoading || importRows.filter((r)=>!r._erro).length===0 || !importEstId ? "not-allowed":"pointer" }}>
+                {importLoading ? "IMPORTANDO..." : `IMPORTAR ${importRows.filter((r)=>!r._erro).length} VEÍCULOS`}
+              </button>
+              <button onClick={() => { setImportModal(false); setImportRows([]); setImportErro(""); }} style={{ padding:"13px 16px", background:"none", border:"1px solid #3a2020", borderRadius:10, color:"#ef4444", fontFamily:"inherit", fontSize:13, cursor:"pointer" }}>Cancelar</button>
             </div>
           </div>
         </div>
@@ -2606,6 +2910,11 @@ export default function App() {
               <SectionTitle icon="👤">Cadastrar Motorista</SectionTitle>
               {!online && <Alert type="warn">⚠ Sem conexão. Cadastro indisponível offline.</Alert>}
               {motOk && <Alert type="success">✓ Motorista cadastrado!</Alert>}
+              {isAdmin && (
+                <button onClick={() => { setImportMotModal(true); setImportMotRows([]); setImportMotErro(""); setImportMotOk(false); setImportMotEstId(""); }} style={{ width:"100%", padding:"11px", background:"#0f1117", border:"1px solid #a78bfa", borderRadius:8, color:"#a78bfa", fontFamily:"inherit", fontSize:12, cursor:"pointer", marginBottom:14 }}>
+                  📥 Importar em Massa (CSV)
+                </button>
+              )}
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <Field label="NOME" error={motErrors.nome}><input type="text" placeholder="Nome completo" value={motForm.nome} onChange={(e) => { setMotForm((f) => ({ ...f, nome: e.target.value })); setMotErrors((x) => ({ ...x, nome: undefined })); }} style={iS(motErrors.nome)} /></Field>
                 <Field label="DEPARTAMENTO" error={motErrors.departamento}>
@@ -2692,6 +3001,11 @@ export default function App() {
               <div style={{ marginTop: 24 }}>
                 <SectionTitle icon="🚗">Cadastrar Veículo</SectionTitle>
                 {veicOk && <Alert type="success">✓ Veículo cadastrado!</Alert>}
+                {isAdmin && (
+                  <button onClick={() => { setImportModal(true); setImportRows([]); setImportErro(""); setImportOk(false); setImportEstId(""); }} style={{ width:"100%", padding:"11px", background:"#0f1117", border:"1px solid #a78bfa", borderRadius:8, color:"#a78bfa", fontFamily:"inherit", fontSize:12, cursor:"pointer", marginBottom:14 }}>
+                    📥 Importar em Massa (CSV)
+                  </button>
+                )}
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <Field label="PLACA" error={veicErrors.placa}><input type="text" placeholder="ABC-1234" value={veicForm.placa} onChange={(e) => { setVeicForm((f) => ({ ...f, placa: e.target.value })); setVeicErrors((x) => ({ ...x, placa: undefined })); }} maxLength={8} style={{ ...iS(veicErrors.placa), textTransform: "uppercase", letterSpacing: 2 }} /></Field>
                   <Field label="DEPARTAMENTO" error={veicErrors.departamento}>
