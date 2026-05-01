@@ -895,7 +895,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
       {aba === "resumo" && (
         <div style={{ paddingBottom:80 }}>
           <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap" }}>
-            {[["departamento","🏢 Depto"],["veiculo","🚗 Veículo"],["motorista","👤 Motorista"],["combustivel","⛽ Combustível"],...(isAdmin?[["estabelecimento","🏪 Posto"]]:[])].map(([id,label]) => (
+            {[["departamento","🏢 Depto"],["veiculo","🚗 Veículo"],["motorista","👤 Motorista"],["combustivel","⛽ Combustível"],...(isAdmin?[["estabelecimento","🏪 Cliente"]]:[])].map(([id,label]) => (
               <button key={id} onClick={() => setTipo(id)} style={{ padding:"8px 14px", background:tipo===id?"#f97316":"#1a1c27", border:`1px solid ${tipo===id?"#f97316":"#2a2c3a"}`, borderRadius:8, color:tipo===id?"#fff":"#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>{label}</button>
             ))}
           </div>
