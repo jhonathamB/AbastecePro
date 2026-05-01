@@ -2897,7 +2897,7 @@ export default function App() {
                           <div style={{ fontSize:13, fontWeight:500, color:"#fff" }}>{r.motorista_nome}</div>
                           {r._offline && <span style={{ fontSize:9, background:"#92400e", color:"#fbbf24", borderRadius:4, padding:"2px 5px" }}>OFFLINE</span>}
                         </div>
-                        <div style={{ fontSize:11, color:"#5a5a6a", marginTop:2 }}>{(r.data_hora||"").slice(11,16)}</div>
+                        <div style={{ fontSize:11, color:"#5a5a6a", marginTop:2 }}>{new Date(r.data_hora).toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"})}</div>
                       </div>
                       <div>
                         <div style={{ fontSize:13, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#fff" }}>{r.placa}</div>
