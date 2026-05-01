@@ -1857,7 +1857,7 @@ export default function App() {
     if (!editReg) return;
     if (!isAdmin) {
       const criado = editReg.created_at
-        ? new Date(editReg.created_at.replace(" ", "T"))
+        ? new Date(editReg.created_at.replace(" ", "T") + "Z")
         : new Date(editReg.data_hora || Date.now());
       const diffMin = (Date.now() - criado.getTime()) / 60000;
       if (diffMin > 30) { alert("Prazo de 30 minutos expirado. Não é possível editar este registro."); setEditReg(null); return; }
@@ -2911,7 +2911,7 @@ export default function App() {
                         <button onClick={() => setComprovante(r)} className="sbtn" style={{ background:"#1e2535", border:"1px solid #f97316", borderRadius:6, color:"#f97316", cursor:"pointer", padding:"4px 8px", fontSize:14 }}>🧾</button>
                         {(() => {
                           const criado = r.created_at 
-                            ? new Date(r.created_at.replace(" ", "T"))
+                            ? new Date(r.created_at.replace(" ", "T") + "Z")
                             : new Date(r.data_hora || Date.now());
                           const diffMin = (Date.now() - criado.getTime()) / 60000;
                           const restante = Math.ceil(30 - diffMin);
