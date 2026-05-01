@@ -1394,6 +1394,10 @@ export default function App() {
   const [importMotOk, setImportMotOk] = useState(false);
   const [importMotErro, setImportMotErro] = useState("");
 
+  // ── Filtros por departamento ───────────────────────
+  const [filtroDptoVeic, setFiltroDptoVeic] = useState("");
+  const [filtroDptoMot, setFiltroDptoMot] = useState("");
+
   const isAdmin = usuario?.perfil === "admin";
   const isGestor = usuario?.perfil === "gestor";
   const isOperador = usuario?.perfil === "operador";
@@ -2935,14 +2939,27 @@ export default function App() {
             </div>
             <div>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
-                <SectionTitle icon="📋">Cadastrados ({motoristasVisiveis.length})</SectionTitle>
+                <SectionTitle icon="📋">Cadastrados ({motoristasVisiveis.filter((m) => !filtroDptoMot || m.departamento === filtroDptoMot).length})</SectionTitle>
                 {motoristasVisiveis.length > 0 && !isOperador && (
                   <button onClick={imprimirTodosQRMotoristas} style={{ padding:"7px 14px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:8, color:"#a78bfa", fontFamily:"inherit", fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>🖨️ Imprimir QR Codes</button>
                 )}
               </div>
+              {/* Filtro por secretaria */}
+              {departamentosVisiveis.length > 0 && (
+                <div style={{ display:"flex", gap:6, marginBottom:10, flexWrap:"wrap" }}>
+                  <button onClick={() => setFiltroDptoMot("")} style={{ padding:"4px 12px", borderRadius:20, border:`1px solid ${!filtroDptoMot ? "#f97316" : "#2a2c3a"}`, background: !filtroDptoMot ? "#f97316" : "transparent", color: !filtroDptoMot ? "#fff" : "#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>
+                    Todos
+                  </button>
+                  {departamentosVisiveis.filter((d) => motoristasVisiveis.some((m) => m.departamento === d)).map((d) => (
+                    <button key={d} onClick={() => setFiltroDptoMot(filtroDptoMot === d ? "" : d)} style={{ padding:"4px 12px", borderRadius:20, border:`1px solid ${filtroDptoMot === d ? "#f97316" : "#2a2c3a"}`, background: filtroDptoMot === d ? "#f97316" : "transparent", color: filtroDptoMot === d ? "#fff" : "#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              )}
               {motoristas.length === 0 ? <EmptyState>Nenhum motorista.</EmptyState> : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {motoristasVisiveis.map((m) => {
+                  {motoristasVisiveis.filter((m) => !filtroDptoMot || m.departamento === filtroDptoMot).map((m) => {
                     const sCnh = statusVenc(m.venc_cnh);
                     const vencida = sCnh && sCnh.cor === "#ef4444";
                     const vencendo = sCnh && sCnh.cor === "#fbbf24";
@@ -3036,11 +3053,24 @@ export default function App() {
             </div>
             <div>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
-                <SectionTitle icon="🚗">Veículos ({veiculosVisiveis.length}{!isAdmin ? `/${limiteVeiculos}` : ""})</SectionTitle>
+                <SectionTitle icon="🚗">Veículos ({veiculosVisiveis.filter((v) => !filtroDptoVeic || v.departamento === filtroDptoVeic).length}{!isAdmin ? `/${limiteVeiculos}` : ""})</SectionTitle>
                 {veiculosVisiveis.length > 0 && !isOperador && (
                   <button onClick={imprimirTodosQRVeiculos} style={{ padding:"7px 14px", background:"#1e2535", border:"1px solid #a78bfa", borderRadius:8, color:"#a78bfa", fontFamily:"inherit", fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>🖨️ Imprimir QR Codes</button>
                 )}
               </div>
+              {/* Filtro por secretaria */}
+              {departamentosVisiveis.length > 0 && (
+                <div style={{ display:"flex", gap:6, marginBottom:10, flexWrap:"wrap" }}>
+                  <button onClick={() => setFiltroDptoVeic("")} style={{ padding:"4px 12px", borderRadius:20, border:`1px solid ${!filtroDptoVeic ? "#f97316" : "#2a2c3a"}`, background: !filtroDptoVeic ? "#f97316" : "transparent", color: !filtroDptoVeic ? "#fff" : "#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer" }}>
+                    Todos
+                  </button>
+                  {departamentosVisiveis.filter((d) => veiculosVisiveis.some((v) => v.departamento === d)).map((d) => (
+                    <button key={d} onClick={() => setFiltroDptoVeic(filtroDptoVeic === d ? "" : d)} style={{ padding:"4px 12px", borderRadius:20, border:`1px solid ${filtroDptoVeic === d ? "#f97316" : "#2a2c3a"}`, background: filtroDptoVeic === d ? "#f97316" : "transparent", color: filtroDptoVeic === d ? "#fff" : "#8a8a9a", fontFamily:"inherit", fontSize:11, cursor:"pointer", whiteSpace:"nowrap" }}>
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              )}
               {!isAdmin && veiculos.length >= limiteVeiculos && (
                 <div style={{ background:"#2d0f0f", border:"1px solid #ef4444", borderRadius:8, padding:"10px 14px", fontSize:12, color:"#ef4444", marginBottom:12 }}>
                   🔒 Limite de veículos atingido. Faça upgrade para o próximo plano.
@@ -3048,7 +3078,7 @@ export default function App() {
               )}
               {veiculos.length === 0 ? <EmptyState>Nenhum veículo.</EmptyState> : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {veiculosVisiveis.map((v) => {
+                  {veiculosVisiveis.filter((v) => !filtroDptoVeic || v.departamento === filtroDptoVeic).map((v) => {
                     const sCrlv = statusVenc(v.venc_crlv);
                     const sSeg = statusVenc(v.venc_seguro_obrigatorio);
                     const temAlerta = (sCrlv && sCrlv.cor !== "#4ade80") || (sSeg && sSeg.cor !== "#4ade80");
