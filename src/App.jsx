@@ -2054,6 +2054,9 @@ export default function App() {
 
   const pendentes = getQueue().length;
 
+  // ID do estabelecimento selecionado no filtro
+  const filtroEstId = filtroEstDash ? (estabelecimentos.find((e) => e.nome === filtroEstDash) || {}).id : null;
+
   // Registros filtrados para a lista
   const regsVisiveis = isAdmin && filtroEstId ? registros.filter((r) => r.estabelecimento_id === filtroEstId) : registros;
   const filtered = regsVisiveis.filter((r) => {
@@ -2067,9 +2070,6 @@ export default function App() {
   });
 
   if (!usuario) return <LoginScreen onLogin={handleLogin} />;
-
-  // ID do estabelecimento selecionado no filtro
-  const filtroEstId = filtroEstDash ? (estabelecimentos.find((e) => e.nome === filtroEstDash) || {}).id : null;
 
   // Filtrar motoristas e veículos pelo estabelecimento selecionado no header
   const departamentosVisiveis = isAdmin && filtroEstId
