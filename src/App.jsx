@@ -160,7 +160,7 @@ function useQRScanner(onResult) {
 }
 
 // ── Dashboard ─────────────────────────────────────────
-function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabelecimentos, isDark, totalAlertas, alertasVeic, alertasMot, filtroEst }) {
+function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabelecimentos, isDark, totalAlertas, alertasVeic, alertasMot, filtroEst, filtroEstId }) {
   const [periodo, setPeriodo] = useState("mes");
   const hoje = new Date();
   const bg = "#1a1c27";
@@ -174,7 +174,7 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
       if (periodo === "hoje" && !(r.data_hora||"").startsWith(hoje.toISOString().slice(0,10))) return false;
       if (periodo === "mes" && !(r.data_hora||"").startsWith(hoje.toISOString().slice(0,7))) return false;
       if (periodo === "ano" && !(r.data_hora||"").startsWith(String(hoje.getFullYear()))) return false;
-      if (filtroEst && r.operador !== filtroEst) return false;
+      if (filtroEstId && r.estabelecimento_id !== filtroEstId) return false;
       return true;
     });
   };
@@ -551,13 +551,14 @@ function Divider() { return <div style={{ borderTop: "1px dashed #ccc", margin: 
 function Row({ label, value }) { return <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}><span style={{ color: "#666" }}>{label}:</span><span style={{ fontWeight: 500, textAlign: "right", maxWidth: "60%" }}>{value}</span></div>; }
 
 // ── Relatórios ────────────────────────────────────────
-function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, podePDF, podeKmL, podeFinanceiro, podeComparativo, filtroEstDashProp }) {
-  const [aba, setAba] = useState("resumo"); // resumo | secretaria | historico | consumo | financeiro
+function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, podePDF, podeKmL, podeFinanceiro, podeComparativo, filtroEstDashProp, filtroEstIdProp }) {
+  const [aba, setAba] = useState("resumo");
   const [tipo, setTipo] = useState("departamento");
   const [periodo, setPeriodo] = useState("todos");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const filtroEst = filtroEstDashProp || "";
+  const filtroEstId = filtroEstIdProp || null;
 
   const [filtroSecretaria, setFiltroSecretaria] = useState("");
   const [comparativoMeses, setComparativoMeses] = useState(6);
@@ -572,14 +573,13 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
       if (periodo === "mes" && !dt.startsWith(hoje.toISOString().slice(0, 7))) return false;
       if (periodo === "periodo" && dataInicio && dt < dataInicio) return false;
       if (periodo === "periodo" && dataFim && dt > dataFim) return false;
-      if (filtroEst && r.operador !== filtroEst) return false;
-
+      if (filtroEstId && r.estabelecimento_id !== filtroEstId) return false;
       return true;
     });
   };
 
   const regs = filtrarPeriodo(registros);
-  const registrosFiltradosEst = filtroEst ? registros.filter((r) => r.operador === filtroEst) : registros;
+  const registrosFiltradosEst = filtroEstId ? registros.filter((r) => r.estabelecimento_id === filtroEstId) : registros;
   const estabelecimentosUnicos = [...new Set(registros.map((r) => r.operador).filter(Boolean))];
   const secretariasUnicas = [...new Set(registrosFiltradosEst.map((r) => r.departamento).filter(Boolean))];
   const placasUnicas = [...new Set(registrosFiltradosEst.map((r) => r.placa).filter(Boolean))];
@@ -2043,7 +2043,7 @@ export default function App() {
   };
 
   const exportCSV = () => {
-    const regsExport = isAdmin && filtroEstDash ? registros.filter((r) => r.operador === filtroEstDash) : registros;
+    const regsExport = isAdmin && filtroEstId ? registros.filter((r) => r.estabelecimento_id === filtroEstId) : registros;
     const h = ["Data/Hora", "Estabelecimento", "Motorista", "CNH", "Placa", "Departamento", "Combustível", "Qtd (L)", "Hodômetro", "Custo (R$)", "Status"];
     const rows = regsExport.map((r) => [(r.data_hora || "").slice(0, 16).replace("T", " "), r.operador, r.motorista_nome, r.motorista_cnh, r.placa, r.departamento, r.combustivel, r.quantidade, r.hodometro || "", r.custo, r._offline ? "Pendente" : "Sincronizado"]);
     const csv = [h, ...rows].map((r) => r.map((c) => `"${c ?? ""}"`).join(";")).join("\n");
@@ -2055,7 +2055,7 @@ export default function App() {
   const pendentes = getQueue().length;
 
   // Registros filtrados para a lista
-  const regsVisiveis = isAdmin && filtroEstDash ? registros.filter((r) => r.operador === filtroEstDash) : registros;
+  const regsVisiveis = isAdmin && filtroEstId ? registros.filter((r) => r.estabelecimento_id === filtroEstId) : registros;
   const filtered = regsVisiveis.filter((r) => {
     if (filtroData && !(r.data_hora || "").startsWith(filtroData)) return false;
     return (
@@ -2068,16 +2068,19 @@ export default function App() {
 
   if (!usuario) return <LoginScreen onLogin={handleLogin} />;
 
+  // ID do estabelecimento selecionado no filtro
+  const filtroEstId = filtroEstDash ? (estabelecimentos.find((e) => e.nome === filtroEstDash) || {}).id : null;
+
   // Filtrar motoristas e veículos pelo estabelecimento selecionado no header
-  const departamentosVisiveis = isAdmin && filtroEstDash
-    ? departamentos.filter((d) => { const est = estabelecimentos.find((e) => e.nome === filtroEstDash); return est ? d.estabelecimento_id === est.id : true; }).map((d) => d.nome || d)
+  const departamentosVisiveis = isAdmin && filtroEstId
+    ? departamentos.filter((d) => d.estabelecimento_id === filtroEstId).map((d) => d.nome || d)
     : departamentos.map((d) => d.nome || d);
 
-  const motoristasVisiveis = isAdmin && filtroEstDash
-    ? motoristas.filter((m) => { const est = estabelecimentos.find((e) => e.nome === filtroEstDash); return est ? m.estabelecimento_id === est.id : true; })
+  const motoristasVisiveis = isAdmin && filtroEstId
+    ? motoristas.filter((m) => m.estabelecimento_id === filtroEstId)
     : motoristas;
-  const veiculosVisiveis = isAdmin && filtroEstDash
-    ? veiculos.filter((v) => { const est = estabelecimentos.find((e) => e.nome === filtroEstDash); return est ? v.estabelecimento_id === est.id : true; })
+  const veiculosVisiveis = isAdmin && filtroEstId
+    ? veiculos.filter((v) => v.estabelecimento_id === filtroEstId)
     : veiculos;
 
   // Calcular alertas usando listas filtradas
@@ -2095,7 +2098,7 @@ export default function App() {
   const TABS = [
     ...(!isOperador ? [["dashboard", "📊 Dashboard"]] : []),
     ...(isOperador ? [["registrar", "Registrar"]] : []),
-    ...(isOperador ? [["meus-registros", "Meus Registros Hoje"]] : [["registros", `Registros (${isAdmin && filtroEstDash ? registros.filter((r) => r.operador === filtroEstDash).length : registros.length})`]]),
+    ...(isOperador ? [["meus-registros", "Meus Registros Hoje"]] : [["registros", `Registros (${isAdmin && filtroEstId ? registros.filter((r) => r.estabelecimento_id === filtroEstId).length : registros.length})`]]),
     ...(!isOperador ? [["relatorios", "Relatórios"]] : []),
     ...(podeGerenciar ? [["motoristas", `Motoristas (${motoristasVisiveis.length})`], ["veiculos", `Veículos (${veiculosVisiveis.length})`]] : []),
     ...(isAdmin ? [["admin", "⚙️ Admin"], ["logs", "📋 Logs"]] : []),
@@ -2723,7 +2726,7 @@ export default function App() {
                 </div>
               ) : null;
             })()}
-            <Dashboard registros={registros} motoristas={motoristasVisiveis} veiculos={veiculosVisiveis} estNome={estNome} isAdmin={isAdmin} estabelecimentos={estabelecimentos} isDark={isDark} totalAlertas={totalAlertas} alertasVeic={alertasVeic} alertasMot={alertasMot} filtroEst={filtroEstDash} />
+            <Dashboard registros={registros} motoristas={motoristasVisiveis} veiculos={veiculosVisiveis} estNome={estNome} isAdmin={isAdmin} estabelecimentos={estabelecimentos} isDark={isDark} totalAlertas={totalAlertas} alertasVeic={alertasVeic} alertasMot={alertasMot} filtroEst={filtroEstDash} filtroEstId={filtroEstId} />
           </div>
         )}
 
@@ -2917,7 +2920,7 @@ export default function App() {
         )}
 
         {/* RELATÓRIOS */}
-        {!loading && activeTab === "relatorios" && <Relatorios registros={registros} isAdmin={isAdmin} veiculos={veiculos} podeRelatorios={podeRelatorios} podeCSV={podeCSV} podePDF={podePDF} podeKmL={podeKmL} podeFinanceiro={podeFinanceiro} podeComparativo={podeComparativo} filtroEstDashProp={filtroEstDash} />}
+        {!loading && activeTab === "relatorios" && <Relatorios registros={registros} isAdmin={isAdmin} veiculos={veiculos} podeRelatorios={podeRelatorios} podeCSV={podeCSV} podePDF={podePDF} podeKmL={podeKmL} podeFinanceiro={podeFinanceiro} podeComparativo={podeComparativo} filtroEstDashProp={filtroEstDash} filtroEstIdProp={filtroEstId} />}
 
         {/* MOTORISTAS */}
         {!loading && activeTab === "motoristas" && (
