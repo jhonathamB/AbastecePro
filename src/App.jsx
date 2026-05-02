@@ -1513,6 +1513,9 @@ export default function App() {
       if (isAdmin) {
         const [ests, users] = await Promise.all([api.get("estabelecimentos", "", token), api.get("usuarios", "select=*,estabelecimentos(*)", token)]);
         setEstabelecimentos(ests); setUsuarios(users);
+      } else if (isGestor) {
+        const ests = await api.get("estabelecimentos", `id=eq.${estId}`, token);
+        setEstabelecimentos(ests);
       }
     } catch (e) { console.error(e); }
     setLoading(false);
