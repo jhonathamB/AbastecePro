@@ -551,7 +551,7 @@ function Divider() { return <div style={{ borderTop: "1px dashed #ccc", margin: 
 function Row({ label, value }) { return <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}><span style={{ color: "#666" }}>{label}:</span><span style={{ fontWeight: 500, textAlign: "right", maxWidth: "60%" }}>{value}</span></div>; }
 
 // ── Relatórios ────────────────────────────────────────
-function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, podePDF, podeKmL, podeFinanceiro, podeComparativo, filtroEstDashProp, filtroEstIdProp, estabelecimentos }) {
+function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, podePDF, podeKmL, podeFinanceiro, podeComparativo, filtroEstDashProp, filtroEstIdProp, estabelecimentos, estNomeProp }) {
   const [aba, setAba] = useState("resumo");
   const [tipo, setTipo] = useState("departamento");
   const [periodo, setPeriodo] = useState("todos");
@@ -719,6 +719,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
     </style></head>
     <body>
       <h1>⛽ AbasteTech — Relatório de Abastecimento</h1>
+      ${estNomeProp ? `<div style="font-size:14px;font-weight:bold;color:#f97316;margin-bottom:4px">🏢 ${estNomeProp}</div>` : ""}
       <div class="sub">Gerado em ${new Date().toLocaleString("pt-BR")}</div>
       ${filtros.length > 0 ? `<div class="filtros">🔍 <strong>Filtros aplicados:</strong> ${filtros.join(" &nbsp;|&nbsp; ")}</div>` : ""}
       <div class="cards">
@@ -786,7 +787,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
         ];
       });
 
-      const nomeEst = dadosExport.length > 0 ? (dadosExport[0].operador || "") : "";
+      const nomeEst = estNomeProp || (dadosExport.length > 0 ? (dadosExport[0].operador || "") : "");
       const wsData = [
         ["Listagem dos abastecimentos"],
         [nomeEst ? "Estabelecimento: " + nomeEst : ""],
@@ -2935,7 +2936,7 @@ export default function App() {
         )}
 
         {/* RELATÓRIOS */}
-        {!loading && activeTab === "relatorios" && <Relatorios registros={registros} isAdmin={isAdmin} veiculos={veiculos} podeRelatorios={podeRelatorios} podeCSV={podeCSV} podePDF={podePDF} podeKmL={podeKmL} podeFinanceiro={podeFinanceiro} podeComparativo={podeComparativo} filtroEstDashProp={filtroEstDash} filtroEstIdProp={filtroEstId} estabelecimentos={estabelecimentos} />}
+        {!loading && activeTab === "relatorios" && <Relatorios registros={registros} isAdmin={isAdmin} veiculos={veiculos} podeRelatorios={podeRelatorios} podeCSV={podeCSV} podePDF={podePDF} podeKmL={podeKmL} podeFinanceiro={podeFinanceiro} podeComparativo={podeComparativo} filtroEstDashProp={filtroEstDash} filtroEstIdProp={filtroEstId} estabelecimentos={estabelecimentos} estNomeProp={estNome || estabelecimentos?.find?.(e => e.id === estId)?.nome || ""} />}
 
         {/* MOTORISTAS */}
         {!loading && activeTab === "motoristas" && (
