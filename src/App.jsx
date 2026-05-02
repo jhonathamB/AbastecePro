@@ -2607,8 +2607,8 @@ export default function App() {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {pendentes > 0 && <div style={{ background: "#92400e", borderRadius: 8, padding: "3px 8px", fontSize: 10, color: "#fbbf24" }}>{pendentes} pendente{pendentes > 1 ? "s" : ""}</div>}
-              {isGestor && (
-                <span style={{ fontSize:9, padding:"2px 8px", borderRadius:4, background: plano==="enterprise"?"#2d1a50":plano==="profissional"?"#1a2535":"#1a1c27", color: plano==="enterprise"?"#a78bfa":plano==="profissional"?"#38bdf8":"#5a5a6a", border:`1px solid ${plano==="enterprise"?"#a78bfa":plano==="profissional"?"#38bdf8":"#3a3a4a"}` }}>
+              {isGestor && window.innerWidth > 640 && (
+                <span style={{ fontSize:9, padding:"2px 8px", borderRadius:4, background: planoReal==="enterprise"?"#2d1a50":planoReal==="profissional"?"#1a2535":"#1a1c27", color: planoReal==="enterprise"?"#a78bfa":planoReal==="profissional"?"#38bdf8":"#5a5a6a", border:`1px solid ${planoReal==="enterprise"?"#a78bfa":planoReal==="profissional"?"#38bdf8":"#3a3a4a"}` }}>
                   {planoAtual.label}
                 </span>
               )}
