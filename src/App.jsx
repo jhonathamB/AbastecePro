@@ -171,8 +171,8 @@ function Dashboard({ registros, motoristas, veiculos, estNome, isAdmin, estabele
 
   const filtrar = (regs) => {
     return regs.filter((r) => {
-      if (periodo === "hoje" && !(r.data_hora||"").startsWith(hoje.toISOString().slice(0,10))) return false;
-      if (periodo === "mes" && !(r.data_hora||"").startsWith(hoje.toISOString().slice(0,7))) return false;
+      if (periodo === "hoje" && !(r.data_hora||"").startsWith(hoje.toLocaleDateString("sv"))) return false;
+      if (periodo === "mes" && !(r.data_hora||"").startsWith(hoje.toLocaleDateString("sv").slice(0,7))) return false;
       if (periodo === "ano" && !(r.data_hora||"").startsWith(String(hoje.getFullYear()))) return false;
       if (filtroEstId && r.estabelecimento_id !== filtroEstId) return false;
       return true;
@@ -569,8 +569,8 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   const filtrarPeriodo = (regs) => {
     return regs.filter((r) => {
       const dt = (r.data_hora || "").slice(0, 10);
-      if (periodo === "hoje" && dt !== hoje.toISOString().slice(0, 10)) return false;
-      if (periodo === "mes" && !dt.startsWith(hoje.toISOString().slice(0, 7))) return false;
+      if (periodo === "hoje" && dt !== hoje.toLocaleDateString("sv")) return false;
+      if (periodo === "mes" && !dt.startsWith(hoje.toLocaleDateString("sv").slice(0, 7))) return false;
       if (periodo === "periodo" && dataInicio && dt < dataInicio) return false;
       if (periodo === "periodo" && dataFim && dt > dataFim) return false;
       if (filtroEstId && r.estabelecimento_id !== filtroEstId) return false;
@@ -636,7 +636,7 @@ function Relatorios({ registros, isAdmin, veiculos, podeRelatorios, podeCSV, pod
   // PDF export
   const exportPDF = () => {
     const mes = hoje.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-    const regsM = registros.filter((r) => (r.data_hora || "").startsWith(hoje.toISOString().slice(0, 7)));
+    const regsM = registros.filter((r) => (r.data_hora || "").startsWith(hoje.toLocaleDateString("sv").slice(0, 7)));
     const totalL = regsM.reduce((a, b) => a + Number(b.quantidade || 0), 0);
     const totalC = regsM.reduce((a, b) => a + Number(b.custo || 0), 0);
     const porDepto = {};
@@ -1551,7 +1551,7 @@ export default function App() {
     if (!form.custo || +form.custo <= 0) e.custo = "Inválido";
     if (Object.keys(e).length > 0) { setFormErrors(e); return; }
     const novoReg = {
-      data_hora: new Date(form.dataHora).toISOString(),
+      data_hora: form.dataHora,
       motorista_id: scannedMot.id, motorista_nome: scannedMot.nome, motorista_cnh: scannedMot.cnh,
       veiculo_id: scannedVeic.id, placa: scannedVeic.placa, modelo: scannedVeic.modelo,
       departamento: scannedVeic.departamento, combustivel: form.combustivel,
@@ -1561,7 +1561,7 @@ export default function App() {
       operador: estNome, estabelecimento_id: estId,
     };
     if (online) {
-      try { const salvo = await api.post("abastecimentos", novoReg, token); const atualizado = [salvo[0], ...registros]; setRegistros(atualizado); cache.set("registros", atualizado); setComprovante(salvo[0]); }
+      try { const salvo = await api.post("abastecimentos", novoReg, token); const registroComHoraLocal = {...salvo[0], data_hora: novoReg.data_hora}; const atualizado = [registroComHoraLocal, ...registros]; setRegistros(atualizado); cache.set("registros", atualizado); setComprovante(registroComHoraLocal); }
       catch { alert("Erro ao salvar."); return; }
     } else {
       const regOffline = { ...novoReg, _offline: true, _localId: Date.now(), id: `offline_${Date.now()}` };
@@ -1586,7 +1586,7 @@ export default function App() {
     const veic = veiculosVisiveis.find((v) => v.id === novoAbastForm.veiculoId);
     const estRef = isAdmin && filtroEstDash ? estabelecimentos.find((x) => x.nome === filtroEstDash) : null;
     const novoReg = {
-      data_hora: new Date(novoAbastForm.dataHora).toISOString(),
+      data_hora: novoAbastForm.dataHora,
       motorista_id: mot.id, motorista_nome: mot.nome, motorista_cnh: mot.cnh || null,
       veiculo_id: veic.id, placa: veic.placa, modelo: veic.modelo,
       departamento: veic.departamento, combustivel: novoAbastForm.combustivel,
@@ -2713,7 +2713,7 @@ export default function App() {
           <div className="fade-in">
             {/* Resumo do dia */}
             {(() => {
-              const hoje = new Date().toISOString().slice(0,10);
+              const hoje = new Date().toLocaleDateString("sv");
               const hoje_regs = registros.filter((r) => (r.data_hora||"").startsWith(hoje));
               const hoje_litros = hoje_regs.reduce((a,b) => a+Number(b.quantidade||0), 0);
               const hoje_custo = hoje_regs.reduce((a,b) => a+Number(b.custo||0), 0);
@@ -2882,15 +2882,15 @@ export default function App() {
             <div style={{ background:"#1a1c27", border:"1px solid #2a2c3a", borderRadius:10, padding:"14px 18px", marginBottom:16 }}>
               <div style={{ fontSize:9, color:"#5a5a6a", letterSpacing:1, fontWeight:500 }}>SEUS REGISTROS DE HOJE</div>
               <div style={{ fontSize:18, fontFamily:"'DM Mono',monospace", fontWeight:500, color:"#f97316", marginTop:6 }}>
-                {registros.filter((r) => (r.data_hora||"").startsWith(new Date().toISOString().slice(0,10)) && r.operador === estNome).length}
+                {registros.filter((r) => (r.data_hora||"").startsWith(new Date().toLocaleDateString("sv")) && r.operador === estNome).length}
                 <span style={{ fontSize:12, marginLeft:6, color:"#5a5a6a" }}>abastecimentos</span>
               </div>
             </div>
-            {registros.filter((r) => (r.data_hora||"").startsWith(new Date().toISOString().slice(0,10)) && r.operador === estNome).length === 0
+            {registros.filter((r) => (r.data_hora||"").startsWith(new Date().toLocaleDateString("sv")) && r.operador === estNome).length === 0
               ? <EmptyState>Nenhum abastecimento registrado hoje.</EmptyState>
               : (
                 <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                  {registros.filter((r) => (r.data_hora||"").startsWith(new Date().toISOString().slice(0,10)) && r.operador === estNome).map((r) => (
+                  {registros.filter((r) => (r.data_hora||"").startsWith(new Date().toLocaleDateString("sv")) && r.operador === estNome).map((r) => (
                     <div key={r.id||r._localId} className="row-item fade-in" style={{ background:"#1a1c27", border:`1px solid ${r._offline?"#b45309":"#2a2c3a"}`, borderRadius:10, padding:"14px 18px", display:"grid", gridTemplateColumns:"1.4fr 1fr 1fr auto", alignItems:"center", gap:12 }}>
                       <div>
                         <div style={{ display:"flex", alignItems:"center", gap:6 }}>
