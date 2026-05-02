@@ -1513,7 +1513,7 @@ export default function App() {
       if (isAdmin) {
         const [ests, users] = await Promise.all([api.get("estabelecimentos", "", token), api.get("usuarios", "select=*,estabelecimentos(*)", token)]);
         setEstabelecimentos(ests); setUsuarios(users);
-      } else if (isGestor) {
+      } else {
         const ests = await api.get("estabelecimentos", `id=eq.${estId}`, token);
         setEstabelecimentos(ests);
       }
@@ -2787,7 +2787,7 @@ export default function App() {
             )}
 
             <div style={{ background: "#1a1c27", border: "1px solid #2a2c3a", borderRadius: 10, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div><div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2, marginBottom: 2 }}>ESTABELECIMENTO</div><div style={{ fontSize: 14, fontWeight: 500, color: "#f97316" }}>{estNome}</div></div>
+              <div><div style={{ fontSize: 10, color: "#5a5a6a", letterSpacing: 2, marginBottom: 2 }}>ESTABELECIMENTO</div><div style={{ fontSize: 14, fontWeight: 500, color: "#f97316" }}>{estNome || estabelecimentos?.find?.((e) => e.id === estId)?.nome || "—"}</div></div>
               <span style={{ fontSize: 11, color: "#4ade80" }}>✓ fixo</span>
             </div>
             <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
