@@ -1421,6 +1421,12 @@ export default function App() {
   const podeCadastrarMotoristas = isAdmin || (isGestor && permissoes.cadastrarMotoristas !== false);
   const podeEditarVeiculos = isAdmin || (isGestor && permissoes.editarVeiculos !== false);
   const podeEditarMotoristas = isAdmin || (isGestor && permissoes.editarMotoristas !== false);
+
+  const estId = usuario?.estabelecimento_id;
+  const estNome = usuario?.estabelecimentos?.nome || "";
+  const planoReal = estabelecimentos?.find?.((e) => e.id === estId)?.plano || plano;
+  const planoAtual = isAdmin ? PLANOS.enterprise : (PLANOS[planoReal] || PLANOS.basico);
+
   const podeRelatorios = isAdmin || planoAtual.relatorios;
   const podeCSV = isAdmin || planoAtual.csv;
   const podePDF = isAdmin || planoAtual.pdf;
@@ -1429,10 +1435,6 @@ export default function App() {
   const podeComparativo = isAdmin || planoAtual.comparativo;
   const limiteVeiculos = planoAtual.maxVeiculos;
   const limiteUsuarios = planoAtual.maxUsuarios;
-  const estId = usuario?.estabelecimento_id;
-  const estNome = usuario?.estabelecimentos?.nome || "";
-  const planoReal = estabelecimentos?.find?.((e) => e.id === estId)?.plano || plano;
-  const planoAtual = isAdmin ? PLANOS.enterprise : (PLANOS[planoReal] || PLANOS.basico);
 
   const handleLogin = (u) => {
     const agora = Date.now();
