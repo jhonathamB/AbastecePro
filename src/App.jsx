@@ -1410,7 +1410,7 @@ export default function App() {
   const podeDashboard = isAdmin || isGestor;
 
   // ── Controle de Planos ─────────────────────────────
-  const plano = usuario?.estabelecimentos?.plano || "basico";
+  const plano = usuario?.estabelecimentos?.plano || usuario?.estabelecimento?.plano || (estabelecimentos.find((e) => e.id === estId)?.plano) || "basico";
   const PLANOS = {
     basico:       { label: "Básico",       maxVeiculos: 20, maxUsuarios: 2,  relatorios: true,  csv: true,  pdf: false, kmL: false, financeiro: true,  comparativo: false },
     profissional: { label: "Profissional", maxVeiculos: 50, maxUsuarios: 5,  relatorios: true,  csv: true,  pdf: true,  kmL: true,  financeiro: true,  comparativo: true  },
