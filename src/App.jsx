@@ -1410,13 +1410,13 @@ export default function App() {
   const podeDashboard = isAdmin || isGestor;
 
   // ── Controle de Planos ─────────────────────────────
-  const plano = usuario?.estabelecimentos?.plano || usuario?.estabelecimento?.plano || (estabelecimentos.find((e) => e.id === estId)?.plano) || "basico";
+  const plano = usuario?.estabelecimentos?.plano || usuario?.estabelecimento?.plano || "basico";
   const PLANOS = {
     basico:       { label: "Básico",       maxVeiculos: 20, maxUsuarios: 2,  relatorios: true,  csv: true,  pdf: false, kmL: false, financeiro: true,  comparativo: false },
     profissional: { label: "Profissional", maxVeiculos: 50, maxUsuarios: 5,  relatorios: true,  csv: true,  pdf: true,  kmL: true,  financeiro: true,  comparativo: true  },
     enterprise:   { label: "Enterprise",   maxVeiculos: 999,maxUsuarios: 999,relatorios: true,  csv: true,  pdf: true,  kmL: true,  financeiro: true,  comparativo: true  },
   };
-  const planoAtual = isAdmin ? PLANOS.enterprise : (PLANOS[plano] || PLANOS.basico);
+  const planoAtual = isAdmin ? PLANOS.enterprise : (PLANOS[planoReal] || PLANOS.basico);
   const permissoes = usuario?.estabelecimentos?.permissoes || {};
   const podeCadastrarVeiculos = isAdmin || (isGestor && permissoes.cadastrarVeiculos !== false);
   const podeCadastrarMotoristas = isAdmin || (isGestor && permissoes.cadastrarMotoristas !== false);
@@ -1432,6 +1432,7 @@ export default function App() {
   const limiteUsuarios = planoAtual.maxUsuarios;
   const estId = usuario?.estabelecimento_id;
   const estNome = usuario?.estabelecimentos?.nome || "";
+  const planoReal = estabelecimentos?.find?.((e) => e.id === estId)?.plano || plano;
 
   const handleLogin = (u) => {
     const agora = Date.now();
